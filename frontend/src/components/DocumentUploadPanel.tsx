@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api, type DocumentRecord } from "../api/client";
 import { type Language } from "../i18n";
+import { FilePicker } from "./FilePicker";
 
 type Props = {
   caseId: string;
@@ -45,12 +46,12 @@ export function DocumentUploadPanel({ caseId, documents, onDocumentsChange, onEr
           <option value="LETTER_OF_CREDIT">Letter of Credit</option>
           <option value="INSURANCE_CERTIFICATE">Insurance Certificate</option>
         </select>
-        <input type="file" multiple accept=".txt,.docx,.pdf,.png,.jpg,.jpeg" onChange={(event) => uploadFiles(event.target.files)} />
+        <FilePicker multiple accept=".txt,.docx,.pdf,.png,.jpg,.jpeg" disabled={isUploading} onChange={uploadFiles} />
       </div>
       {isUploading && <p className="subtle">Uploading...</p>}
       {documents.length > 0 && (
         <div className="table-wrap">
-          <table>
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Document</th>

@@ -8,6 +8,7 @@ import {
   type TradeCase,
 } from "../api/client";
 import type { Language } from "../i18n";
+import { FilePicker } from "../components/FilePicker";
 
 type Props = {
   onCaseCreated: (tradeCase: TradeCase, targetPath?: string) => void;
@@ -193,8 +194,7 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
                 <strong>{slot.label}</strong>
                 <small>{slot.requirement}</small>
               </div>
-              <input type="file" accept=".txt,.docx,.pdf" onChange={(event) => updateSlotFile(slot.key, event.target.files?.[0] ?? null)} />
-              <small>{slot.file ? slot.file.name : "No file selected"}</small>
+              <FilePicker accept=".txt,.docx,.pdf" fileName={slot.file?.name} onChange={(files) => updateSlotFile(slot.key, files?.[0] ?? null)} />
               <div className="inline-actions">
                 <span className="tag">{slot.status}</span>
                 {slot.file && <button type="button" onClick={() => updateSlotFile(slot.key, null)}>Remove</button>}
@@ -421,19 +421,18 @@ function ConflictSummary({ conflicts, caseId }: { conflicts: FieldConflict[]; ca
 }
 
 function DocumentProcessingTrace({ trace }: { trace: TraceStep[] }) {
+  const activeCount = trace.filter((step) => step.status !== "Pending").length;
   return (
-    <section className="panel full-width">
-      <div className="panel-heading"><h2>Document Processing</h2><span className="tag">Visible trace</span></div>
+    <details className="panel full-width trace-disclosure" open={activeCount > 0}>
+      <summary><span><strong>Document Processing</strong><small>{activeCount > 0 ? `${activeCount} steps updated` : "Trace appears when extraction starts"}</small></span><span className="tag">{activeCount}/{trace.length}</span></summary>
       <ol className="agent-trace">
-        {trace.map((step, index) => (
-          <li key={step.label}>
-            <span className="trace-step-number">{index + 1}</span>
-            <div>
-              <div className="trace-title"><strong>{step.label}</strong><span>{step.status}</span></div>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </section>
+          {trace.map((step, index) => (
+            <li key={step.label}>
+              <span className="trace-step-number">{index + 1}</span>
+              <div><div className="trace-title"><strong>{step.label}</strong><span>{step.status}</span></div></div>
+            </li>
+          ))}
+        </ol>
+    </details>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { api, type FieldConflict } from "../api/client";
 
 type Props = {
@@ -7,13 +8,19 @@ type Props = {
 };
 
 export function FieldConflictPanel({ caseId, conflicts, onConflictsChange }: Props) {
-  async function resolve(conflict: FieldConflict) {
-    const defaultValue = String(conflict.values[0]?.value ?? "");
-    const value = window.prompt("Resolved value", defaultValue);
-    if (value === null) return;
-    const note = window.prompt("Resolution note", "Resolved after document review.");
-    if (note === null) return;
-    await api.resolveFieldConflict(caseId, conflict.conflict_id, value, note);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolvedValue, setResolvedValue] = useState("");
+  const [resolutionNote, setResolutionNote] = useState("Resolved after document review.");
+
+  function beginResolve(conflict: FieldConflict) {
+    setResolvingId(conflict.conflict_id);
+    setResolvedValue(String(conflict.values[0]?.value ?? ""));
+    setResolutionNote("Resolved after document review.");
+  }
+
+  async function resolve(conflictId: string) {
+    await api.resolveFieldConflict(caseId, conflictId, resolvedValue, resolutionNote);
+    setResolvingId(null);
     onConflictsChange(await api.getFieldConflicts(caseId));
   }
 
@@ -35,7 +42,17 @@ export function FieldConflictPanel({ caseId, conflicts, onConflictsChange }: Pro
                   <li key={`${value.field_id}-${value.source_document_name}`}>{value.source_document_name}: {String(value.value)}</li>
                 ))}
               </ul>
-              {conflict.status === "OPEN" && <button type="button" onClick={() => resolve(conflict)}>Resolve</button>}
+              {conflict.status === "OPEN" && resolvingId !== conflict.conflict_id && <button className="secondary-action" type="button" onClick={() => beginResolve(conflict)}>Resolve conflict</button>}
+              {resolvingId === conflict.conflict_id && (
+                <div className="inline-resolution-form">
+                  <label><span>Resolved value</span><input value={resolvedValue} onChange={(event) => setResolvedValue(event.target.value)} /></label>
+                  <label><span>Resolution note</span><input value={resolutionNote} onChange={(event) => setResolutionNote(event.target.value)} /></label>
+                  <div className="inline-actions">
+                    <button type="button" onClick={() => void resolve(conflict.conflict_id)}>Confirm resolution</button>
+                    <button type="button" onClick={() => setResolvingId(null)}>Cancel</button>
+                  </div>
+                </div>
+              )}
             </article>
           ))}
         </div>
