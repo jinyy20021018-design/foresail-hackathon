@@ -160,63 +160,65 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
     }
   }
 
-  async function createSeededCase(kind: "clean" | "conflict") {
-    setError(null);
-    setIsLoading(true);
-    try {
-      const tradeCase = kind === "clean" ? await api.createCleanDemoCase() : await api.createConflictDemoCase();
-      onCaseCreated(tradeCase);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Failed to create demo case.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   return (
     <section className="create-layout">
-      <div className="page-kicker">Case Library / New Case</div>
-      <h1>Create New Case</h1>
-      <p className="lead">Upload trade documents to create a case and extract key transaction facts.</p>
+      <header className="create-header">
+        <div>
+          <div className="page-kicker">Case Library / New Case</div>
+          <h1>Create New Case</h1>
+          <p className="lead">Upload trade documents, extract transaction facts, then review exceptions.</p>
+        </div>
+        <button className="secondary-action" type="button" onClick={onCancel} disabled={isLoading}>Back to Case Library</button>
+      </header>
+
+      <nav className="create-progress" aria-label="Case creation progress">
+        <div className="active"><span>1</span><div><strong>Upload documents</strong><small>Select trade records</small></div></div>
+        <div className={autofill ? "complete" : ""}><span>2</span><div><strong>Extract facts</strong><small>Match values and evidence</small></div></div>
+        <div><span>3</span><div><strong>Review case</strong><small>Resolve exceptions</small></div></div>
+      </nav>
 
       {error && <div className="error">{error}</div>}
 
-      <section className="panel full-width">
-        <div className="panel-heading">
-          <h2>1. Upload Trade Documents</h2>
-          <span className="tag">TXT / DOCX / text-based PDF</span>
+      <section className="panel full-width create-upload-panel">
+        <div className="create-panel-heading">
+          <div>
+            <span className="section-kicker">Step 1</span>
+            <h2>Upload trade documents</h2>
+            <p>Start with the contract, then add supporting records to improve matching confidence.</p>
+          </div>
+          <span className="upload-format-tag">TXT · DOCX · text-based PDF</span>
         </div>
-        <p className="subtle">Text-based PDF supported. Scanned PDF OCR is not supported yet.</p>
         <div className="document-slot-grid">
           {slots.map((slot) => (
             <div className="document-slot" key={slot.key}>
               <div>
                 <strong>{slot.label}</strong>
-                <small>{slot.requirement}</small>
+                <small className={`document-requirement ${slot.requirement.toLowerCase()}`}>{slot.requirement}</small>
               </div>
               <FilePicker accept=".txt,.docx,.pdf" fileName={slot.file?.name} onChange={(files) => updateSlotFile(slot.key, files?.[0] ?? null)} />
               <div className="inline-actions">
-                <span className="tag">{slot.status}</span>
+                <span className={`document-status ${slot.status.toLowerCase()}`}>{slot.status}</span>
                 {slot.file && <button type="button" onClick={() => updateSlotFile(slot.key, null)}>Remove</button>}
               </div>
             </div>
           ))}
         </div>
-        <div className="form-actions">
+        <div className="create-upload-footer">
+          <div><strong>{selectedFiles.length} document{selectedFiles.length === 1 ? "" : "s"} selected</strong><span>Scanned PDF OCR is not supported yet.</span></div>
           <button className="primary-action" type="button" onClick={extractCaseDetails} disabled={selectedFiles.length === 0 || isLoading}>
             {isLoading ? "Extracting..." : "Extract Case Details"}
           </button>
         </div>
       </section>
 
-      <DocumentProcessingTrace trace={trace} />
+      {(isLoading || caseId || autofill) && <DocumentProcessingTrace trace={trace} />}
 
       {autofill?.warnings.map((warning) => <div className="warning-banner" key={warning}>{warning}</div>)}
       {autofill?.errors?.map((error) => <div className="error" key={error.code}>{error.message}</div>)}
       {autofill?.fallback_used && <div className="warning-banner">LLM extraction is unavailable. The system used fallback extraction.</div>}
       {autofill && <ExtractionStatus result={autofill} />}
 
-      <section className="panel full-width">
+      {(autofill || caseId) && <section className="panel full-width">
         <div className="panel-heading">
           <h2>3. Auto-filled Case Details</h2>
           <span className="tag">{hasExtracted ? "Draft extracted facts" : "Manual draft"}</span>
@@ -239,13 +241,13 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
             </label>
           ))}
         </div>
-      </section>
+      </section>}
 
       {selectedEvidence && <EvidencePanel field={selectedEvidence.field} source={selectedEvidence.source} mode={autofill?.extraction_mode ?? "FALLBACK"} />}
       {autofill && <ExtractedFactsCard result={autofill} onViewEvidence={setSelectedEvidence} />}
       {autofill?.conflicts && autofill.conflicts.length > 0 && <ConflictSummary conflicts={autofill.conflicts} caseId={autofill.case_id} />}
 
-      <section className="panel full-width">
+      {(autofill || caseId) && <section className="panel full-width">
         <div className="panel-heading">
           <h2>4. Review & Continue</h2>
           <span className="tag">Human review required</span>
@@ -257,21 +259,12 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
           </button>
           <button className="secondary-action" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
         </div>
-      </section>
+      </section>}
 
-      <section className="panel full-width">
-        <div className="panel-heading"><h2>5. Demo Cases</h2><span className="tag">Seeded data</span></div>
-        <div className="seed-actions">
-          <button className="secondary-action" type="button" onClick={() => createSeededCase("clean")} disabled={isLoading}>Create Clean Demo Case</button>
-          <button className="secondary-action" type="button" onClick={() => createSeededCase("conflict")} disabled={isLoading}>Create Conflict Demo Case</button>
-        </div>
-      </section>
-
-      <section className="panel full-width">
-        <div className="panel-heading"><h2>6. Advanced: Create Blank Case</h2></div>
-        <p className="subtle">No documents selected. This will create a blank case. You must upload documents before running monitoring.</p>
-        <button className="secondary-action" type="button" onClick={createBlankCase} disabled={isLoading}>Create Blank Case</button>
-      </section>
+      <details className="panel full-width create-advanced">
+        <summary><span><strong>Advanced options</strong><small>Create a case without extracting documents</small></span><span>＋</span></summary>
+        <div><p className="subtle">Create a blank case for manual entry. Documents must be uploaded before monitoring can run.</p><button className="secondary-action" type="button" onClick={createBlankCase} disabled={isLoading}>Create Blank Case</button></div>
+      </details>
     </section>
   );
 }

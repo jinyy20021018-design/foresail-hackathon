@@ -104,6 +104,20 @@ export function TreatmentPlansPanel({
     await refreshApprovals();
   }
 
+  if (!canGeneratePlans && plans.length === 0) {
+    return (
+      <section className="panel full-width prerequisite-panel">
+        <span className="prerequisite-icon">3</span>
+        <div>
+          <span className="section-kicker">Treatment planning</span>
+          <h2>Confirm the case facts first</h2>
+          <p>Treatment options depend on the agreed shipment value, dates, route, and contractual obligations.</p>
+          <ol><li className="complete">Upload documents</li><li>Review extracted facts</li><li>Confirm case facts</li><li>Generate treatment options</li></ol>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section>
       <div className="panel full-width">
