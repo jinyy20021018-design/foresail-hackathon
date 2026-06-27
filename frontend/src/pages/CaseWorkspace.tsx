@@ -535,7 +535,6 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
 
       {activeTab === "conflicts" && (
         <>
-          {highOpenConflicts.length > 0 && <div className="warning-banner">Resolve all High OPEN conflicts before confirming case facts.</div>}
           <FieldConflictPanel
             caseId={caseId}
             conflicts={conflicts}
@@ -603,7 +602,7 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
       )}
 
       {activeTab === "audit" && (
-        <div className="workspace-grid two">
+        <div className="workspace-grid two audit-grid">
           <StatusTimeline entries={timeline} language={language} />
           <AgentRunHistory caseId={caseId} runs={agentRuns} />
         </div>
