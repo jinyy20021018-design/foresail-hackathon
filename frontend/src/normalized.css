@@ -270,12 +270,16 @@ input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var
 .step::before { top: 10px; height: 1px; }
 .step::after { content: ""; top: 2px; left: calc(50% - 8px); display: grid; place-items: center; width: 14px; height: 14px; border-width: 1.5px; box-shadow: none; }
 .step-completed::after { content: "✓"; border-color: var(--green); background: var(--green); color: #f7f9ff; font-size: 9px; font-weight: 800; box-shadow: none; }
-.step-completed:not(:first-child)::after { border-color: var(--blue); background: var(--blue); }
-.step-completed:not(:first-child)::after { content: ""; }
-.step-completed:not(:first-child)::before { background: var(--blue); }
+.step-completed::before {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--green) 8%, var(--border-strong)) 0%,
+    color-mix(in srgb, var(--green) 42%, var(--border-strong)) 30%,
+    var(--green) 50%,
+    color-mix(in srgb, var(--green) 42%, var(--border-strong)) 70%,
+    color-mix(in srgb, var(--green) 8%, var(--border-strong)) 100%);
+}
 .step-in_progress::after { border-color: var(--blue); background: var(--blue); box-shadow: none; }
-.step-in_progress:first-child::before,
-.step-completed:first-child::before {
+.step-in_progress:first-child::before {
   background: linear-gradient(90deg,
     color-mix(in srgb, var(--green) 8%, var(--border-strong)) 0%,
     color-mix(in srgb, var(--green) 42%, var(--border-strong)) 30%,
