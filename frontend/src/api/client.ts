@@ -562,6 +562,7 @@ export type AgentRunResponse = {
   summary_source: "llm" | "deterministic" | "deterministic_fallback";
   llm_enabled: boolean;
   llm_required: boolean;
+  summary_warning?: string;
   trace: AgentRunTraceStep[];
   events_scanned: number;
   relevant_count: number;

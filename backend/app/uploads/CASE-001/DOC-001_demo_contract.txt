@@ -1,0 +1,9 @@
+Commodity: Cotton Yarn
+Quantity: 100 MT
+Amount: USD 1250000
+Currency: USD
+Buyer: Demo Buyer
+Seller: Demo Seller
+Incoterm: CIF Chittagong
+Payment Method: LC at sight
+Final Destination: Dhaka

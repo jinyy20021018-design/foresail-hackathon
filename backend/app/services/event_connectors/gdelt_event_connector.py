@@ -29,7 +29,7 @@ class GdeltEventConnector:
 
     def fetch_events(self, watch_profile: dict, case_id: str) -> list[dict]:
         queries = [query for query in build_external_event_queries(case_id, watch_profile) if _is_gdelt_query(query)]
-        if os.getenv("GDELT_ENABLED", "false").lower() != "true":
+        if os.getenv("GDELT_ENABLED", "true").lower() != "true":
             self.last_result = _summary(queries, warnings=["GDELT connector disabled."], enabled=False)
             return []
 

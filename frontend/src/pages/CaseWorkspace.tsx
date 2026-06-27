@@ -346,6 +346,7 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
       setActiveTab("agent");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Agent run failed.");
+      await refreshCase();
     } finally {
       setIsRunning(false);
     }

@@ -4,6 +4,7 @@ import urllib.request
 from datetime import UTC, datetime
 
 from app.services.port_geo_service import resolve_location_coordinates
+from app.services.port_registry_service import resolve_port
 
 
 class OpenMeteoWeatherConnector:
@@ -14,7 +15,7 @@ class OpenMeteoWeatherConnector:
 
     def fetch_events(self, watch_profile: dict, case_id: str) -> list[dict]:
         locations = _watch_locations(watch_profile)
-        if os.getenv("OPEN_METEO_ENABLED", "false").lower() != "true":
+        if os.getenv("OPEN_METEO_ENABLED", "true").lower() != "true":
             self.last_result = _summary(locations, warnings=["Open-Meteo connector disabled."], enabled=False)
             return []
 
@@ -102,6 +103,8 @@ def _weather_event(location: str, coordinates: dict, event_time: str, severity: 
     title_prefix = "High weather risk" if severity == "HIGH" else "Watch weather risk"
     affected_ports = [location] if location in (watch_profile.get("watched_ports") or []) else []
     affected_routes = [location] if location in (watch_profile.get("watched_route_regions") or []) else []
+    port_record = resolve_port(location)
+    affected_region = port_record["region"] if port_record else location
     return {
         "event_id": f"EVT-METEO-{abs(hash((location, severity, reason, event_time))) % 1000000:06d}",
         "source": "open_meteo_weather_connector",
@@ -115,7 +118,7 @@ def _weather_event(location: str, coordinates: dict, event_time: str, severity: 
         "affected_ports": affected_ports,
         "affected_routes": affected_routes,
         "affected_vessels": [],
-        "affected_region": location,
+        "affected_region": affected_region,
         "severity": severity,
         "confidence": 0.75 if severity == "HIGH" else 0.62,
         "url": None,

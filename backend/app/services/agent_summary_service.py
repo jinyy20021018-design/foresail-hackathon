@@ -44,7 +44,13 @@ def generate_agent_summary_result(
 
     if not api_key:
         if llm_required:
-            raise RuntimeError("LLM Agent is required, but OPENAI_API_KEY is not configured.")
+            return {
+                "summary": deterministic_summary,
+                "summary_source": "deterministic_fallback",
+                "llm_enabled": False,
+                "llm_required": True,
+                "summary_warning": "LLM required but OPENAI_API_KEY is not configured; used deterministic summary.",
+            }
         return {
             "summary": deterministic_summary,
             "summary_source": "deterministic_fallback",
@@ -74,10 +80,16 @@ def generate_agent_summary_result(
         }
     except Exception as error:
         if llm_required:
-            raise RuntimeError(
-                "LLM Agent summary failed while REQUIRE_LLM_AGENT=true "
-                f"({_format_openai_error(error)})."
-            ) from error
+            return {
+                "summary": deterministic_summary,
+                "summary_source": "deterministic_fallback",
+                "llm_enabled": False,
+                "llm_required": True,
+                "summary_warning": (
+                    "LLM Agent summary failed while REQUIRE_LLM_AGENT=true "
+                    f"({_format_openai_error(error)}); used deterministic summary."
+                ),
+            }
         return {
             "summary": deterministic_summary,
             "summary_source": "deterministic_fallback",

@@ -13,7 +13,7 @@ class RealSearchEventConnector:
 
     def fetch_events(self, watch_profile: dict, case_id: str) -> list[dict]:
         queries = build_external_event_queries(case_id, watch_profile)
-        if os.getenv("REAL_SEARCH_ENABLED", "false").lower() != "true":
+        if os.getenv("REAL_SEARCH_ENABLED", "true").lower() != "true":
             self.last_result = _summary(queries, warnings=["Real search connector disabled."], enabled=False)
             return []
 
