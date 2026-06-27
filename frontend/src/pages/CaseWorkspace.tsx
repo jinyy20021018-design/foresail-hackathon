@@ -35,6 +35,7 @@ import { ExtractedFieldsReview } from "../components/ExtractedFieldsReview";
 import { FieldConflictPanel } from "../components/FieldConflictPanel";
 import { OperationalPanels } from "../components/OperationalPanels";
 import { RiskSummaryPanel } from "../components/RiskSummaryPanel";
+import { RouteRiskMap } from "../components/RouteRiskMap";
 import { StatusTimeline } from "../components/StatusTimeline";
 import { TreatmentPlansPanel } from "../components/TreatmentPlansPanel";
 import { WatchProfilePanel } from "../components/WatchProfilePanel";
@@ -294,19 +295,27 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
           <CaseStatusBadge value={tradeCase.status} />
             <span className="tag">Event Mode: {eventConfig?.event_source_mode ?? "MOCK"}</span>
           </div>
-          <p>Case Workspace for {tradeCase.route}</p>
+          <p>Live trade-risk workspace for {tradeCase.route}</p>
           {highOpenConflicts.length > 0 && (
             <div className="warning-banner">High severity conflicts must be resolved before confirming case facts or running the agent.</div>
           )}
         </div>
         <div className="header-actions">
           <button className="secondary-action" type="button" onClick={runAgent} disabled={!canRunAgent || isRunning}>
-            {isRunning ? "Agent Running..." : "Run Agent Monitoring Cycle"}
+            <span className="run-agent-icon" aria-hidden="true">↻</span>{isRunning ? "Agent Running..." : "Run Agent Monitoring Cycle"}
           </button>
           <button className="primary-action" type="button" onClick={continueMonitoring} disabled={!canContinue}>
             {tradeCase.status === "MONITORING" ? "Monitoring Active" : "Continue Monitoring"}
           </button>
         </div>
+      </div>
+
+      <div className="case-facts-bar">
+        <Fact label="Vessel" value={tradeCase.vessel} />
+        <Fact label="Route" value={tradeCase.route} />
+        <Fact label="Incoterm" value={tradeCase.incoterm || "Not set"} />
+        <Fact label="Payment" value={tradeCase.payment_method || "Not set"} />
+        <Fact label="Latest shipment" value={tradeCase.latest_shipment_date || "Not set"} />
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -322,9 +331,18 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
 
       {activeTab === "overview" && (
         <>
+          <div className="workspace-metrics">
+            <WorkspaceMetric icon="shield" tone="red" label="Risk Level" value={tradeCase.status} detail={`${riskSummary?.exposures.length ?? 0} exposures detected`} onClick={() => setActiveTab("risks")} />
+            <WorkspaceMetric icon="check" tone="blue" label="Open Actions" value={String(actions.length)} detail="Recommended next steps" onClick={() => setActiveTab("actions")} />
+            <WorkspaceMetric icon="info" tone="amber" label="Info Gaps" value={String(gaps.length)} detail="Missing decision inputs" onClick={() => setActiveTab("risks")} />
+            <WorkspaceMetric icon="agent" tone="green" label="Agent Runs" value={String(agentRuns.length)} detail="Visible audit trail" onClick={() => setActiveTab("agent")} />
+          </div>
           <div className="workspace-grid">
             <CaseSnapshot tradeCase={tradeCase} language={language} />
             {watchProfile && <WatchProfilePanel profile={watchProfile} language={language} />}
+          </div>
+          <RouteRiskMap tradeCase={tradeCase} />
+          <div className="workspace-grid">
             <LatestAgentRunCard runs={agentRuns} result={agentResult} />
             <StatusTimeline entries={timeline} language={language} />
           </div>
@@ -439,6 +457,21 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
       )}
     </section>
   );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return <div><span>{label}</span><strong>{value}</strong></div>;
+}
+
+function WorkspaceMetric({ icon, tone, label, value, detail, onClick }: { icon: "shield" | "check" | "info" | "agent"; tone: string; label: string; value: string; detail: string; onClick: () => void }) {
+  return <button className="workspace-metric" type="button" onClick={onClick}><span className={`metric-icon ${tone}`}><MetricGlyph name={icon} /></span><span><b>{label}</b><strong>{value}</strong><small>{detail}</small></span><em>View details →</em></button>;
+}
+
+function MetricGlyph({ name }: { name: "shield" | "check" | "info" | "agent" }) {
+  if (name === "shield") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.7-2.8 8-7 10-4.2-2-7-5.3-7-10V6l7-3Z"/><path d="M12 7v10"/></svg>;
+  if (name === "check") return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.5 12 2.3 2.4 4.8-5"/></svg>;
+  if (name === "info") return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/></svg>;
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M6.5 19c.6-3.3 2.4-5 5.5-5s4.9 1.7 5.5 5M17.5 11.5h3M19 10v3"/></svg>;
 }
 
 function LatestAgentRunCard({ runs, result }: { runs: AgentRunRecord[]; result: AgentRunResponse | null }) {

@@ -8,7 +8,7 @@ type Props = {
 
 export function StatusTimeline({ entries, language }: Props) {
   return (
-    <section className="panel">
+    <section className="panel status-timeline-panel">
       <div className="panel-heading">
         <h2>{t(language, "statusTimeline")}</h2>
       </div>

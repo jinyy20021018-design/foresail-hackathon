@@ -19,7 +19,7 @@ export function EventResultsTable({ results, language }: Props) {
         <p className="empty-state">{t(language, "runMonitoringHint")}</p>
       ) : (
         <div className="table-wrap">
-          <table>
+          <table className="data-table wide-data-table">
             <thead>
               <tr>
                 <th>{t(language, "eventTitle")}</th>

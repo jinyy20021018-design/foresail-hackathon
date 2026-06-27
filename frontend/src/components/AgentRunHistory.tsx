@@ -16,12 +16,12 @@ export function AgentRunHistory({ caseId, runs }: Props) {
       </div>
       {runs.length === 0 ? <p className="empty-state">No agent run history yet.</p> : (
         <div className="table-wrap">
-          <table>
+          <table className="data-table">
             <thead><tr><th>Run</th><th>Completed</th><th>Status</th><th>Events</th><th>R/W/I</th><th>Trace</th></tr></thead>
             <tbody>{runs.map((run) => (
               <tr key={run.agent_run_id}>
                 <td>{run.agent_run_id}</td>
-                <td>{run.completed_at}</td>
+                <td>{formatRunTime(run.completed_at)}</td>
                 <td>{`${run.status_before} -> ${run.status_after} / ${run.run_status}`}</td>
                 <td>{run.events_scanned}</td>
                 <td>{run.relevant_count}/{run.watch_count}/{run.irrelevant_count}</td>
@@ -38,4 +38,10 @@ export function AgentRunHistory({ caseId, runs }: Props) {
       )}
     </section>
   );
+}
+
+function formatRunTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
 }

@@ -160,7 +160,7 @@ function SearchQueryTable({ queries }: { queries: ExternalEventQuery[] }) {
       </div>
       {queries.length === 0 ? <p className="empty-state">No search queries generated for this case yet.</p> : (
         <div className="table-wrap">
-          <table>
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Query</th>
@@ -197,7 +197,7 @@ export function ExternalEventsTable({ events }: { events: ExternalEvent[] }) {
       </div>
       {events.length === 0 ? <p className="empty-state">No external events stored for this case yet.</p> : (
         <div className="table-wrap">
-          <table>
+          <table className="data-table wide-data-table">
             <thead>
               <tr>
                 <th>Event Title</th>

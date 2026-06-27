@@ -1,10 +1,10 @@
 # ForeSail DESIGN.md
 
-Visual system for the ForeSail trade-risk app. Register: **product** (dashboard/tool). **Light theme**, bright royal-blue accent (#2563EB), clean white cards, soft pastel icon tiles, with a **dark-navy Route Risk Map panel** for contrast. Matches the user's approved hi-fi mockups. UI language: **English**. No magenta.
+Visual system for the ForeSail trade-risk app. Register: **product** (dashboard/tool). **Light theme**, bright royal-blue accent (#2563EB), cool tinted neutrals, near-white fact cards, soft semantic icon circles, with a **dark-navy Route Risk Map panel** for contrast. Matches the user's approved hi-fi mockups. UI language: **English**. No magenta.
 
 ## Color (OKLCH, light, deep-navy accent)
 
-Strategy: **Restrained** — white/near-white surfaces, one deep-navy accent for primary/selection/links. Red/amber/green reserved strictly for risk status (color + icon + text, color-blind safe). Never `#000`/`#fff`; neutrals tinted toward hue 262.
+Strategy: **Restrained** — near-white fact surfaces, a cool-gray page canvas, and one royal-blue accent for primary/selection/links. Red/amber/green are reserved for semantic status and icon circles (color + icon + text, color-blind safe). Never `#000`/`#fff`; neutrals are tinted toward hue 262.
 
 ```css
 --bg:          oklch(0.985 0.004 255);  /* page background, very light cool gray */
@@ -26,7 +26,7 @@ Strategy: **Restrained** — white/near-white surfaces, one deep-navy accent for
 --ok:      oklch(0.58 0.135 155);  /* clear / ok 🟢 */
 ```
 Seat coloring on map/axis: our seat = `--accent` (solid); counterparty = `--faint` (dashed, "contract-derived").
-Shadows: soft, light — `0 1px 2px / 0 10px 28px` at ~6% alpha.
+Shadows: nearly flat — `0 1px 2px` at ~4% alpha. Prefer borders and tinted surfaces over floating cards.
 
 ## Typography
 - `Inter, "Segoe UI", system-ui, sans-serif`. One family. Tabular nums for money/dates/countdowns.
@@ -35,7 +35,7 @@ Shadows: soft, light — `0 1px 2px / 0 10px 28px` at ~6% alpha.
 ## Layout
 - **IA (confirmed with user):** Page 1 = **Case Library / Overview** (summary cards + search/filter + cases table). Click a case → **Case Workspace**: **Overview first** (Verdict + Case Snapshot + Watch Profile + Route Risk Map + Liability strip), **then the agent pipeline runs in order** (External Events → Relevance → Risks & Obligations → Actions & Drafts → Treatment Plans → Agent Trace), each explicit/expandable.
 - No redundant left nav inside a case (pipeline stages ARE the structure; breadcrumb back to Library). Cross-case snapshot lives on Library.
-- Radius 10–12px; spacing 4/8/12/16/24; vary for rhythm.
+- Radius 5px for badges, 8px for controls, 10px for surfaces, 12px only for the dark map; spacing 4/8/12/16/24; vary for rhythm.
 
 ## Components & motion
 - Every control: default/hover/focus/active/disabled. Status = badge (dot + icon + label), never color alone.
