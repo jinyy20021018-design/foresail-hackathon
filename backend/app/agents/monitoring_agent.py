@@ -19,6 +19,7 @@ from app.services.document_service import (
     set_obligations,
 )
 from app.services.information_gap_service import assign_gap_ids, detect_information_gaps
+from app.services.incoterm_rule_service import resolve_cif_responsibility
 from app.services.event_ingestion_service import fetch_events_for_case
 from app.services.obligation_service import generate_obligations
 from app.services.relevance_engine import classify_events
@@ -116,7 +117,13 @@ class MonitoringAgent:
                 "Build Search Queries",
                 "Generated external information search queries from the case watch profile.",
                 "search_query_builder",
-                json.dumps({"queries_generated": real_api_summary.get("queries_generated", search_summary.get("queries_generated", 0))}, ensure_ascii=True),
+                json.dumps(
+                    {
+                        "gdelt_queries_generated": real_api_summary.get("queries_generated", search_summary.get("queries_generated", 0)),
+                        "note": "Open-Meteo uses watched ports and route regions as weather locations.",
+                    },
+                    ensure_ascii=True,
+                ),
             )
         )
         trace.append(
@@ -131,8 +138,8 @@ class MonitoringAgent:
                         "queries_generated": real_api_summary.get("queries_generated", 0),
                         "articles_fetched": real_api_summary.get("gdelt_articles_fetched", 0),
                         "events_extracted": real_api_summary.get("gdelt_events_extracted", 0),
-                        "connector_errors": real_api_summary.get("connector_errors", []),
-                        "warnings": real_api_summary.get("warnings", []),
+                        "connector_errors": real_api_summary.get("gdelt_connector_errors", []),
+                        "warnings": real_api_summary.get("gdelt_warnings", []),
                     },
                     ensure_ascii=True,
                 ),
@@ -149,8 +156,8 @@ class MonitoringAgent:
                         "enabled": real_api_summary.get("weather_enabled", False),
                         "locations_checked": real_api_summary.get("weather_locations_checked", 0),
                         "weather_events_extracted": real_api_summary.get("weather_events_extracted", 0),
-                        "connector_errors": real_api_summary.get("connector_errors", []),
-                        "warnings": real_api_summary.get("warnings", []),
+                        "connector_errors": real_api_summary.get("weather_connector_errors", []),
+                        "warnings": real_api_summary.get("weather_warnings", []),
                     },
                     ensure_ascii=True,
                 ),
@@ -227,13 +234,42 @@ class MonitoringAgent:
                 f"{len(risk_summary['exposures'])} exposure categories identified.",
             )
         )
+        cif_responsibility = resolve_cif_responsibility(facts)
+        trace.append(
+            _trace_step(
+                13,
+                "Resolve CIF Responsibilities",
+                "Resolved deterministic CIF buyer/seller responsibility matrix and risk transfer point.",
+                "incoterm_rule_service",
+                json.dumps(
+                    {
+                        "incoterm": cif_responsibility["incoterm"],
+                        "named_place": cif_responsibility["named_destination_port"],
+                        "risk_transfer_point": cif_responsibility["risk_transfer_point"],
+                        "seller_responsibilities": cif_responsibility["seller_responsibilities"],
+                        "buyer_responsibilities": cif_responsibility["buyer_responsibilities"],
+                        "warnings": cif_responsibility["warnings"],
+                    },
+                    ensure_ascii=True,
+                ),
+            )
+        )
+        trace.append(
+            _trace_step(
+                14,
+                "Apply Buyer/Seller Perspective",
+                "Applied the selected trade perspective to CIF exposure, obligation, action, and treatment outputs.",
+                "perspective_service",
+                f"Perspective: {facts.get('trade_perspective') or case.get('trade_perspective') or 'SELLER'}",
+            )
+        )
 
         obligations = generate_obligations(case_id, facts, relevance_results, risk_summary)
         set_obligations(case_id, obligations)
         obligations_at_risk = [obligation for obligation in obligations if "risk" in obligation["current_assessment"].lower()]
         trace.append(
             _trace_step(
-                13,
+                15,
                 "Map Obligations & Deadlines",
                 "Mapped confirmed facts and risk results to preliminary operational obligation and deadline assessments.",
                 "obligation_service",
@@ -245,7 +281,7 @@ class MonitoringAgent:
         set_information_gaps(case_id, information_gaps)
         trace.append(
             _trace_step(
-                14,
+                16,
                 "Detect Information Gaps",
                 "Detected missing confirmations that may block operational decisions.",
                 "information_gap_service",
@@ -256,9 +292,9 @@ class MonitoringAgent:
         actions = generate_actions(risk_summary)
         trace.append(
             _trace_step(
-                15,
-                "Generate Actions",
-                "Generated deduplicated recommended actions from aggregated exposures.",
+                17,
+                "Generate CIF-specific Actions",
+                "Generated deduplicated recommended actions from aggregated exposures and CIF buyer/seller perspective.",
                 "action_board_service",
                 f"{len(actions)} recommended actions generated.",
             )
@@ -268,7 +304,7 @@ class MonitoringAgent:
         set_action_drafts(case_id, action_drafts)
         trace.append(
             _trace_step(
-                16,
+                18,
                 "Generate Action Drafts",
                 "Generated draft outbound/internal messages for user review. Nothing was sent externally.",
                 "action_draft_service",
@@ -282,7 +318,7 @@ class MonitoringAgent:
         status_timeline = get_timeline(case_id)
         trace.append(
             _trace_step(
-                17,
+                19,
                 "Update Case Status",
                 "Updated case status through the existing deterministic status machine.",
                 "status_machine",
@@ -296,7 +332,16 @@ class MonitoringAgent:
             treatment_output = generate_treatment_plans(case_id)
             trace.append(
                 _trace_step(
-                    18,
+                    20,
+                    "Generate CIF-specific Treatment Plan Summary",
+                    "Generated structured CIF treatment plan options from current exposures, obligations, gaps, actions, and perspective.",
+                    "treatment_plan_service",
+                    f"{len(treatment_output['plans'])} treatment plans generated.",
+                )
+            )
+            trace.append(
+                _trace_step(
+                    21,
                     "Generate Treatment Plans",
                     "Generated structured risk treatment plan options from current exposures, obligations, gaps, and actions.",
                     "treatment_plan_service",
@@ -305,7 +350,7 @@ class MonitoringAgent:
             )
             trace.append(
                 _trace_step(
-                    19,
+                    22,
                     "Generate Residual Risk Summary",
                     "Generated residual risk summaries for each treatment plan.",
                     "treatment_plan_service",
@@ -319,7 +364,7 @@ class MonitoringAgent:
                 approval_summary = "No recommended treatment plan available for approval package."
             trace.append(
                 _trace_step(
-                    20,
+                    23,
                     "Generate Approval Summary Draft",
                     "Generated a structured approval summary draft for the recommended treatment plan.",
                     "treatment_plan_service",
@@ -328,7 +373,7 @@ class MonitoringAgent:
             )
             trace.append(
                 _trace_step(
-                    21,
+                    24,
                     "Persist Treatment Outputs",
                     "Persisted treatment plans, residual risks, and approval package data for the case.",
                     "persistence_service",
@@ -338,8 +383,8 @@ class MonitoringAgent:
         except Exception as error:
             trace.append(
                 _trace_step(
-                    18,
-                    "Generate Treatment Plans",
+                    20,
+                    "Generate CIF-specific Treatment Plan Summary",
                     "Attempted to generate treatment plans after agent monitoring outputs.",
                     "treatment_plan_service",
                     f"Treatment plan generation failed: {error}",

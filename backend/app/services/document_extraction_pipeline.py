@@ -40,10 +40,13 @@ def expected_fields_for_document_type(document_type: str) -> list[str]:
 
 def finalize_diagnostic(diagnostic: dict, fields: list[dict]) -> dict:
     field_names = {field.get("field_name") for field in fields}
+    field_values = {field.get("field_name"): field.get("value") for field in fields}
     expected = expected_fields_for_document_type(diagnostic.get("document_type", "UNKNOWN"))
     missing = [field for field in expected if field not in field_names]
     diagnostic["fields_extracted_count"] = len(fields)
     diagnostic["missing_fields"] = missing
+    if str(field_values.get("incoterm") or "").upper() == "CIF" and "incoterm_named_place" not in field_names:
+        diagnostic["warnings"].append("CIF_NAMED_DESTINATION_PORT_MISSING")
     if diagnostic["status"] in {"NEEDS_VISION", "UNSUPPORTED"}:
         return diagnostic
     if not fields and diagnostic["status"] not in {"NEEDS_VISION", "UNSUPPORTED"}:

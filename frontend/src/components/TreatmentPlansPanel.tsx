@@ -104,6 +104,20 @@ export function TreatmentPlansPanel({
     await refreshApprovals();
   }
 
+  if (!canGeneratePlans && plans.length === 0) {
+    return (
+      <section className="panel full-width prerequisite-panel">
+        <span className="prerequisite-icon">3</span>
+        <div>
+          <span className="section-kicker">Treatment planning</span>
+          <h2>Confirm the case facts first</h2>
+          <p>Treatment options depend on the agreed shipment value, dates, route, and contractual obligations.</p>
+          <ol><li className="complete">Upload documents</li><li>Review extracted facts</li><li>Confirm case facts</li><li>Generate treatment options</li></ol>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section>
       <div className="panel full-width">
@@ -185,6 +199,8 @@ export function TreatmentPlansPanel({
                   <div><dt>Time</dt><dd>{plan.estimated_time_to_execute || "TBD"}</dd></div>
                   <div><dt>Approval</dt><dd>{plan.approval_required ? "Required" : "Not required"}</dd></div>
                   <div><dt>Status</dt><dd>{plan.status}</dd></div>
+                  <div><dt>Perspective</dt><dd>{plan.perspective || "SELLER"}</dd></div>
+                  <div><dt>Incoterm</dt><dd>{plan.incoterm_basis || "N/A"}</dd></div>
                   <div><dt>Covered Risks</dt><dd>{plan.covered_risks.length}</dd></div>
                   <div><dt>Residual Risks</dt><dd>{plan.residual_risks.length}</dd></div>
                 </dl>
@@ -239,6 +255,7 @@ function PlanDetails({ plan }: { plan: TreatmentPlan }) {
     <div className="workspace-grid">
       <section className="panel">
         <div className="panel-heading"><h2>Plan Details</h2></div>
+        <p className="subtle">Perspective: {plan.perspective || "SELLER"} | Incoterm basis: {plan.incoterm_basis || "N/A"}</p>
         <p>{plan.summary}</p>
         <ListBlock title="Required Actions" items={plan.required_actions} />
         <ListBlock title="Covered Risks" items={plan.covered_risks} />

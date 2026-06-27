@@ -88,11 +88,11 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
     const gaps = cases.reduce((total, item) => total + (item.information_gaps_count ?? 0), 0);
     const deadlines = cases.filter((item) => isWithinSevenDays(item.next_deadline?.date)).length;
     return [
-      { label: "Total Cases", count: cases.length, description: "All tracked trade cases", tone: "blue" },
-      { label: "At Risk", count: atRisk, description: "Cases with material exposure", tone: "red" },
-      { label: "Action Required", count: actionRequired, description: "Needs user decision", tone: "orange" },
-      { label: "Deadlines in 7 Days", count: deadlines, description: "Upcoming shipment dates", tone: "amber" },
-      { label: "Open Information Gaps", count: gaps, description: "Missing decision inputs", tone: "purple" }
+      { label: "Total Cases", count: cases.length, description: "All tracked trade cases", tone: "blue", icon: "∑" },
+      { label: "At Risk", count: atRisk, description: "Material exposure", tone: "red", icon: "!" },
+      { label: "Action Required", count: actionRequired, description: "Needs your decision", tone: "orange", icon: "↯" },
+      { label: "Deadlines in 7 Days", count: deadlines, description: "Upcoming shipment dates", tone: "amber", icon: "◷" },
+      { label: "Open Info Gaps", count: gaps, description: "Missing decision inputs", tone: "blue", icon: "◇" }
     ];
   }, [cases]);
 
@@ -105,6 +105,8 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
         </div>
         <div className="header-actions">
           <button className="secondary-action" type="button" onClick={loadCases} disabled={isLoading}>Refresh</button>
+          <button className="secondary-action" type="button" onClick={() => createDemo("clean")} disabled={isLoading}>Clean Demo</button>
+          <button className="secondary-action" type="button" onClick={() => createDemo("conflict")} disabled={isLoading}>Conflict Demo</button>
           <button className="primary-action" type="button" onClick={() => onNavigate("/cases/new")}>Create New Case</button>
         </div>
       </div>
@@ -115,7 +117,7 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
       <div className="summary-card-grid">
         {summary.map((item) => (
           <article className="summary-card" key={item.label}>
-            <span className={`summary-icon ${item.tone}`}>{item.label.slice(0, 2)}</span>
+            <span className={`summary-icon ${item.tone}`}>{item.icon}</span>
             <div>
               <small>{item.label}</small>
               <strong>{item.count}</strong>
@@ -149,14 +151,7 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
         </select>
       </div>
 
-      <section className="panel table-panel">
-        <div className="panel-heading">
-          <h2>Cases</h2>
-          <div className="inline-actions">
-            <button type="button" onClick={() => createDemo("clean")} disabled={isLoading}>Clean Demo</button>
-            <button type="button" onClick={() => createDemo("conflict")} disabled={isLoading}>Conflict Demo</button>
-          </div>
-        </div>
+      <section className="panel case-list-panel" aria-label={`${filteredCases.length} of ${cases.length} cases`}>
         {isLoading ? <p className="empty-state">Loading cases...</p> : filteredCases.length === 0 ? (
           <div className="empty-block">
             <h3>No cases yet</h3>
@@ -164,43 +159,38 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
             <button className="primary-action" type="button" onClick={() => onNavigate("/cases/new")}>Create New Case</button>
           </div>
         ) : (
-          <div className="table-wrap">
-            <table className="case-table">
-              <thead>
-                <tr>
-                  <th>Case ID</th>
-                  <th>Shipment / Vessel</th>
-                  <th>Route</th>
-                  <th>Status</th>
-                  <th>Risk Level</th>
-                  <th>Next Deadline</th>
-                  <th>Open Actions</th>
-                  <th>Info Gaps</th>
-                  <th>Conflicts</th>
-                  <th>Last Agent Run</th>
-                  <th>Owner</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCases.map((caseSummary) => (
-                  <tr key={caseSummary.case_id}>
-                    <td><button className="link-button" type="button" onClick={() => onNavigate(`/cases/${caseSummary.case_id}`)}>{caseSummary.case_id}</button></td>
-                    <td><strong>{caseSummary.vessel || "Unknown Vessel"}</strong><small>Trade shipment</small></td>
-                    <td><strong>{caseSummary.route || "Route unavailable"}</strong><small>{routePorts(caseSummary)}</small></td>
-                    <td><CaseStatusBadge value={caseSummary.status || "DRAFT"} /></td>
-                    <td><RiskBadge value={caseSummary.risk_level || "Low"} /></td>
-                    <td>{deadlineCell(caseSummary)}</td>
-                    <td><b>{caseSummary.open_actions_count ?? 0}</b><small>Open</small></td>
-                    <td><b>{caseSummary.information_gaps_count ?? 0}</b><small>Open</small></td>
-                    <td>{conflictCell(caseSummary)}</td>
-                    <td>{agentRunCell(caseSummary)}</td>
-                    <td>{caseSummary.owner || "Trade Ops"}</td>
-                    <td><button className="secondary-action compact-button" type="button" onClick={() => onNavigate(`/cases/${caseSummary.case_id}`)}>Open Case</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="case-list">
+            <div className="case-list-head" aria-hidden="true">
+              <span>Case</span><span>Decision</span><span>Next deadline</span><span>Work queue</span><span>Last run</span><span />
+            </div>
+            {filteredCases.map((caseSummary) => (
+              <article className="case-list-row" key={caseSummary.case_id}>
+                <div className="case-identity">
+                  <button className="case-id-link" type="button" onClick={() => onNavigate(`/cases/${caseSummary.case_id}`)}>{caseSummary.case_id}</button>
+                  <strong>{caseSummary.vessel || "Unknown Vessel"}</strong>
+                  <span className="case-route">{caseSummary.route || routePorts(caseSummary) || "Route unavailable"}</span>
+                  <small>Owner: {caseSummary.owner || "Trade Ops"}</small>
+                </div>
+                <div className="case-decision">
+                  <CaseStatusBadge value={caseSummary.status || "DRAFT"} />
+                  <RiskBadge value={caseSummary.risk_level || "Low"} />
+                </div>
+                <div className="case-deadline">
+                  <strong>{formatDate(caseSummary.next_deadline?.date)}</strong>
+                  <small>{caseSummary.next_deadline?.label || "No active deadline"}</small>
+                </div>
+                <div className="case-work-queue">
+                  <QueueMetric label="Actions" value={caseSummary.open_actions_count ?? 0} />
+                  <QueueMetric label="Gaps" value={caseSummary.information_gaps_count ?? 0} />
+                  <QueueMetric label="Conflicts" value={caseSummary.open_conflicts_count ?? 0} critical={(caseSummary.high_conflicts_count ?? 0) > 0} />
+                </div>
+                <div className="case-last-run">
+                  <strong>{caseSummary.last_agent_run_id || "Not run"}</strong>
+                  <small>{formatTimestamp(caseSummary.last_agent_run_at)}</small>
+                </div>
+                <button className="case-open-button" type="button" aria-label={`Open ${caseSummary.case_id}`} onClick={() => onNavigate(`/cases/${caseSummary.case_id}`)}>→</button>
+              </article>
+            ))}
           </div>
         )}
       </section>
@@ -263,21 +253,20 @@ function routePorts(caseSummary: CaseSummary) {
   return [caseSummary.port_of_loading, caseSummary.port_of_discharge, caseSummary.final_destination].filter(Boolean).join(" / ");
 }
 
-function deadlineCell(caseSummary: CaseSummary) {
-  if (!caseSummary.next_deadline) return <span className="muted">No deadline</span>;
-  return <><strong>{caseSummary.next_deadline.label}</strong><b>{caseSummary.next_deadline.date}</b></>;
+function QueueMetric({ label, value, critical = false }: { label: string; value: number; critical?: boolean }) {
+  return <span className={critical ? "queue-metric critical" : "queue-metric"}><b>{value}</b><small>{label}</small></span>;
 }
 
-function conflictCell(caseSummary: CaseSummary) {
-  const high = caseSummary.high_conflicts_count ?? 0;
-  const open = caseSummary.open_conflicts_count ?? 0;
-  if (high > 0) {
-    return <><RiskBadge value="High" /><small>High: {high} / Open: {open}</small></>;
-  }
-  return <><b>High: {high}</b><small>Open: {open}</small></>;
+function formatDate(value: string | null | undefined) {
+  if (!value) return "No deadline";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
-function agentRunCell(caseSummary: CaseSummary) {
-  if (!caseSummary.last_agent_run_id) return <span className="muted">No run yet</span>;
-  return <><strong>{caseSummary.last_agent_run_at || "Completed"}</strong><small>{caseSummary.last_agent_run_id}</small></>;
+function formatTimestamp(value: string | null | undefined) {
+  if (!value) return "No agent activity";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
 }

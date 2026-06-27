@@ -29,7 +29,8 @@ def fetch_rss_items(feed_urls: list[str], timeout_seconds: int) -> tuple[list[di
     errors: list[dict] = []
     for feed_url in feed_urls:
         try:
-            with urllib.request.urlopen(feed_url, timeout=timeout_seconds) as response:
+            request = urllib.request.Request(feed_url, headers={"User-Agent": "ForeSail-MVP/3.1"})
+            with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
                 content = response.read()
             items.extend(_parse_feed(content, feed_url))
         except (urllib.error.URLError, TimeoutError, ET.ParseError, ValueError) as error:

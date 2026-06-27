@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app.services.risk_mapper import map_event_to_exposures
 
@@ -87,10 +87,26 @@ def _classification(score: int) -> str:
 
 
 def _is_near_shipment_window(case: dict, event: dict) -> bool:
-    event_date = date.fromisoformat(event["event_time"])
-    etd = date.fromisoformat(case["etd"])
-    eta = date.fromisoformat(case["eta"])
+    event_date = _parse_date_like(event.get("event_time"))
+    etd = _parse_date_like(case.get("etd"))
+    eta = _parse_date_like(case.get("eta"))
+    if not event_date or not etd or not eta:
+        return False
     return etd - timedelta(days=3) <= event_date <= eta + timedelta(days=3)
+
+
+def _parse_date_like(value) -> date | None:
+    if value in {None, ""}:
+        return None
+    text = str(value).strip()
+    try:
+        return date.fromisoformat(text[:10])
+    except ValueError:
+        pass
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
 
 
 def _affects_deadline(event: dict) -> bool:

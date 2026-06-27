@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="ForeSail">
+  <rect width="32" height="32" rx="6" fill="#ffffff"/>
+  <!-- wave -->
+  <path d="M2 22.5C7 19.5 11 25 16 22.5 21 20 25 24 30 22.5V32H2Z" fill="#2bbbad"/>
+  <!-- hull -->
+  <path d="M8.5 20.5h15c0 0-1.2 4.5-7.5 4.5S8.5 20.5 8.5 20.5Z" fill="#1a4470"/>
+  <!-- sail -->
+  <path d="M15 6v14.5h10L15 6Z" fill="#1a4470"/>
+  <!-- mast -->
+  <path d="M15 6v14.5" stroke="#1a4470" stroke-width="0.6"/>
+</svg>

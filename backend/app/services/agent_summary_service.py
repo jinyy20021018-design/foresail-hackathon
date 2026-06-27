@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import urllib.error
 import urllib.request
 
 
@@ -73,7 +74,10 @@ def generate_agent_summary_result(
         }
     except Exception as error:
         if llm_required:
-            raise RuntimeError("LLM Agent summary failed while REQUIRE_LLM_AGENT=true.") from error
+            raise RuntimeError(
+                "LLM Agent summary failed while REQUIRE_LLM_AGENT=true "
+                f"({_format_openai_error(error)})."
+            ) from error
         return {
             "summary": deterministic_summary,
             "summary_source": "deterministic_fallback",
@@ -157,9 +161,36 @@ def _openai_summary(
     action_drafts: list[dict],
 ) -> str:
     model = os.getenv("OPENAI_SUMMARY_MODEL", "gpt-4.1-mini")
+    user_content = json.dumps(
+        {
+            "case_id": case["case_id"],
+            "vessel": case["vessel"],
+            "route": case["route"],
+            "status_before": status_before,
+            "status_after": status_after,
+            "relevance_results": [
+                {
+                    "event_id": result.get("event_id"),
+                    "classification": result.get("classification"),
+                    "mapped_exposures": result.get("mapped_exposures", []),
+                }
+                for result in relevance_results
+            ],
+            "risk_summary": risk_summary,
+            "obligations_at_risk": [
+                obligation
+                for obligation in obligations
+                if "risk" in obligation.get("current_assessment", "").lower()
+            ],
+            "information_gap_count": len(information_gaps),
+            "action_draft_count": len(action_drafts),
+            "action_count": len(actions),
+        },
+        ensure_ascii=True,
+    )
     payload = {
         "model": model,
-        "input": [
+        "messages": [
             {
                 "role": "system",
                 "content": (
@@ -167,41 +198,13 @@ def _openai_summary(
                     "classification, exposure, status, date, or action decisions. Use only the supplied facts."
                 ),
             },
-            {
-                "role": "user",
-                "content": json.dumps(
-                    {
-                        "case_id": case["case_id"],
-                        "vessel": case["vessel"],
-                        "route": case["route"],
-                        "status_before": status_before,
-                        "status_after": status_after,
-                        "relevance_results": [
-                            {
-                                "event_id": result["event_id"],
-                                "classification": result["classification"],
-                                "mapped_exposures": result["mapped_exposures"],
-                            }
-                            for result in relevance_results
-                        ],
-                        "risk_summary": risk_summary,
-                        "obligations_at_risk": [
-                            obligation
-                            for obligation in obligations
-                            if "risk" in obligation.get("current_assessment", "").lower()
-                        ],
-                        "information_gap_count": len(information_gaps),
-                        "action_draft_count": len(action_drafts),
-                        "action_count": len(actions),
-                    },
-                    ensure_ascii=True,
-                ),
-            },
+            {"role": "user", "content": user_content},
         ],
+        "temperature": 0.2,
     }
 
     request = urllib.request.Request(
-        "https://api.openai.com/v1/responses",
+        "https://api.openai.com/v1/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -209,12 +212,13 @@ def _openai_summary(
         },
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=12) as response:
+    timeout_seconds = int(os.getenv("OPENAI_SUMMARY_TIMEOUT_SECONDS", "60"))
+    with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
         data = json.loads(response.read().decode("utf-8"))
 
-    output_text = data.get("output_text")
-    if isinstance(output_text, str) and output_text.strip():
-        return output_text.strip()
+    content = data["choices"][0]["message"]["content"]
+    if isinstance(content, str) and content.strip():
+        return content.strip()
 
     return fallback
 
@@ -223,14 +227,35 @@ def _truthy(value: str | None) -> bool:
     return (value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _format_openai_error(error: Exception) -> str:
+    if isinstance(error, urllib.error.HTTPError):
+        try:
+            body = error.read().decode("utf-8")
+            parsed = json.loads(body)
+            message = parsed.get("error", {}).get("message")
+            if message:
+                return f"HTTP {error.code}: {message}"
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, AttributeError):
+            pass
+        return f"HTTP {error.code}: {error.reason}"
+    return str(error)
+
+
 def _load_local_env() -> None:
     env_path = Path(__file__).resolve().parents[2] / ".env"
     if not env_path.exists():
         return
 
+    refresh_keys = {
+        "OPENAI_SUMMARY_MODEL",
+        "OPENAI_SUMMARY_TIMEOUT_SECONDS",
+    }
     for line in env_path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         key, value = stripped.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        key = key.strip()
+        if key not in refresh_keys:
+            continue
+        os.environ[key] = value.strip().strip('"').strip("'")

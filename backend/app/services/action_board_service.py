@@ -57,27 +57,98 @@ ACTION_RULES = {
     ],
 }
 
+CIF_ACTION_RULES = {
+    "SELLER": [
+        ("Notify buyer of shipment / delay status", "Trade Ops", "High", "Today", "SHARED"),
+        ("Request updated ETA from carrier", "Logistics", "High", "Today", "SELLER"),
+        ("Check LC latest shipment date", "Trade Finance", "High", "Today", "SELLER"),
+        ("Check LC presentation period", "Trade Finance", "High", "Today", "SELLER"),
+        ("Prepare or verify bill of lading", "Shipping Documentation", "High", "Today", "SELLER"),
+        ("Prepare or verify insurance certificate", "Insurance", "High", "Today", "SELLER"),
+        ("Consider LC amendment request if shipment deadline is at risk", "Trade Finance", "High", "T+1", "SELLER"),
+    ],
+    "BUYER": [
+        ("Request updated shipment status from seller", "Procurement", "High", "Today", "SELLER"),
+        ("Monitor destination port congestion", "Logistics", "High", "Today", "BUYER"),
+        ("Prepare import customs documents", "Import Operations", "High", "T+1", "BUYER"),
+        ("Coordinate customs broker / port agent", "Import Operations", "High", "Today", "BUYER"),
+        ("Review demurrage and storage exposure", "Logistics", "High", "Today", "BUYER"),
+        ("Review insurance claim procedure if cargo damage is suspected", "Insurance", "Medium", "T+1", "BUYER"),
+    ],
+}
+
 
 def generate_actions(risk_summary: dict) -> list[dict]:
     seen_titles: set[str] = set()
     actions: list[dict] = []
 
-    exposure_categories = [exposure["category"] for exposure in risk_summary.get("exposures", [])]
-    for exposure in exposure_categories:
-        for rule in ACTION_RULES.get(exposure, []):
-            if rule["title"] in seen_titles:
+    for exposure in risk_summary.get("exposures", []):
+        category = exposure["category"]
+        perspective = exposure.get("party_perspective") or risk_summary.get("trade_perspective") or "SELLER"
+        incoterm_basis = exposure.get("incoterm_basis") or risk_summary.get("incoterm_basis") or ""
+        if incoterm_basis == "CIF" and perspective in CIF_ACTION_RULES:
+            for title, owner_role, priority, deadline, responsible_party in CIF_ACTION_RULES[perspective]:
+                if not _is_relevant_cif_action(title, exposure):
+                    continue
+                key = f"{perspective}:{title}"
+                if key in seen_titles:
+                    continue
+                seen_titles.add(key)
+                actions.append(_action(len(actions), title, owner_role, priority, deadline, category, perspective, responsible_party, "CIF"))
+            continue
+
+        for rule in ACTION_RULES.get(category, []):
+            key = f"{perspective}:{rule['title']}"
+            if key in seen_titles:
                 continue
-            seen_titles.add(rule["title"])
+            seen_titles.add(key)
             actions.append(
-                {
-                    "action_id": f"ACT-{len(actions) + 1:03d}",
-                    "title": rule["title"],
-                    "owner_role": rule["owner_role"],
-                    "priority": rule["priority"],
-                    "deadline": rule["deadline"],
-                    "status": "Open",
-                    "related_exposure": exposure,
-                }
+                _action(
+                    len(actions),
+                    rule["title"],
+                    rule["owner_role"],
+                    rule["priority"],
+                    rule["deadline"],
+                    category,
+                    perspective,
+                    "UNKNOWN",
+                    incoterm_basis,
+                )
             )
 
     return actions
+
+
+def _action(index: int, title: str, owner_role: str, priority: str, deadline: str, exposure: str, perspective: str, responsible_party: str, incoterm_basis: str) -> dict:
+    return {
+        "action_id": f"ACT-{index + 1:03d}",
+        "title": title,
+        "owner_role": owner_role,
+        "priority": priority,
+        "deadline": deadline,
+        "status": "Open",
+        "related_exposure": exposure,
+        "party_perspective": perspective,
+        "responsible_party": responsible_party,
+        "incoterm_basis": incoterm_basis,
+    }
+
+
+def _is_relevant_cif_action(title: str, exposure: dict) -> bool:
+    scenario = exposure.get("cif_scenario")
+    category = exposure.get("category")
+    if scenario == "destination_port_congestion":
+        return title not in {"Check LC latest shipment date", "Check LC presentation period", "Consider LC amendment request if shipment deadline is at risk"}
+    if scenario == "shipment_delay_before_loading":
+        return title not in {"Monitor destination port congestion", "Coordinate customs broker / port agent", "Review demurrage and storage exposure"}
+    if category == "LC Deadline":
+        return title in {
+            "Notify buyer of shipment / delay status",
+            "Check LC latest shipment date",
+            "Check LC presentation period",
+            "Prepare or verify bill of lading",
+            "Prepare or verify insurance certificate",
+            "Consider LC amendment request if shipment deadline is at risk",
+            "Request updated shipment status from seller",
+        }
+    return True

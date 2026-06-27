@@ -23,6 +23,7 @@ class ConfirmedFactsRequiredError(Exception):
 
 def generate_treatment_plans(case_id: str) -> dict:
     case = get_case(case_id)
+    perspective = str(case.get("trade_perspective") or "SELLER").upper()
     conflicts = _safe_collection(get_field_conflicts, case_id)
     high_conflicts = [conflict for conflict in conflicts if conflict.get("severity") == "High" and conflict.get("status") == "OPEN"]
     try:
@@ -62,6 +63,8 @@ def generate_treatment_plans(case_id: str) -> dict:
         "relevant_events": relevant_events,
         "warning": warning,
         "conflict_safe_mode": False,
+        "perspective": perspective,
+        "incoterm_basis": "CIF" if str(case.get("incoterm") or "").upper() == "CIF" else str(case.get("incoterm") or ""),
     }
 
     plans = [
@@ -101,6 +104,8 @@ def _generate_conflict_safe_plan(case_id: str, case: dict, high_conflicts: list[
         "relevant_events": [],
         "warning": "Unresolved high-severity conflicts exist; only conflict-resolution treatment is allowed.",
         "conflict_safe_mode": True,
+        "perspective": str(case.get("trade_perspective") or "SELLER").upper(),
+        "incoterm_basis": "CIF" if str(case.get("incoterm") or "").upper() == "CIF" else str(case.get("incoterm") or ""),
     }
     plan = _build_plan(case_id, "PLAN-001", "LOW_COST", "LOW_COST", inputs)
     save_item("treatment_plan", _plan_key(case_id, plan["plan_id"]), plan, case_id)
@@ -247,6 +252,8 @@ def _build_plan(case_id: str, plan_id: str, plan_type: str, recommended_type: st
         "rationale": rationale,
         "status": "RECOMMENDED" if plan_type == recommended_type else "DRAFT",
         "conflict_safe_mode": inputs.get("conflict_safe_mode", False),
+        "perspective": inputs.get("perspective", "SELLER"),
+        "incoterm_basis": inputs.get("incoterm_basis", ""),
         "created_at": now,
         "updated_at": now,
     }
@@ -254,6 +261,7 @@ def _build_plan(case_id: str, plan_id: str, plan_type: str, recommended_type: st
 
 def _plan_profile(plan_type: str, inputs: dict) -> dict:
     exposure_text = inputs["exposures"] or ["Shipping", "Port Operation", "LC Deadline"]
+    perspective = inputs.get("perspective", "SELLER")
     if plan_type == "LOW_COST":
         if inputs.get("conflict_safe_mode"):
             return {
@@ -277,6 +285,28 @@ def _plan_profile(plan_type: str, inputs: dict) -> dict:
                 "recheck_triggers": ["High conflict is resolved", "New authoritative document is uploaded", "Counterparty confirms corrected value"],
                 "rationale": "This option is limited to conflict resolution and avoids irreversible execution while facts are disputed.",
             }
+        if perspective == "BUYER":
+            return {
+                "plan_name": "Low-cost Buyer Arrival Monitoring Plan",
+                "summary": "Confirm arrival, import, and destination-port facts before triggering costly buyer-side action.",
+                "recommendation_level": "Conservative",
+                "estimated_cost_level": "Low",
+                "estimated_cost_amount": 500,
+                "estimated_time_to_execute": "Same day",
+                "approval_required": False,
+                "approval_roles": [],
+                "covered_risks": ["Arrival delay uncertainty", "Import readiness uncertainty", *exposure_text[:2]],
+                "required_actions": [
+                    "Request updated shipment status from seller",
+                    "Monitor destination port congestion",
+                    "Prepare import customs documents",
+                    "Review demurrage and storage exposure",
+                ],
+                "assumptions": ["Cargo arrival and port facts still need current confirmation."],
+                "preconditions": ["Buyer team can contact seller, customs broker, and port agent."],
+                "recheck_triggers": ["ETA slips by 3 or more days", "Port congestion remains active", "Demurrage clock is likely to start"],
+                "rationale": "This option keeps buyer-side cost low while closing arrival and import information gaps.",
+            }
         return {
             "plan_name": "Low-cost Monitoring Plan",
             "summary": "Confirm latest external facts and continue monitoring before triggering costly actions.",
@@ -299,6 +329,29 @@ def _plan_profile(plan_type: str, inputs: dict) -> dict:
             "rationale": "This option keeps cost low while closing information gaps.",
         }
     if plan_type == "MAX_PROTECTION":
+        if perspective == "BUYER":
+            return {
+                "plan_name": "Maximum Buyer Protection Plan",
+                "summary": "Prepare import, demurrage, inland delivery, and insurance-claim readiness immediately.",
+                "recommendation_level": "Protective",
+                "estimated_cost_level": "High",
+                "estimated_cost_amount": 15000,
+                "estimated_time_to_execute": "1-2 business days",
+                "approval_required": True,
+                "approval_roles": ["Business Head", "Import Operations", "Management"],
+                "covered_risks": ["Arrival delay risk", "Destination port delay risk", "Demurrage/storage risk", "Import clearance risk"],
+                "required_actions": [
+                    "Request formal shipment status from seller",
+                    "Coordinate customs broker / port agent",
+                    "Reserve inland delivery capacity",
+                    "Review demurrage and storage exposure",
+                    "Review insurance claim route if cargo damage is suspected",
+                ],
+                "assumptions": ["Buyer-side destination and import exposure is material."],
+                "preconditions": ["Management approves higher-cost destination-side protective action."],
+                "recheck_triggers": ["Port agent confirms berth delay", "Customs documents remain incomplete", "Cargo damage is suspected"],
+                "rationale": "This option maximizes buyer protection after CIF risk transfer and destination-side disruption.",
+            }
         return {
             "plan_name": "Maximum Protection Plan",
             "summary": "Prepare protective trade finance, insurance, carrier, and buyer-facing actions immediately.",
@@ -320,6 +373,29 @@ def _plan_profile(plan_type: str, inputs: dict) -> dict:
             "preconditions": ["Management approves higher-cost protective action."],
             "recheck_triggers": ["LC amendment rejected", "Insurance coverage limited", "Alternative space unavailable"],
             "rationale": "This option maximizes protection against deadline, port, and payment exposure.",
+        }
+    if perspective == "BUYER":
+        return {
+            "plan_name": "Balanced Buyer Risk Treatment Plan",
+            "summary": "Confirm shipment facts while preparing import and destination-side actions for fast escalation.",
+            "recommendation_level": "Balanced",
+            "estimated_cost_level": "Medium",
+            "estimated_cost_amount": 5000,
+            "estimated_time_to_execute": "1 business day",
+            "approval_required": True,
+            "approval_roles": ["Import Operations Lead", "Business Owner"],
+            "covered_risks": ["Arrival delay risk", "Port congestion risk", "Demurrage/storage exposure"],
+            "required_actions": [
+                "Request updated shipment status from seller",
+                "Monitor destination port congestion",
+                "Coordinate customs broker / port agent",
+                "Prepare import customs documents",
+                "Track inland delivery planning",
+            ],
+            "assumptions": ["Relevant event signals are credible but some seller or port confirmations remain open."],
+            "preconditions": ["Seller, customs broker, and port updates are requested immediately."],
+            "recheck_triggers": ["Confirmed ETA delay exceeds inventory tolerance", "Port congestion continues", "Customs broker flags clearance blocker"],
+            "rationale": "This option balances cost control with readiness for buyer-side import and destination exposure.",
         }
     return {
         "plan_name": "Balanced Risk Treatment Plan",
@@ -358,32 +434,60 @@ def _recommended_plan_type(status: str | None, high_conflicts: list[dict], high_
 
 
 def _residual_risks(case_id: str, plan_id: str, plan_type: str, inputs: dict) -> list[dict]:
-    templates = [
-        (
-            "Buyer or bank may reject LC amendment",
-            "Any LC change depends on buyer and bank agreement.",
-            "High" if plan_type != "LOW_COST" else "Medium",
-            "The plan can prepare the request but cannot force third-party acceptance.",
-            "LC amendment is rejected or not answered within one business day.",
-            "Trade Finance",
-        ),
-        (
-            "Port disruption duration remains uncertain",
-            "Port operation status can change after the current assessment.",
-            "Medium",
-            "The plan relies on port agent updates and cannot control labor or congestion events.",
-            "Port agent reports continued disruption or limited berth availability.",
-            "Logistics",
-        ),
-        (
-            "Carrier ETA may continue to slip",
-            "The vessel schedule can change after the initial carrier confirmation.",
-            "Medium" if plan_type == "MAX_PROTECTION" else "High",
-            "The plan requests updates but cannot guarantee vessel performance.",
-            "Carrier updates ETA later than the latest shipment or LC tolerance window.",
-            "Trade Ops",
-        ),
-    ]
+    if inputs.get("perspective") == "BUYER":
+        templates = [
+            (
+                "Seller shipment update may remain incomplete",
+                "Buyer-side planning still depends on timely seller and carrier information.",
+                "Medium",
+                "The plan requests updates but cannot force seller response timing.",
+                "Seller does not provide updated shipment status within one business day.",
+                "Procurement",
+            ),
+            (
+                "Destination port delay may continue",
+                "Port congestion and berth availability can change after the current assessment.",
+                "High" if plan_type != "LOW_COST" else "Medium",
+                "The plan can coordinate broker and port agent activity but cannot control port operations.",
+                "Port agent reports continued congestion or storage exposure.",
+                "Import Operations",
+            ),
+            (
+                "Insurance claim path may depend on cargo condition evidence",
+                "A claim can only progress if cargo damage or loss is evidenced after arrival.",
+                "Medium",
+                "The plan prepares the claim route but cannot determine claim validity before cargo inspection.",
+                "Cargo damage is reported or survey evidence is requested.",
+                "Insurance",
+            ),
+        ]
+    else:
+        templates = [
+            (
+                "Buyer or bank may reject LC amendment",
+                "Any LC change depends on buyer and bank agreement.",
+                "High" if plan_type != "LOW_COST" else "Medium",
+                "The plan can prepare the request but cannot force third-party acceptance.",
+                "LC amendment is rejected or not answered within one business day.",
+                "Trade Finance",
+            ),
+            (
+                "Port disruption duration remains uncertain",
+                "Port operation status can change after the current assessment.",
+                "Medium",
+                "The plan relies on port agent updates and cannot control labor or congestion events.",
+                "Port agent reports continued disruption or limited berth availability.",
+                "Logistics",
+            ),
+            (
+                "Carrier ETA may continue to slip",
+                "The vessel schedule can change after the initial carrier confirmation.",
+                "Medium" if plan_type == "MAX_PROTECTION" else "High",
+                "The plan requests updates but cannot guarantee vessel performance.",
+                "Carrier updates ETA later than the latest shipment or LC tolerance window.",
+                "Trade Ops",
+            ),
+        ]
     if inputs["high_conflicts"]:
         templates.insert(
             0,
@@ -410,6 +514,8 @@ def _residual_risks(case_id: str, plan_id: str, plan_type: str, inputs: dict) ->
             "monitoring_trigger": trigger,
             "owner_role": owner,
             "status": "OPEN",
+            "perspective": inputs.get("perspective", "SELLER"),
+            "incoterm_basis": inputs.get("incoterm_basis", ""),
             "created_at": now,
             "updated_at": now,
         }

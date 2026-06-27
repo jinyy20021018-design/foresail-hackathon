@@ -9,6 +9,7 @@ from app.services.case_service import continue_monitoring, create_demo_case, get
 
 class MonitoringAgentTest(unittest.TestCase):
     def setUp(self) -> None:
+        os.environ["EVENT_SOURCE_MODE"] = "MOCK"
         os.environ["USE_LLM_SUMMARY"] = "false"
         os.environ["REQUIRE_LLM_AGENT"] = "false"
         os.environ["OPENAI_API_KEY"] = ""

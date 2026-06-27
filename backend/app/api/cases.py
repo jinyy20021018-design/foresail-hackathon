@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.services.case_service import (
@@ -15,6 +16,13 @@ from app.services.case_service import (
 )
 from app.services.case_library_service import list_case_summaries
 from app.services.document_service import seed_demo_documents
+from app.services.incoterm_rule_service import resolve_cif_responsibility
+from app.services.perspective_service import (
+    UNSUPPORTED_PERSPECTIVE_ERROR,
+    UnsupportedPerspectiveError,
+    perspective_analysis,
+    update_case_perspective,
+)
 
 router = APIRouter(prefix="/api/cases", tags=["cases"])
 
@@ -37,6 +45,10 @@ class CreateCasePayload(BaseModel):
 
 class UpdateCaseDetailsPayload(CreateCasePayload):
     pass
+
+
+class PerspectivePayload(BaseModel):
+    trade_perspective: str
 
 
 @router.get("")
@@ -96,6 +108,27 @@ def read_relevance_results(case_id: str) -> list[dict]:
 @router.get("/{case_id}/risk-summary")
 def read_risk_summary(case_id: str) -> dict:
     return _or_404(lambda: get_risk_summary(case_id), case_id)
+
+
+@router.get("/{case_id}/cif-responsibility")
+def read_cif_responsibility(case_id: str) -> dict:
+    return _or_404(lambda: resolve_cif_responsibility(get_case(case_id)), case_id)
+
+
+@router.get("/{case_id}/perspective-analysis")
+def read_perspective_analysis(case_id: str, perspective: str | None = None):
+    try:
+        return _or_404(lambda: perspective_analysis(case_id, perspective), case_id)
+    except UnsupportedPerspectiveError:
+        return JSONResponse(status_code=400, content=UNSUPPORTED_PERSPECTIVE_ERROR)
+
+
+@router.put("/{case_id}/perspective")
+def update_perspective(case_id: str, payload: PerspectivePayload):
+    try:
+        return _or_404(lambda: update_case_perspective(case_id, payload.trade_perspective), case_id)
+    except UnsupportedPerspectiveError:
+        return JSONResponse(status_code=400, content=UNSUPPORTED_PERSPECTIVE_ERROR)
 
 
 @router.get("/{case_id}/actions")

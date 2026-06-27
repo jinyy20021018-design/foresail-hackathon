@@ -14,12 +14,12 @@ class RealSearchEventConnector:
     def fetch_events(self, watch_profile: dict, case_id: str) -> list[dict]:
         queries = build_external_event_queries(case_id, watch_profile)
         if os.getenv("REAL_SEARCH_ENABLED", "false").lower() != "true":
-            self.last_result = _summary(queries, warnings=["Real search connector disabled."])
+            self.last_result = _summary(queries, warnings=["Real search connector disabled."], enabled=False)
             return []
 
         feed_urls = _feed_urls()
         if not feed_urls:
-            self.last_result = _summary(queries, warnings=["No RSS feed URLs configured for real search."])
+            self.last_result = _summary(queries, warnings=["No RSS feed URLs configured for real search."], enabled=True)
             return []
 
         timeout_seconds = _int_env("REAL_SEARCH_TIMEOUT_SECONDS", 10)
@@ -36,6 +36,7 @@ class RealSearchEventConnector:
             except Exception as error:
                 extraction_errors.append({"title": item.get("rss_item", {}).get("title"), "error": str(error)})
         self.last_result = {
+            "enabled": True,
             "queries_generated": len(queries),
             "feeds_checked": len(feed_urls),
             "rss_items_fetched": len(rss_items),
@@ -48,8 +49,9 @@ class RealSearchEventConnector:
         return events
 
 
-def _summary(queries: list[dict], warnings: list[str]) -> dict:
+def _summary(queries: list[dict], warnings: list[str], enabled: bool) -> dict:
     return {
+        "enabled": enabled,
         "queries_generated": len(queries),
         "feeds_checked": 0,
         "rss_items_fetched": 0,

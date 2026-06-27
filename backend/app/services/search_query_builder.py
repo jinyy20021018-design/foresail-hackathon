@@ -1,3 +1,5 @@
+import os
+
 from app.services.document_service import get_confirmed_facts
 
 
@@ -27,10 +29,16 @@ def build_external_event_queries(case_id: str, watch_profile: dict) -> list[dict
     elif ports:
         add(f"{ports[0]} port strike OR congestion OR disruption", "PORT", "HIGH", ["watched_ports"])
 
+    if regions:
+        add(f"{regions[0]} storm OR typhoon OR shipping disruption", "WEATHER_REGION", "MEDIUM", ["route_region"], "OPEN_METEO")
+
     if ports:
         add(f"{ports[0]} port delay OR congestion OR terminal disruption", "PORT", "MEDIUM", ["port_of_loading"])
 
     for region in regions[:2]:
+        if region == regions[0]:
+            add(f"{region} security OR conflict OR route disruption", "GEOPOLITICAL", "MEDIUM", ["route_region"], "GDELT")
+            continue
         add(f"{region} storm OR typhoon OR shipping disruption", "WEATHER_REGION", "MEDIUM", ["route_region"], "OPEN_METEO")
         add(f"{region} security OR conflict OR route disruption", "GEOPOLITICAL", "MEDIUM", ["route_region"], "GDELT")
 
@@ -42,8 +50,18 @@ def build_external_event_queries(case_id: str, watch_profile: dict) -> list[dict
         add("Bay of Bengal storm shipping disruption", "WEATHER_REGION", "MEDIUM", ["route"], "OPEN_METEO")
 
     add("global shipping delay port disruption customs", "GENERAL_SHIPPING", "LOW", ["fallback"], "GDELT")
-    return queries
+    return _limit_queries(queries)
 
 
 def _value(value) -> str:
     return str(value or "").strip()
+
+
+def _limit_queries(queries: list[dict]) -> list[dict]:
+    try:
+        limit = int(os.getenv("EXTERNAL_EVENT_QUERY_LIMIT", "3"))
+    except ValueError:
+        limit = 3
+    if limit <= 0:
+        return queries
+    return queries[:limit]

@@ -22,7 +22,7 @@ export function CaseSnapshot({ tradeCase, language }: Props) {
   ];
 
   return (
-    <section className="panel">
+    <section className="panel case-snapshot-panel">
       <div className="panel-heading">
         <h2>{t(language, "caseSnapshot")}</h2>
         <span className={`status-pill status-${tradeCase.status.toLowerCase()}`}>

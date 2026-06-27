@@ -26,10 +26,12 @@ export function RiskSummaryPanel({ summary, language }: Props) {
           </p>
           <div className="exposure-grid">
             {summary.exposures.map((exposure) => (
-              <article key={exposure.category} className="exposure-item">
+              <article key={`${exposure.party_perspective ?? "ALL"}-${exposure.category}`} className="exposure-item">
                 <h3>{translate.exposure(language, exposure.category)}</h3>
                 <p>{translate.impact(language, exposure.impact)}</p>
                 <span>{translate.severity(language, exposure.severity)}</span>
+                <small>Perspective: {exposure.party_perspective ?? summary.trade_perspective ?? "SELLER"}</small>
+                <small>Responsible: {exposure.responsible_party ?? "UNKNOWN"} | Incoterm: {exposure.incoterm_basis || "N/A"}</small>
                 <small>
                   {t(language, "triggerEvidence")}:{" "}
                   {(exposure.trigger_event_ids ?? []).join(", ") || t(language, "none")}

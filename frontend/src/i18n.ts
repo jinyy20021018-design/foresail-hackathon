@@ -45,7 +45,7 @@ const text: Record<Language, Record<string, string>> = {
     actions: "actions",
     noRiskSummary: "No risk summary yet.",
     noActions: "Actions will be generated after relevant exposures are found.",
-    runMonitoringHint: "Run Start Monitoring to classify the mock event feed.",
+    runMonitoringHint: "Run Start Monitoring to classify the configured external event feed.",
     triggered: "Triggered",
     noTrigger: "No trigger",
     triggerEvents: "Trigger events",
@@ -130,7 +130,7 @@ const text: Record<Language, Record<string, string>> = {
     actions: "个行动",
     noRiskSummary: "暂无风险总结。",
     noActions: "发现相关敞口后会生成推荐行动。",
-    runMonitoringHint: "点击“开始监控”以分类 mock 事件流。",
+    runMonitoringHint: "点击“开始监控”以分类已配置的外部事件流。",
     triggered: "已触发",
     noTrigger: "未触发",
     triggerEvents: "触发事件",
@@ -262,7 +262,7 @@ const rules: Record<string, string> = {
 const timelineReasons: Record<string, string> = {
   "Demo case initialized from built-in mock extracted fields.": "演示 Case 已基于内置模拟抽取字段初始化。",
   "Core trade fields are available.": "核心交易字段已具备。",
-  "Monitoring started with mock external event feed.": "已使用 mock 外部事件流开始监控。",
+  "Monitoring started with configured external event feed.": "已使用已配置的外部事件流开始监控。",
   "At least one Relevant event was detected.": "检测到至少一个相关事件。",
   "Recommended actions were generated for the triggered exposures.": "已针对触发的敞口生成推荐行动。",
   "User confirmed the action board and continued monitoring.": "用户已确认行动板并继续监控。"

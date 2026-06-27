@@ -1,95 +1,19 @@
 import { api, type ActionDraft, type InformationGap, type ObligationDeadline } from "../api/client";
 
-type Props = {
-  obligations: ObligationDeadline[];
-  gaps: InformationGap[];
-  drafts: ActionDraft[];
-  caseId: string;
-  onDraftsChange: (drafts: ActionDraft[]) => void;
-  showObligations?: boolean;
-  showGaps?: boolean;
-  showDrafts?: boolean;
-};
+type Props = { obligations: ObligationDeadline[]; gaps: InformationGap[]; drafts: ActionDraft[]; caseId: string; onDraftsChange: (drafts: ActionDraft[]) => void; showObligations?: boolean; showGaps?: boolean; showDrafts?: boolean };
 
-export function OperationalPanels({
-  obligations,
-  gaps,
-  drafts,
-  caseId,
-  onDraftsChange,
-  showObligations = true,
-  showGaps = true,
-  showDrafts = true
-}: Props) {
-  async function refreshDrafts() {
-    onDraftsChange(await api.getActionDrafts(caseId));
-  }
-
+export function OperationalPanels({ obligations, gaps, drafts, caseId, onDraftsChange, showObligations = true, showGaps = true, showDrafts = true }: Props) {
   async function updateDraft(draftId: string, action: "review" | "ready" | "reject" | "archive" | "regenerate") {
     if (action === "review") await api.markDraftInReview(caseId, draftId);
     if (action === "ready") await api.markDraftReady(caseId, draftId);
     if (action === "reject") await api.rejectDraft(caseId, draftId, "Rejected in MVP review");
     if (action === "archive") await api.archiveDraft(caseId, draftId);
     if (action === "regenerate") await api.regenerateDraft(caseId, draftId);
-    await refreshDrafts();
+    onDraftsChange(await api.getActionDrafts(caseId));
   }
-  return (
-    <>
-      {showObligations && <section className="panel full-width">
-        <div className="panel-heading">
-          <h2>Obligation & Deadline Map</h2>
-          <span className="tag">{obligations.length} obligations</span>
-        </div>
-        {obligations.length === 0 ? <p className="empty-state">No obligations generated yet.</p> : <div className="action-grid">
-          {obligations.map((obligation) => (
-            <article className="action-item" key={obligation.obligation_id}>
-              <span className="action-id">{obligation.obligation_id}</span>
-              <h3>{obligation.name}</h3>
-              <p>{obligation.current_assessment}</p>
-              <small>{obligation.source} | {obligation.deadline_date} | {obligation.recommended_action}</small>
-            </article>
-          ))}
-        </div>}
-      </section>}
-      {showGaps && <section className="panel full-width">
-        <div className="panel-heading">
-          <h2>Information Gaps</h2>
-          <span className="tag">{gaps.length} gaps</span>
-        </div>
-        {gaps.length === 0 ? <p className="empty-state">No information gaps detected yet.</p> : <div className="action-grid">
-          {gaps.map((gap) => (
-            <article className="action-item" key={gap.gap_id}>
-              <span className="action-id">{gap.gap_id}</span>
-              <h3>{gap.title}</h3>
-              <p>{gap.reason}</p>
-              <small>{gap.owner_role} | {gap.priority} | blocks: {gap.blocks_decision}</small>
-            </article>
-          ))}
-        </div>}
-      </section>}
-      {showDrafts && <section className="panel full-width">
-        <div className="panel-heading">
-          <h2>Action Drafts</h2>
-          <span className="tag">{drafts.length} drafts</span>
-        </div>
-        {drafts.length === 0 ? <p className="empty-state">No action drafts generated yet.</p> : <div className="action-grid">
-          {drafts.map((draft) => (
-            <article className="action-item" key={draft.draft_id}>
-              <span className="action-id">{draft.draft_id}</span>
-              <h3>{draft.title}</h3>
-              <p>{draft.body}</p>
-              <small>{draft.recipient_role} | {draft.status}</small>
-              <div className="inline-actions">
-                <button type="button" onClick={() => updateDraft(draft.draft_id, "review")}>In Review</button>
-                <button type="button" onClick={() => updateDraft(draft.draft_id, "ready")}>Ready</button>
-                <button type="button" onClick={() => updateDraft(draft.draft_id, "reject")}>Reject</button>
-                <button type="button" onClick={() => updateDraft(draft.draft_id, "archive")}>Archive</button>
-                <button type="button" onClick={() => updateDraft(draft.draft_id, "regenerate")}>Regenerate</button>
-              </div>
-            </article>
-          ))}
-        </div>}
-      </section>}
-    </>
-  );
+  return <>
+    {showObligations && <section className="panel full-width operational-list-panel"><div className="decision-panel-heading"><div><span className="section-kicker">Contract commitments</span><h2>Obligations and deadlines</h2></div><span className="tag">{obligations.length}</span></div>{obligations.length === 0 ? <p className="empty-state">No obligations generated yet.</p> : <div className="operational-list">{obligations.map((item) => <article key={item.obligation_id}><span className={`priority-pill ${item.severity.toLowerCase()}`}>{item.severity}</span><div><h3>{item.name}</h3><p>{item.current_assessment}</p><small>{item.source}</small></div><div><span className="row-label">Deadline</span><strong>{item.deadline_date}</strong></div><div><span className="row-label">Next step</span><strong>{item.recommended_action}</strong></div></article>)}</div>}</section>}
+    {showGaps && <section className="panel full-width operational-list-panel"><div className="decision-panel-heading"><div><span className="section-kicker">Missing decisions</span><h2>Information gaps</h2></div><span className="tag">{gaps.length}</span></div>{gaps.length === 0 ? <p className="empty-state">No information gaps detected.</p> : <div className="operational-list">{gaps.map((gap) => <article key={gap.gap_id}><span className={`priority-pill ${gap.priority.toLowerCase()}`}>{gap.priority}</span><div><h3>{gap.title}</h3><p>{gap.reason}</p></div><div><span className="row-label">Owner</span><strong>{gap.owner_role}</strong></div><div><span className="row-label">Blocks</span><strong>{gap.blocks_decision}</strong></div></article>)}</div>}</section>}
+    {showDrafts && <section className="panel full-width draft-list-panel"><div className="decision-panel-heading"><div><span className="section-kicker">Prepared communications</span><h2>Action drafts</h2><p>Review generated messages before they are ready to send.</p></div><span className="tag">{drafts.length} drafts</span></div>{drafts.length === 0 ? <p className="empty-state">No action drafts generated yet.</p> : <div className="draft-list">{drafts.map((draft) => <details key={draft.draft_id}><summary><span><span className="action-id">{draft.draft_id}</span><strong>{draft.title}</strong><small>To: {draft.recipient_role}</small></span><span className="review-state pending"><i />{draft.status.replace(/_/g, " ")}</span></summary><div><p>{draft.body}</p><div className="inline-actions"><button type="button" onClick={() => updateDraft(draft.draft_id, "review")}>Mark in review</button><button className="review-primary" type="button" onClick={() => updateDraft(draft.draft_id, "ready")}>Ready</button><button type="button" onClick={() => updateDraft(draft.draft_id, "regenerate")}>Regenerate</button><button type="button" onClick={() => updateDraft(draft.draft_id, "archive")}>Archive</button></div></div></details>)}</div>}</section>}
+  </>;
 }

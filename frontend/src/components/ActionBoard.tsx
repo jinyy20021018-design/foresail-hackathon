@@ -42,6 +42,18 @@ export function ActionBoard({ actions, language }: Props) {
                   <dt>{t(language, "exposure")}</dt>
                   <dd>{translate.exposure(language, action.related_exposure)}</dd>
                 </div>
+                <div>
+                  <dt>Perspective</dt>
+                  <dd>{action.party_perspective ?? "SELLER"}</dd>
+                </div>
+                <div>
+                  <dt>Responsible</dt>
+                  <dd>{action.responsible_party ?? "UNKNOWN"}</dd>
+                </div>
+                <div>
+                  <dt>Incoterm</dt>
+                  <dd>{action.incoterm_basis || "N/A"}</dd>
+                </div>
               </dl>
             </article>
           ))}

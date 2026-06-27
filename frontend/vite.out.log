@@ -1,0 +1,17 @@
+
+> foresail-frontend@1.0.0 dev
+> vite --host 127.0.0.1
+
+
+  [32m[1mVITE[22m v6.4.3[39m  [2mready in [0m[1m258[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5173[22m/[39m
+[2m15:35:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CaseLibrary.tsx, /src/pages/CreateCase.tsx, /src/pages/CaseWorkspace.tsx, /src/components/AgentRunHistory.tsx, /src/components/OperationalPanels.tsx, /src/components/DocumentUploadPanel.tsx, /src/components/FieldConflictPanel.tsx, /src/components/TreatmentPlansPanel.tsx, /src/components/ExtractedFieldsReview.tsx, /src/components/ExternalEventsPanel.tsx[22m
+[2m15:35:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/RiskSummaryPanel.tsx[22m
+[2m15:36:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CaseWorkspace.tsx[22m
+[2m15:36:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CaseWorkspace.tsx[22m
+[2m15:37:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles.css[22m
+[2m15:38:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CaseLibrary.tsx, /src/pages/CreateCase.tsx, /src/pages/CaseWorkspace.tsx, /src/components/AgentRunHistory.tsx, /src/components/OperationalPanels.tsx, /src/components/DocumentUploadPanel.tsx, /src/components/FieldConflictPanel.tsx, /src/components/TreatmentPlansPanel.tsx, /src/components/ExtractedFieldsReview.tsx, /src/components/ExternalEventsPanel.tsx[22m
+[2m15:49:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ExternalEventsPanel.tsx[22m
+[2m16:04:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CaseLibrary.tsx, /src/pages/CreateCase.tsx, /src/pages/CaseWorkspace.tsx, /src/components/AgentRunHistory.tsx, /src/components/OperationalPanels.tsx, /src/components/DocumentUploadPanel.tsx, /src/components/FieldConflictPanel.tsx, /src/components/TreatmentPlansPanel.tsx, /src/components/ExtractedFieldsReview.tsx, /src/components/ExternalEventsPanel.tsx[22m
+[2m16:04:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ExternalEventsPanel.tsx[22m

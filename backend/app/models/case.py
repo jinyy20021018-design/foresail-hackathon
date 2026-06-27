@@ -15,6 +15,8 @@ class TradeCase:
     latest_shipment_date: str
     payment_method: str
     incoterm: str
+    incoterm_named_place: str = ""
+    trade_perspective: str = "SELLER"
     uploaded_files: list[str] = field(default_factory=list)
     mock_extraction_note: str = "Mock extracted fields for MVP. Files are not parsed in this version."
 

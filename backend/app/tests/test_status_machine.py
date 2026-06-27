@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from app.services.case_service import create_demo_case, continue_monitoring, get_case, get_timeline, reset_store
@@ -6,6 +7,7 @@ from app.services.monitoring_service import run_monitoring_cycle
 
 class StatusMachineTest(unittest.TestCase):
     def setUp(self) -> None:
+        os.environ["EVENT_SOURCE_MODE"] = "MOCK"
         reset_store()
         self.case = create_demo_case()
 

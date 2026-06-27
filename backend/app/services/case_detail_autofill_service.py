@@ -17,6 +17,8 @@ AUTOFILL_FIELDS = [
 EXTRA_FACT_FIELDS = [
     "vessel",
     "route",
+    "quantity",
+    "quantity_unit",
     "amount",
     "currency",
     "incoterm",
@@ -115,6 +117,8 @@ def _field_rank(field: dict, document_types: dict[str, str]) -> tuple[int, float
         "buyer": {"CONTRACT_PO": 10},
         "seller": {"CONTRACT_PO": 10},
         "commodity": {"CONTRACT_PO": 10},
+        "quantity": {"CONTRACT_PO": 10},
+        "quantity_unit": {"CONTRACT_PO": 10},
         "amount": {"LETTER_OF_CREDIT": 9, "CONTRACT_PO": 8},
         "currency": {"LETTER_OF_CREDIT": 9, "CONTRACT_PO": 8},
         "vessel": {"BOOKING_CONFIRMATION": 10},

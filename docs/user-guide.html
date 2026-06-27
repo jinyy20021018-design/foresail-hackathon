@@ -695,7 +695,7 @@
         <p>需要在 <code>backend/.env</code> 中配置 <code>OPENAI_API_KEY</code>，并启用 <code>USE_LLM_SUMMARY=true</code>。未配置时系统会使用确定性规则生成摘要，Demo 仍可正常运行。</p>
 
         <h3>外部事件是真实的吗？</h3>
-        <p>默认 Demo 使用 Mock 事件。若管理员配置了真实数据源，Overview 顶部会显示 Event Mode（如 MOCK / REAL / HYBRID）。</p>
+        <p>默认 workflow 使用已配置的真实事件源。Overview 顶部会显示 Event Mode（REAL / HYBRID / MOCK），方便用户确认当前事件来源。</p>
 
         <h3>我之前创建的 Case 不见了？</h3>
         <p>Case 数据保存在本地数据库与浏览器缓存中。若更换目录、清空浏览器 localStorage 或使用新数据库文件，历史 Case 可能不会自动保留。</p>

@@ -1,13 +1,16 @@
 from datetime import datetime
+import re
 
 ALLOWED_FIELDS = {
     "buyer",
     "seller",
     "commodity",
     "quantity",
+    "quantity_unit",
     "amount",
     "currency",
     "incoterm",
+    "incoterm_named_place",
     "payment_method",
     "vessel",
     "route",
@@ -38,6 +41,10 @@ def validate_extracted_fields(items: list[dict] | None, document: dict) -> tuple
     if not isinstance(items, list):
         return [], ["LLM output did not contain a fields array."]
 
+    has_quantity_unit = any(
+        isinstance(item, dict) and str(item.get("field_name") or "").strip() == "quantity_unit"
+        for item in items
+    )
     for item in items:
         if not isinstance(item, dict):
             warnings.append("Skipped non-object field item.")
@@ -50,6 +57,28 @@ def validate_extracted_fields(items: list[dict] | None, document: dict) -> tuple
         if value in {None, ""}:
             warnings.append(f"Skipped empty field: {field_name}.")
             continue
+        if field_name == "quantity":
+            quantity_value, quantity_unit = _split_quantity(value)
+            if quantity_value is None:
+                warnings.append(f"Skipped invalid quantity value: {value}.")
+                continue
+            item = dict(item)
+            item["value"] = quantity_value
+            value = quantity_value
+            if quantity_unit and not has_quantity_unit:
+                unit_item = dict(item)
+                unit_item["field_name"] = "quantity_unit"
+                unit_item["value"] = quantity_unit
+                items.append(unit_item)
+                has_quantity_unit = True
+        if field_name == "amount":
+            amount_value = _normalize_amount(str(value))
+            if amount_value is None:
+                warnings.append(f"Skipped non-money amount value: {value}.")
+                continue
+            item = dict(item)
+            item["value"] = amount_value
+            value = amount_value
 
         confidence = _confidence(item.get("confidence"))
         evidence = str(item.get("evidence_text") or item.get("evidence") or "").strip()
@@ -86,3 +115,29 @@ def _date_like(value: str) -> bool:
         except ValueError:
             pass
     return False
+
+
+def _normalize_amount(value: str) -> int | float | None:
+    normalized = value.strip().replace(",", "")
+    lowered = normalized.lower()
+    if any(unit in lowered for unit in [" ton", "tons", "mt", "kg", "metric", "unit", "units"]):
+        return None
+    cleaned = re.sub(r"\b(?:USD|EUR|CNY|SGD|GBP)\b|US\$|\$", "", normalized, flags=re.IGNORECASE)
+    cleaned = cleaned.strip()
+    if not cleaned or not all(char.isdigit() or char in ". " for char in cleaned):
+        return None
+    number = float(cleaned)
+    return int(number) if number.is_integer() else number
+
+
+def _split_quantity(value) -> tuple[int | float | None, str]:
+    if isinstance(value, int | float):
+        return value, ""
+    text = str(value).strip()
+    match = re.match(r"^([0-9][0-9,]*(?:\.[0-9]+)?)\s*(.*)$", text)
+    if not match:
+        return None, ""
+    number_text, unit = match.groups()
+    number = float(number_text.replace(",", ""))
+    value_out = int(number) if number.is_integer() else number
+    return value_out, unit.strip(" .,\r\n")

@@ -601,7 +601,7 @@
         <ol class="steps">
           <li><strong>Load the case and confirmed facts</strong> — uses the trade information you approved.</li>
           <li><strong>Build a watch profile</strong> — defines vessel, ports, route regions, and deadlines to watch.</li>
-          <li><strong>Fetch external events</strong> — uses mock events by default; real news/weather if configured.</li>
+          <li><strong>Fetch external events</strong> — uses configured real news/weather sources; mock events are only used when explicitly selected by an administrator.</li>
           <li><strong>Score event relevance</strong> — labels events as Relevant, Watch, or Irrelevant.</li>
           <li><strong>Map risk exposures</strong> — shipping, LC deadlines, port operations, payment timeline, etc.</li>
           <li><strong>Generate obligations, gaps, and actions</strong> — tells you what to do and what is still missing.</li>
@@ -698,7 +698,7 @@
         <p>Set <code>OPENAI_API_KEY</code> in <code>backend/.env</code> and enable <code>USE_LLM_SUMMARY=true</code>. Without it, ForeSail uses deterministic summaries and the demo still works.</p>
 
         <h3>Are external events real?</h3>
-        <p>By default the demo uses mock events. If real sources are configured, Overview shows the Event Mode (MOCK / REAL / HYBRID).</p>
+        <p>By default the workflow uses configured real event sources. Overview shows the Event Mode (REAL / HYBRID / MOCK) so users can verify the active source.</p>
 
         <h3>My previous cases disappeared?</h3>
         <p>Case data is stored locally in the database and browser cache. Moving folders, clearing localStorage, or switching database files may remove prior cases.</p>

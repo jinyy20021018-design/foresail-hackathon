@@ -37,6 +37,8 @@ def read_event_config() -> dict:
         "open_meteo_enabled": os.getenv("OPEN_METEO_ENABLED", "false").lower() == "true",
         "gdelt_lookback_days": _int_env("GDELT_LOOKBACK_DAYS", 7),
         "gdelt_max_records": _int_env("GDELT_MAX_RECORDS", 10),
+        "external_event_query_limit": _int_env("EXTERNAL_EVENT_QUERY_LIMIT", 3),
+        "real_event_location_limit": _int_env("REAL_EVENT_LOCATION_LIMIT", _int_env("EXTERNAL_EVENT_QUERY_LIMIT", 3)),
         "open_meteo_forecast_days": _int_env("OPEN_METEO_FORECAST_DAYS", 3),
         "real_search_enabled": os.getenv("REAL_SEARCH_ENABLED", "false").lower() == "true",
         "real_search_provider": os.getenv("REAL_SEARCH_PROVIDER", "RSS"),
@@ -54,7 +56,11 @@ def read_real_event_config() -> dict:
         "open_meteo_enabled": os.getenv("OPEN_METEO_ENABLED", "false").lower() == "true",
         "gdelt_lookback_days": _int_env("GDELT_LOOKBACK_DAYS", 7),
         "gdelt_max_records": _int_env("GDELT_MAX_RECORDS", 10),
+        "external_event_query_limit": _int_env("EXTERNAL_EVENT_QUERY_LIMIT", 3),
+        "real_event_location_limit": _int_env("REAL_EVENT_LOCATION_LIMIT", _int_env("EXTERNAL_EVENT_QUERY_LIMIT", 3)),
         "open_meteo_forecast_days": _int_env("OPEN_METEO_FORECAST_DAYS", 3),
+        "real_search_enabled": os.getenv("REAL_SEARCH_ENABLED", "false").lower() == "true",
+        "configured_feeds_count": len([url for url in os.getenv("REAL_SEARCH_FEED_URLS", "").split(",") if url.strip()]),
         "use_llm_event_extraction": os.getenv("USE_LLM_EVENT_EXTRACTION", "false").lower() == "true",
     }
 
@@ -165,8 +171,8 @@ def _connectors_for_mode(mode: str) -> list[str]:
     if mode == "MOCK":
         return ["mock_event_connector"]
     if mode == "REAL":
-        return ["gdelt_event_connector", "open_meteo_weather_connector"]
-    return ["mock_event_connector", "gdelt_event_connector", "open_meteo_weather_connector"]
+        return ["gdelt_event_connector", "real_search_event_connector", "open_meteo_weather_connector"]
+    return ["mock_event_connector", "gdelt_event_connector", "real_search_event_connector", "open_meteo_weather_connector"]
 
 
 def _int_env(name: str, default: int) -> int:
