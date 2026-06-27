@@ -15,10 +15,7 @@ export function AppShell({ activePath, children, language, onNavigate, onToggleL
       <header className="topbar">
         <div className="topbar-inner">
           <button className="brand" type="button" onClick={() => onNavigate("/cases")}>
-            <span className="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 32 32"><path d="M17 3.5c-4.1 5.3-6.6 11.4-7.2 18.1 3.3-1.7 6.3-4 8.9-6.8L17 3.5Z"/><path d="M19.3 4.8l1.4 10.1c2 2.8 4.5 5.1 7.3 7-1.1-6.7-4-12.4-8.7-17.1Z" opacity=".72"/><path d="M4 23.5c7.1 1.8 14.7 1.8 23.7-.1-5 4.6-12.3 6.4-19 3.8L4 23.5Z" opacity=".9"/></svg>
-            </span>
-            <strong>ForeSail</strong>
+            <span className="brand-logo-crop"><img src="/foresail-logo.png" alt="ForeSail" draggable="false" /></span>
           </button>
           <nav className="top-nav" aria-label="Primary navigation">
             <button className={activePath.startsWith("/cases") ? "active" : ""} type="button" onClick={() => onNavigate("/cases")}>Trade Risk</button>

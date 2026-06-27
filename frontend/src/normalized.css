@@ -298,6 +298,8 @@ input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var
 .brand { gap: 9px; }
 .brand-mark { width: 27px; height: 27px; border-radius: 0; background: transparent; color: #08a9df; box-shadow: none; transform: none; }
 .brand-mark svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+.brand-logo-crop { position: relative; display: block; width: 128px; height: 38px; overflow: hidden; }
+.brand-logo-crop img { position: absolute; top: -43px; left: 0; display: block; width: 128px; height: auto; user-select: none; }
 .brand strong { font-size: 18px; letter-spacing: -.015em; }
 .top-nav { gap: 28px; margin-left: 28px; }
 .page { width: calc(100% - 90px); max-width: none; padding: 34px 0 60px; }
