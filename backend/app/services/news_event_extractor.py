@@ -13,6 +13,54 @@ def extract_event_from_news_item(item: dict, watch_profile: dict) -> dict | None
     return _keyword_extract(item, watch_profile)
 
 
+def extract_event_from_gdelt_article(article: dict, query: dict, watch_profile: dict) -> dict | None:
+    title = article.get("title") or article.get("url") or "GDELT external event"
+    article_description = article.get("description") or title
+    description = article.get("description") or f"Matched GDELT article related to {query.get('query_text', 'external event')}."
+    article_text = f"{title} {article_description}".lower()
+    text = f"{article_text} {query.get('query_text', '')}".lower()
+    event_type = _event_type(article_text) or "UNKNOWN"
+    if event_type == "UNKNOWN":
+        event_type = _event_type(str(query.get("query_text") or "").lower())
+    if event_type == "UNKNOWN" and query.get("query_type") == "TRADE_POLICY":
+        event_type = "TRADE_POLICY"
+    if event_type == "UNKNOWN" and query.get("query_type") == "WEATHER_REGION":
+        event_type = "WEATHER"
+    ports = _matched_values(text, watch_profile.get("watched_ports", []))
+    regions = _matched_values(text, watch_profile.get("watched_route_regions", []))
+    vessel = watch_profile.get("watched_vessel")
+    vessels = [vessel] if vessel and vessel.lower() in text else []
+    severity = _severity(text)
+    confidence = _gdelt_confidence(text, ports, regions, vessels, article.get("seendate") or article.get("published_at"), query)
+    if event_type == "UNKNOWN" and confidence < 0.35:
+        return None
+    source_type = _source_type(event_type)
+    published_at = _gdelt_date(article.get("seendate") or article.get("published_at"))
+    return {
+        "event_id": f"EVT-GDELT-{abs(hash((title, article.get('url'), query.get('query_id')))) % 1000000:06d}",
+        "source": "gdelt_event_connector",
+        "source_type": source_type,
+        "event_type": event_type,
+        "title": title,
+        "description": description,
+        "event_time": published_at,
+        "published_at": published_at,
+        "locations": list(dict.fromkeys(ports + regions + _article_locations(article))),
+        "affected_ports": ports,
+        "affected_routes": regions,
+        "affected_vessels": vessels,
+        "affected_region": regions[0] if regions else (ports[0] if ports else ""),
+        "severity": severity,
+        "confidence": confidence,
+        "url": article.get("url"),
+        "raw_payload": {"article": article, "query": query},
+        "dedup_key": f"GDELT|{event_type}|{(article.get('url') or title).lower()}",
+        "impact": description,
+        "matched_query_ids": [query.get("query_id")],
+        "matched_terms": _matched_terms(text, query, ports, regions, vessels),
+    }
+
+
 def _keyword_extract(item: dict, watch_profile: dict) -> dict | None:
     rss_item = item["rss_item"]
     text = f"{rss_item.get('title', '')} {rss_item.get('summary', '')}".lower()
@@ -137,6 +185,23 @@ def _confidence(text: str, ports: list[str], regions: list[str], vessels: list[s
     return min(1.0, score)
 
 
+def _gdelt_confidence(text: str, ports: list[str], regions: list[str], vessels: list[str], published_at: str | None, query: dict) -> float:
+    score = 0.0
+    if vessels:
+        score += 0.35
+    if ports:
+        score += 0.30
+    if regions:
+        score += 0.20
+    if _event_type(text) != "UNKNOWN":
+        score += 0.20
+    if _recent(_gdelt_date(published_at)):
+        score += 0.10
+    if query.get("priority") == "HIGH":
+        score += 0.10
+    return min(1.0, score)
+
+
 def _matched_values(text: str, values: list[str]) -> list[str]:
     return [value for value in values if value and value.lower() in text]
 
@@ -161,3 +226,26 @@ def _source_type(event_type: str) -> str:
     if event_type == "PORT_DISRUPTION":
         return "PORT"
     return "NEWS"
+
+
+def _gdelt_date(value: str | None) -> str | None:
+    if not value:
+        return None
+    text = str(value)
+    if len(text) == 15 and text.endswith("Z"):
+        return f"{text[0:4]}-{text[4:6]}-{text[6:8]}T{text[9:11]}:{text[11:13]}:{text[13:15]}Z"
+    return text
+
+
+def _article_locations(article: dict) -> list[str]:
+    values = [article.get("sourcecountry"), article.get("domain")]
+    return [str(value) for value in values if value]
+
+
+def _matched_terms(text: str, query: dict, ports: list[str], regions: list[str], vessels: list[str]) -> list[str]:
+    terms = [*ports, *regions, *vessels]
+    for raw in str(query.get("query_text") or "").replace(" OR ", " ").split():
+        term = raw.strip('"(),').lower()
+        if len(term) >= 5 and term in text:
+            terms.append(term)
+    return list(dict.fromkeys(term for term in terms if term))

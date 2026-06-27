@@ -90,8 +90,11 @@ export function ExternalEventsPanel({
           <dl className="field-grid">
             <div><dt>Connectors</dt><dd>{(config?.connectors ?? ["mock_event_connector"]).join(", ")}</dd></div>
             <div><dt>Last Fetch</dt><dd>{lastResult ? `${lastResult.fetched} events / ${lastResult.errors} errors` : "Not fetched in this session"}</dd></div>
-            <div><dt>Real Search</dt><dd>{config?.real_search_enabled ? "Enabled" : "Disabled"}</dd></div>
-            <div><dt>Feeds</dt><dd>{config?.configured_feeds_count ?? 0} configured</dd></div>
+            <div><dt>GDELT</dt><dd>{config?.gdelt_enabled ? "Enabled" : "Disabled"}</dd></div>
+            <div><dt>Open-Meteo</dt><dd>{config?.open_meteo_enabled ? "Enabled" : "Disabled"}</dd></div>
+            <div><dt>GDELT Lookback</dt><dd>{config?.gdelt_lookback_days ?? 7} days</dd></div>
+            <div><dt>GDELT Max Records</dt><dd>{config?.gdelt_max_records ?? 10}</dd></div>
+            <div><dt>Weather Forecast</dt><dd>{config?.open_meteo_forecast_days ?? 3} days</dd></div>
             <div><dt>LLM Event Extraction</dt><dd>{config?.use_llm_event_extraction ? "Enabled" : "Disabled"}</dd></div>
           </dl>
           {!hasConfirmedFacts && <div className="warning-banner">Confirmed case facts are required before fetching external events.</div>}
@@ -109,7 +112,7 @@ export function ExternalEventsPanel({
         <section className="panel">
           <div className="panel-heading"><h2>Real Search</h2></div>
           <p className="subtle">
-            Search queries are generated from the confirmed watch profile, then RSS/news items are extracted into normalized events.
+            Search queries are generated from the confirmed watch profile, then GDELT news and Open-Meteo weather outputs are normalized into external events.
           </p>
           <div className="action-row">
             <button
@@ -128,19 +131,21 @@ export function ExternalEventsPanel({
               disabled={!canFetch || isSearching}
               title={!canFetch ? "Confirmed facts are required and high conflicts must be resolved." : undefined}
             >
-              {isSearching ? "Searching..." : "Search External Events"}
+              {isSearching ? "Searching..." : "Search Real External Events"}
             </button>
           </div>
           <div className="mini-metrics">
+            <div><strong>{searchResult?.queries_generated?.length ?? 0}</strong><span>Queries</span></div>
+            <div><strong>{searchResult?.gdelt_articles_fetched ?? 0}</strong><span>GDELT Articles</span></div>
+            <div><strong>{searchResult?.gdelt_events_extracted?.length ?? 0}</strong><span>GDELT Events</span></div>
+            <div><strong>{searchResult?.weather_locations_checked ?? 0}</strong><span>Weather Locations</span></div>
+            <div><strong>{searchResult?.weather_events_extracted?.length ?? 0}</strong><span>Weather Events</span></div>
             <div><strong>{events.length}</strong><span>Stored Events</span></div>
-            <div><strong>{new Set(events.map((event) => event.source_type)).size}</strong><span>Source Types</span></div>
-            <div><strong>{events.filter((event) => event.url).length}</strong><span>Source Links</span></div>
-            <div><strong>{searchResult?.rss_items_matched ?? 0}</strong><span>RSS Matches</span></div>
           </div>
           {searchResult?.warnings.map((warning) => <div className="warning-banner" key={warning}>{warning}</div>)}
           {searchResult?.connector_errors.map((error) => (
-            <div className="warning-banner" key={`${error.feed_url ?? error.title ?? "source"}-${error.error}`}>
-              {error.feed_url ?? error.title ?? "Connector"}: {error.error}
+            <div className="warning-banner" key={`${error.connector ?? error.feed_url ?? error.location ?? error.title ?? "source"}-${error.error}`}>
+              {error.connector ?? error.feed_url ?? error.location ?? error.title ?? "Connector"}: {error.error}
             </div>
           ))}
         </section>
@@ -207,6 +212,7 @@ export function ExternalEventsTable({ events }: { events: ExternalEvent[] }) {
                 <th>Severity</th>
                 <th>Confidence</th>
                 <th>Published At</th>
+                <th>Event Time</th>
                 <th>Affected Ports</th>
                 <th>Affected Vessels</th>
                 <th>Matched Terms</th>
@@ -222,7 +228,8 @@ export function ExternalEventsTable({ events }: { events: ExternalEvent[] }) {
                   <td>{event.event_type}</td>
                   <td>{event.severity}</td>
                   <td>{Math.round((event.confidence ?? 0) * 100)}%</td>
-                  <td>{event.published_at || event.event_time || "-"}</td>
+                  <td>{event.published_at || "-"}</td>
+                  <td>{event.event_time || "-"}</td>
                   <td>{event.affected_ports.join(", ") || "-"}</td>
                   <td>{event.affected_vessels.join(", ") || "-"}</td>
                   <td>{event.matched_terms?.join(", ") || event.matched_query_ids?.join(", ") || "-"}</td>

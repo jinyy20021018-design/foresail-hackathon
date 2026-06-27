@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse
 
 from app.services.case_service import get_watch_profile
 from app.services.document_service import get_confirmed_facts
+from app.services.event_connectors.gdelt_event_connector import GdeltEventConnector
+from app.services.event_connectors.open_meteo_weather_connector import OpenMeteoWeatherConnector
 from app.services.event_connectors.real_search_event_connector import RealSearchEventConnector
 from app.services.event_deduplicator import deduplicate_events
 from app.services.event_ingestion_service import (
@@ -31,10 +33,28 @@ def read_event_config() -> dict:
     return {
         "event_source_mode": mode,
         "connectors": _connectors_for_mode(mode),
+        "gdelt_enabled": os.getenv("GDELT_ENABLED", "false").lower() == "true",
+        "open_meteo_enabled": os.getenv("OPEN_METEO_ENABLED", "false").lower() == "true",
+        "gdelt_lookback_days": _int_env("GDELT_LOOKBACK_DAYS", 7),
+        "gdelt_max_records": _int_env("GDELT_MAX_RECORDS", 10),
+        "open_meteo_forecast_days": _int_env("OPEN_METEO_FORECAST_DAYS", 3),
         "real_search_enabled": os.getenv("REAL_SEARCH_ENABLED", "false").lower() == "true",
         "real_search_provider": os.getenv("REAL_SEARCH_PROVIDER", "RSS"),
         "real_search_lookback_days": _int_env("REAL_SEARCH_LOOKBACK_DAYS", 7),
         "configured_feeds_count": len([url for url in os.getenv("REAL_SEARCH_FEED_URLS", "").split(",") if url.strip()]),
+        "use_llm_event_extraction": os.getenv("USE_LLM_EVENT_EXTRACTION", "false").lower() == "true",
+    }
+
+
+@router.get("/api/events/real-config")
+def read_real_event_config() -> dict:
+    return {
+        "event_source_mode": event_source_mode(),
+        "gdelt_enabled": os.getenv("GDELT_ENABLED", "false").lower() == "true",
+        "open_meteo_enabled": os.getenv("OPEN_METEO_ENABLED", "false").lower() == "true",
+        "gdelt_lookback_days": _int_env("GDELT_LOOKBACK_DAYS", 7),
+        "gdelt_max_records": _int_env("GDELT_MAX_RECORDS", 10),
+        "open_meteo_forecast_days": _int_env("OPEN_METEO_FORECAST_DAYS", 3),
         "use_llm_event_extraction": os.getenv("USE_LLM_EVENT_EXTRACTION", "false").lower() == "true",
     }
 
@@ -104,22 +124,39 @@ def search_external_events(case_id: str) -> dict:
                 "message": "Confirmed case facts are required before searching external events.",
             },
         )
-    connector = RealSearchEventConnector()
-    connector_events = connector.fetch_events(watch_profile, case_id)
-    normalized = normalize_events(connector_events, case_id, connector.name)
+    queries = build_external_event_queries(case_id, watch_profile)
+    connectors = [GdeltEventConnector(), OpenMeteoWeatherConnector(), RealSearchEventConnector()]
+    connector_events: list[dict] = []
+    connector_errors: list[dict] = []
+    connector_results: list[dict] = []
+    for connector in connectors:
+        try:
+            connector_events.extend(connector.fetch_events(watch_profile, case_id))
+            if getattr(connector, "last_result", None):
+                connector_results.append({"connector": connector.name, **connector.last_result})
+        except Exception as error:
+            connector_errors.append({"connector": connector.name, "error": str(error)})
+    normalized = normalize_events(connector_events, case_id, "real_api_search")
     deduped, stats = deduplicate_events(normalized)
     save_external_events(case_id, deduped)
-    summary = connector.last_result or {}
+    gdelt = next((item for item in connector_results if item.get("connector") == "gdelt_event_connector"), {})
+    weather = next((item for item in connector_results if item.get("connector") == "open_meteo_weather_connector"), {})
+    rss = next((item for item in connector_results if item.get("connector") == "real_search_event_connector"), {})
+    warnings = (gdelt.get("warnings") or []) + (weather.get("warnings") or []) + (rss.get("warnings") or [])
     return {
         "case_id": case_id,
-        "mode": "REAL_SEARCH",
-        "queries_generated": summary.get("queries", []),
-        "rss_items_fetched": summary.get("rss_items_fetched", 0),
-        "rss_items_matched": summary.get("rss_items_matched", 0),
+        "mode": "REAL",
+        "queries_generated": queries,
+        "gdelt_articles_fetched": gdelt.get("articles_fetched", 0),
+        "gdelt_events_extracted": [event for event in deduped if event.get("source") == "gdelt_event_connector"],
+        "weather_locations_checked": weather.get("locations_checked", 0),
+        "weather_events_extracted": [event for event in deduped if event.get("source") == "open_meteo_weather_connector"],
+        "rss_items_fetched": rss.get("rss_items_fetched", 0),
+        "rss_items_matched": rss.get("rss_items_matched", 0),
         "events_extracted": deduped,
         "events_extracted_count": len(deduped),
-        "connector_errors": summary.get("connector_errors", []),
-        "warnings": summary.get("warnings", []),
+        "connector_errors": connector_errors + (gdelt.get("connector_errors") or []) + (weather.get("connector_errors") or []) + (rss.get("connector_errors") or []),
+        "warnings": list(dict.fromkeys(warnings)),
         "deduplication": stats,
     }
 
@@ -128,8 +165,8 @@ def _connectors_for_mode(mode: str) -> list[str]:
     if mode == "MOCK":
         return ["mock_event_connector"]
     if mode == "REAL":
-        return ["weather_event_connector", "news_event_connector", "real_search_event_connector"]
-    return ["mock_event_connector", "weather_event_connector", "news_event_connector", "real_search_event_connector"]
+        return ["gdelt_event_connector", "open_meteo_weather_connector"]
+    return ["mock_event_connector", "gdelt_event_connector", "open_meteo_weather_connector"]
 
 
 def _int_env(name: str, default: int) -> int:

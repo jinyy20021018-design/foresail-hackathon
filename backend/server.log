@@ -1,12 +1,4 @@
-INFO:     127.0.0.1:56650 - "POST /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56650 - "POST /api/cases/demo/clean HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56650 - "POST /api/cases/demo/conflict HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56650 - "GET /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54071 - "OPTIONS /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58835 - "OPTIONS /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54071 - "GET /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54071 - "GET /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50789 - "GET /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50789 - "GET /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61865 - "OPTIONS /api/cases HTTP/1.1" 200 OK
-INFO:     127.0.0.1:61865 - "GET /api/cases HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60562 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60562 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60562 - "GET /api/events/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52345 - "GET /api/events/config HTTP/1.1" 200 OK

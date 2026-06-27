@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import re
+import shutil
 import urllib.error
 import urllib.request
 import zipfile
@@ -49,6 +50,12 @@ _field_counter = 1
 def reset_document_store() -> None:
     global _doc_counter, _field_counter
     clear_runtime_document_cache()
+    if UPLOAD_DIR.exists():
+        for child in UPLOAD_DIR.iterdir():
+            if child.is_dir():
+                shutil.rmtree(child, ignore_errors=True)
+            else:
+                child.unlink(missing_ok=True)
     for namespace in [
         "documents",
         "extracted_fields",

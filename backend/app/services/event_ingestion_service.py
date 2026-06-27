@@ -1,9 +1,8 @@
 import os
 
+from app.services.event_connectors.gdelt_event_connector import GdeltEventConnector
 from app.services.event_connectors.mock_event_connector import MockEventConnector
-from app.services.event_connectors.news_event_connector import NewsEventConnector
-from app.services.event_connectors.real_search_event_connector import RealSearchEventConnector
-from app.services.event_connectors.weather_event_connector import WeatherEventConnector
+from app.services.event_connectors.open_meteo_weather_connector import OpenMeteoWeatherConnector
 from app.services.event_deduplicator import deduplicate_events
 from app.services.event_normalizer import normalize_events
 from app.services.persistence_service import list_items, save_item
@@ -39,6 +38,7 @@ def fetch_events_for_case(case_id: str, watch_profile: dict, agent_run_id: str |
     deduped_events, dedup_stats = deduplicate_events(normalized_events)
     if persist:
         save_external_events(case_id, deduped_events, agent_run_id)
+    warnings = _mode_warnings(mode, connector_results)
 
     return {
         "mode": mode,
@@ -50,6 +50,8 @@ def fetch_events_for_case(case_id: str, watch_profile: dict, agent_run_id: str |
         "connector_errors": connector_errors,
         "connector_results": connector_results,
         "search_summary": _search_summary(connector_results),
+        "real_api_summary": _real_api_summary(connector_results),
+        "warnings": warnings,
         "deduplication": dedup_stats,
     }
 
@@ -84,8 +86,8 @@ def _connectors_for_mode(mode: str):
     if mode == "MOCK":
         return [MockEventConnector()]
     if mode == "REAL":
-        return [WeatherEventConnector(), NewsEventConnector(), RealSearchEventConnector()]
-    return [MockEventConnector(), WeatherEventConnector(), NewsEventConnector(), RealSearchEventConnector()]
+        return [GdeltEventConnector(), OpenMeteoWeatherConnector()]
+    return [MockEventConnector(), GdeltEventConnector(), OpenMeteoWeatherConnector()]
 
 
 def _event_key(case_id: str, event_id: str, agent_run_id: str | None) -> str:
@@ -110,3 +112,33 @@ def _search_summary(connector_results: list[dict]) -> dict:
         summary["connector_errors"].extend(result.get("connector_errors") or [])
         summary["warnings"].extend(result.get("warnings") or [])
     return summary
+
+
+def _real_api_summary(connector_results: list[dict]) -> dict:
+    gdelt = next((result for result in connector_results if result.get("connector") == "gdelt_event_connector"), {})
+    weather = next((result for result in connector_results if result.get("connector") == "open_meteo_weather_connector"), {})
+    return {
+        "queries_generated": int(gdelt.get("queries_generated") or 0),
+        "gdelt_enabled": bool(gdelt.get("enabled")),
+        "gdelt_articles_fetched": int(gdelt.get("articles_fetched") or 0),
+        "gdelt_events_extracted": int(gdelt.get("events_extracted") or 0),
+        "weather_enabled": bool(weather.get("enabled")),
+        "weather_locations_checked": int(weather.get("locations_checked") or 0),
+        "weather_events_extracted": int(weather.get("weather_events_extracted") or 0),
+        "connector_errors": (gdelt.get("connector_errors") or []) + (weather.get("connector_errors") or []),
+        "warnings": (gdelt.get("warnings") or []) + (weather.get("warnings") or []),
+    }
+
+
+def _mode_warnings(mode: str, connector_results: list[dict]) -> list[str]:
+    warnings: list[str] = []
+    for result in connector_results:
+        warnings.extend(result.get("warnings") or [])
+    if mode == "REAL":
+        enabled = [
+            result for result in connector_results
+            if result.get("connector") in {"gdelt_event_connector", "open_meteo_weather_connector"} and result.get("enabled")
+        ]
+        if not enabled:
+            warnings.append("REAL_MODE_NO_CONNECTORS_ENABLED")
+    return list(dict.fromkeys(warnings))

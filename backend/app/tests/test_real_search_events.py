@@ -124,8 +124,9 @@ class RealSearchEventsTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         names = {step["name"] for step in response.json()["trace"]}
         self.assertIn("Build Search Queries", names)
-        self.assertIn("Search External Information", names)
-        self.assertIn("Extract Events From Search Results", names)
+        self.assertIn("Fetch GDELT Events", names)
+        self.assertIn("Fetch Open-Meteo Weather", names)
+        self.assertIn("Extract Real Events", names)
 
 
 if __name__ == "__main__":

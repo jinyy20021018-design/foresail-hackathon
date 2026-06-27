@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ForeSail 用户使用指南</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --text: #1a2332;
+      --muted: #5b677a;
+      --primary: #1f4fd6;
+      --primary-soft: #e8efff;
+      --accent: #0f766e;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --border: #dbe3f0;
+      --shadow: 0 10px 30px rgba(26, 35, 50, 0.08);
+      --radius: 14px;
+      --max: 980px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eef3fb 0%, var(--bg) 220px);
+      line-height: 1.7;
+    }
+
+    header.hero {
+      background: linear-gradient(135deg, #12306b 0%, #1f4fd6 55%, #0f766e 100%);
+      color: #fff;
+      padding: 56px 24px 72px;
+    }
+
+    .hero-inner, .container {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.16);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      line-height: 1.2;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 720px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 1.05rem;
+    }
+
+    .hero-meta {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 0.92rem;
+    }
+
+    main {
+      margin-top: -36px;
+      padding: 0 24px 64px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1.45rem;
+    }
+
+    .card h3 {
+      margin: 28px 0 10px;
+      font-size: 1.08rem;
+      color: var(--primary);
+    }
+
+    .card p, .card li { color: var(--text); }
+
+    .lead {
+      margin: 0 0 18px;
+      color: var(--muted);
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .toc a:hover { background: #dbe7ff; }
+
+    .steps {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .steps li {
+      position: relative;
+      padding: 0 0 22px 56px;
+      border-left: 2px solid var(--border);
+      margin-left: 16px;
+    }
+
+    .steps li:last-child {
+      border-left-color: transparent;
+      padding-bottom: 0;
+    }
+
+    .steps li::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: -17px;
+      top: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .steps strong { display: block; margin-bottom: 4px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.96rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+    }
+
+    .status-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .status {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .status::after {
+      content: "→";
+      margin-left: 8px;
+      color: var(--muted);
+    }
+
+    .status:last-child::after { content: ""; margin: 0; }
+
+    .callout {
+      border-left: 4px solid var(--primary);
+      background: var(--primary-soft);
+      padding: 14px 16px;
+      border-radius: 0 10px 10px 0;
+      margin: 16px 0;
+    }
+
+    .callout.warning {
+      border-left-color: var(--warning);
+      background: #fff7ed;
+    }
+
+    .callout.danger {
+      border-left-color: var(--danger);
+      background: #fef2f2;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      background: #fbfdff;
+    }
+
+    .mini-card h4 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .mini-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    code, .kbd {
+      font-family: Consolas, "Courier New", monospace;
+      background: #eef2f7;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 0.92em;
+    }
+
+    footer {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 24px 48px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 640px) {
+      .card { padding: 20px; }
+      .steps li { padding-left: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="brand">
+        <div class="brand-mark">FS</div>
+        <div>
+          <strong>ForeSail</strong><br />
+          <small>Trade Monitor</small>
+        </div>
+      </div>
+      <h1>ForeSail 用户使用指南</h1>
+      <p>
+        本指南面向贸易运营人员，帮助你在 ForeSail 中完成 Case 创建、文档审核、Agent 监控、
+        风险识别与行动跟进。无需了解后端技术细节，按页面操作即可完成 Demo 与日常工作流。
+      </p>
+      <div class="hero-meta">
+        <span class="pill">适用版本：MVP 3.0</span>
+        <span class="pill">前端地址：http://127.0.0.1:5173</span>
+        <span class="pill">语言：简体中文</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="card" id="toc">
+        <h2>目录</h2>
+        <p class="lead">点击以下章节快速跳转。</p>
+        <nav class="toc">
+          <a href="#intro">1. ForeSail 是什么</a>
+          <a href="#start">2. 如何启动系统</a>
+          <a href="#layout">3. 界面与导航</a>
+          <a href="#library">4. Case Library 案例库</a>
+          <a href="#create">5. 新建 Case</a>
+          <a href="#workspace">6. Case Workspace 工作台</a>
+          <a href="#agent">7. 运行 Agent 监控</a>
+          <a href="#status">8. Case 状态说明</a>
+          <a href="#demo">9. Demo 完整演示</a>
+          <a href="#faq">10. 常见问题</a>
+        </nav>
+      </section>
+
+      <section class="card" id="intro">
+        <h2>1. ForeSail 是什么？</h2>
+        <p>
+          ForeSail 是一个<strong>贸易 Case 监控工作台</strong>。你可以把每一票货运/贸易业务当作一个 Case，
+          系统会帮你：
+        </p>
+        <div class="grid-2">
+          <div class="mini-card">
+            <h4>读懂贸易文档</h4>
+            <p>上传合同、订舱确认书、信用证等文件，自动抽取关键字段并展示证据原文。</p>
+          </div>
+          <div class="mini-card">
+            <h4>建立监控画像</h4>
+            <p>根据船名、港口、航线和截止日期，确定这票货需要关注什么。</p>
+          </div>
+          <div class="mini-card">
+            <h4>扫描外部事件</h4>
+            <p>识别船期延误、港口中断、天气等外部信息，并判断是否与当前 Case 相关。</p>
+          </div>
+          <div class="mini-card">
+            <h4>输出行动建议</h4>
+            <p>生成风险摘要、义务提醒、推荐行动与处置方案，支持人工确认后继续监控。</p>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>你可以把它理解为：</strong>围绕单笔贸易 Case，从“文档 → 事实确认 → 外部监控 → 风险行动”的一站式工作台。
+        </div>
+      </section>
+
+      <section class="card" id="start">
+        <h2>2. 如何启动系统</h2>
+        <p class="lead">ForeSail 由前端页面和后端 API 两部分组成，需同时运行。</p>
+
+        <h3>启动后端</h3>
+        <p>在终端进入 <code>backend</code> 目录后执行：</p>
+        <p><code>.\.venv\Scripts\Activate.ps1</code><br />
+        <code>uvicorn app.main:app --reload --host 127.0.0.1 --port 8000</code></p>
+
+        <h3>启动前端</h3>
+        <p>另开一个终端，进入 <code>frontend</code> 目录后执行：</p>
+        <p><code>npm run dev</code></p>
+
+        <h3>打开应用</h3>
+        <p>浏览器访问：<strong>http://127.0.0.1:5173</strong></p>
+
+        <div class="callout warning">
+          <strong>首次使用提示：</strong>若后端尚未创建虚拟环境，需先执行
+          <code>python -m venv .venv</code> 与 <code>pip install -r requirements.txt</code>。
+          若希望 Agent 摘要或文档抽取使用 LLM，请在 <code>backend/.env</code> 中配置 OpenAI API Key；不配置也可运行 Demo。
+        </div>
+      </section>
+
+      <section class="card" id="layout">
+        <h2>3. 界面与导航</h2>
+        <p>打开 ForeSail 后，你会看到以下主要区域：</p>
+        <table>
+          <thead>
+            <tr>
+              <th>区域</th>
+              <th>作用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>左侧边栏</td>
+              <td>品牌入口、Case Library 等导航，以及今日概览快照（At Risk、Action Required 等统计）。</td>
+            </tr>
+            <tr>
+              <td>顶部栏</td>
+              <td>中英文切换、当前用户信息。</td>
+            </tr>
+            <tr>
+              <td>主工作区</td>
+              <td>Case Library、新建 Case 或单个 Case 的详细工作台。</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>常用页面路径：</p>
+        <ul>
+          <li><strong>Case Library</strong> — 查看全部 Case</li>
+          <li><strong>Create New Case</strong> — 上传文档并创建新 Case</li>
+          <li><strong>Case Workspace</strong> — 进入某个 Case 的详细操作页面</li>
+        </ul>
+      </section>
+
+      <section class="card" id="library">
+        <h2>4. Case Library 案例库</h2>
+        <p class="lead">Case Library 是你管理所有贸易 Case 的入口。</p>
+
+        <h3>你能做什么</h3>
+        <ul>
+          <li>查看 Case 总数、At Risk、Action Required、7 天内截止日、信息缺口等汇总卡片</li>
+          <li>按 Case ID、船名、航线、客户等关键词搜索</li>
+          <li>按状态、风险等级、负责人筛选</li>
+          <li>点击 <strong>Create New Case</strong> 创建真实业务 Case</li>
+          <li>点击 <strong>Clean Demo</strong> 或 <strong>Conflict Demo</strong> 快速体验系统</li>
+        </ul>
+
+        <h3>列表字段说明</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>字段</th>
+              <th>含义</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Case ID</td><td>Case 唯一编号</td></tr>
+            <tr><td>Shipment / Vessel</td><td>船舶与货运信息</td></tr>
+            <tr><td>Route</td><td>航线</td></tr>
+            <tr><td>Status</td><td>当前 Case 状态</td></tr>
+            <tr><td>Risk Level</td><td>风险等级（High / Medium / Low）</td></tr>
+            <tr><td>Next Deadline</td><td>最近的关键截止日</td></tr>
+            <tr><td>Open Actions</td><td>待处理行动数量</td></tr>
+            <tr><td>Info Gaps</td><td>尚未补齐的信息缺口</td></tr>
+            <tr><td>Conflicts</td><td>未解决的字段冲突</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout">
+          <strong>快速体验建议：</strong>第一次使用时，可直接点击 <strong>Clean Demo</strong> 进入完整流程；若想体验字段冲突处理，可选择 <strong>Conflict Demo</strong>。
+        </div>
+      </section>
+
+      <section class="card" id="create">
+        <h2>5. 新建 Case</h2>
+        <p class="lead">通过 <strong>Create New Case</strong> 页面，你可以从真实贸易文档开始建立一个 Case。</p>
+
+        <ol class="steps">
+          <li>
+            <strong>准备并选择文档</strong>
+            建议至少上传 Contract / PO；推荐同时上传 Booking Confirmation 与 Letter of Credit。
+          </li>
+          <li>
+            <strong>创建 Draft Case</strong>
+            系统会先创建草稿 Case，再逐个上传文档。
+          </li>
+          <li>
+            <strong>运行文档抽取</strong>
+            点击抽取后，系统会从文档中提取买方、卖方、船名、港口、ETD/ETA、付款方式等字段。
+          </li>
+          <li>
+            <strong>查看抽取 Trace</strong>
+            页面会显示“创建 Case → 上传 → 抽取 → 检测冲突 → 待人工审核”等步骤进度。
+          </li>
+          <li>
+            <strong>人工审核字段</strong>
+            检查自动填充结果，必要时手动修改；可查看字段对应的证据原文。
+          </li>
+          <li>
+            <strong>进入 Case Workspace</strong>
+            审核完成后进入该 Case 的详细工作台，继续确认字段与运行 Agent。
+          </li>
+        </ol>
+
+        <h3>支持的文档类型</h3>
+        <table>
+          <thead>
+            <tr><th>文档</th><th>是否建议上传</th><th>常见抽取字段</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Contract / PO</td><td>必填</td><td>买方、卖方、商品、金额、贸易术语、付款方式</td></tr>
+            <tr><td>Booking Confirmation</td><td>推荐</td><td>船名、装港、卸港、ETD、ETA</td></tr>
+            <tr><td>Letter of Credit</td><td>推荐</td><td>金额、币种、最迟装运日、LC 到期日、付款方式</td></tr>
+            <tr><td>Insurance Certificate</td><td>可选</td><td>保单号、保险类型</td></tr>
+            <tr><td>Other Supporting Documents</td><td>可选</td><td>其他辅助信息</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card" id="workspace">
+        <h2>6. Case Workspace 工作台</h2>
+        <p class="lead">进入某个 Case 后，你会看到该 Case 的全部操作面板。顶部有两个关键按钮：</p>
+        <ul>
+          <li><strong>Run Agent Monitoring Cycle</strong> — 运行一轮 Agent 监控</li>
+          <li><strong>Continue Monitoring</strong> — 在需要行动时确认后继续监控</li>
+        </ul>
+
+        <div class="callout warning">
+          若存在<strong>未解决的高严重度字段冲突</strong>，系统会阻止你确认字段或运行 Agent。请先到 <strong>Conflicts</strong> 页签处理。
+        </div>
+
+        <h3>九个功能页签</h3>
+        <table>
+          <thead>
+            <tr><th>页签</th><th>你会看到什么</th><th>典型操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Overview</td>
+              <td>Case 快照、监控画像、最新 Agent 运行、状态时间线</td>
+              <td>快速了解当前 Case 全貌</td>
+            </tr>
+            <tr>
+              <td>Documents &amp; Evidence</td>
+              <td>已上传文档、抽取字段、证据片段</td>
+              <td>上传文档、抽取字段、批准/编辑/拒绝字段，点击 <strong>Confirm Fields</strong></td>
+            </tr>
+            <tr>
+              <td>Conflicts</td>
+              <td>不同文档之间的字段冲突</td>
+              <td>查看并解决 High 级冲突</td>
+            </tr>
+            <tr>
+              <td>Agent Runs</td>
+              <td>Agent 运行总结、历史记录、逐步 Trace</td>
+              <td>查看 Agent 做了什么、为何得出当前结论</td>
+            </tr>
+            <tr>
+              <td>External Events</td>
+              <td>外部事件列表与采集配置</td>
+              <td>查看船期、港口、天气等事件是否影响本 Case</td>
+            </tr>
+            <tr>
+              <td>Risks &amp; Obligations</td>
+              <td>风险摘要、义务与截止日、信息缺口</td>
+              <td>判断是否需要升级处理</td>
+            </tr>
+            <tr>
+              <td>Actions &amp; Drafts</td>
+              <td>推荐行动与行动草稿</td>
+              <td>查看建议联系谁、做什么、何时完成</td>
+            </tr>
+            <tr>
+              <td>Treatment Plans</td>
+              <td>风险处置方案与审批包</td>
+              <td>为已识别风险制定处理方案</td>
+            </tr>
+            <tr>
+              <td>Audit</td>
+              <td>Agent 运行历史与审计信息</td>
+              <td>追溯历史决策与系统输出</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Workflow Stepper 工作流进度</h3>
+        <p>工作台顶部的 Workflow Stepper 会告诉你当前 Case 处于哪一步，例如：</p>
+        <ul>
+          <li>文档是否已上传</li>
+          <li>字段是否已抽取</li>
+          <li>冲突是否已解决</li>
+          <li>Case 事实是否已确认</li>
+          <li>Agent 是否已运行</li>
+        </ul>
+        <p>建议始终先让 Workflow Stepper 走到“可运行 Agent”的状态，再执行监控。</p>
+      </section>
+
+      <section class="card" id="agent">
+        <h2>7. 运行 Agent 监控</h2>
+        <p class="lead">Agent 相当于替你完成一轮“外部信息值班检查”。你只需点击按钮，系统会自动完成后续分析。</p>
+
+        <h3>运行前请确认</h3>
+        <ul>
+          <li>已在 <strong>Documents &amp; Evidence</strong> 中点击 <strong>Confirm Fields</strong></li>
+          <li>不存在未解决的 High 级字段冲突</li>
+          <li>Case 当前不是已在持续监控中的 <strong>MONITORING</strong> 状态</li>
+        </ul>
+
+        <h3>Agent 会为你做什么</h3>
+        <ol class="steps">
+          <li><strong>读取 Case 与已确认事实</strong> — 以你确认过的贸易信息为准。</li>
+          <li><strong>生成监控画像</strong> — 明确要盯哪些船、港口、航线区域和截止日。</li>
+          <li><strong>采集外部事件</strong> — 默认使用 Mock 事件；若配置了真实数据源，也会尝试拉取新闻与天气。</li>
+          <li><strong>判断事件相关性</strong> — 将事件分为 Relevant（相关）、Watch（观察）、Irrelevant（无关）。</li>
+          <li><strong>映射风险敞口</strong> — 如运输、LC 截止日、港口作业、付款时间线等。</li>
+          <li><strong>生成义务、缺口与行动</strong> — 告诉你该做什么、缺什么信息。</li>
+          <li><strong>更新 Case 状态并输出总结</strong> — 在 Agent Runs 页签查看 Summary 与 Trace。</li>
+        </ol>
+
+        <h3>运行后你应该看哪里</h3>
+        <table>
+          <thead>
+            <tr><th>页签</th><th>关注内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Overview</td><td>Case 状态是否变为 AT_RISK 或 ACTION_REQUIRED</td></tr>
+            <tr><td>Agent Runs</td><td>Agent 总结、扫描事件数、相关事件数、执行步骤</td></tr>
+            <tr><td>External Events</td><td>哪些外部事件被纳入分析</td></tr>
+            <tr><td>Risks &amp; Obligations</td><td>触发了哪些风险、有哪些截止日</td></tr>
+            <tr><td>Actions &amp; Drafts</td><td>推荐联系承运人、复核 LC、通知财务等行动</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout">
+          当 Case 进入 <strong>ACTION_REQUIRED</strong> 后，请查看行动板并点击 <strong>Continue Monitoring</strong>，Case 会回到 <strong>MONITORING</strong> 持续监控状态。
+        </div>
+      </section>
+
+      <section class="card" id="status">
+        <h2>8. Case 状态说明</h2>
+        <p>ForeSail 用状态反映 Case 当前处理阶段：</p>
+        <div class="status-flow">
+          <span class="status">DRAFT 草稿</span>
+          <span class="status">ACTIVE 已激活</span>
+          <span class="status">WATCHING 监控中</span>
+          <span class="status">AT_RISK 存在风险</span>
+          <span class="status">ACTION_REQUIRED 需要行动</span>
+          <span class="status">MONITORING 持续监控</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>状态</th><th>对你意味着什么</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>DRAFT</td><td>Case 刚创建，文档或字段尚未准备完成。</td></tr>
+            <tr><td>ACTIVE</td><td>核心贸易字段已确认，可以开始监控。</td></tr>
+            <tr><td>WATCHING</td><td>系统正在持续观察外部事件。</td></tr>
+            <tr><td>AT_RISK</td><td>检测到与 Case 相关的实质性风险事件。</td></tr>
+            <tr><td>ACTION_REQUIRED</td><td>系统已生成推荐行动，等待你确认处理。</td></tr>
+            <tr><td>MONITORING</td><td>你已确认行动，Case 回到持续监控。</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card" id="demo">
+        <h2>9. Demo 完整演示（CAPEMOLLINI）</h2>
+        <p class="lead">系统内置 Demo Case，适合第一次体验完整流程。</p>
+
+        <h3>Demo 背景</h3>
+        <ul>
+          <li>船舶：CAPEMOLLINI</li>
+          <li>航线：上海 → 吉大港 → 达卡</li>
+          <li>付款方式：LC at sight</li>
+          <li>贸易术语：CIF</li>
+        </ul>
+
+        <ol class="steps">
+          <li><strong>进入 Case Library</strong>，点击 <strong>Clean Demo</strong> 创建演示 Case。</li>
+          <li><strong>打开 Case Workspace</strong>，在 Documents 页签查看或补充 Contract / Booking / LC。</li>
+          <li><strong>抽取并确认字段</strong>，确保 Case 事实准确。</li>
+          <li><strong>点击 Run Agent Monitoring Cycle</strong>，等待 Agent 完成分析。</li>
+          <li><strong>查看 External Events</strong>，例如“CAPEMOLLINI ETA 延误 5 天”可能被标为相关。</li>
+          <li><strong>查看 Risks &amp; Actions</strong>，系统可能建议联系承运人、复核 LC 装运时间等。</li>
+          <li><strong>点击 Continue Monitoring</strong>，完成从风险识别到持续监控的闭环。</li>
+        </ol>
+
+        <div class="callout">
+          若你想体验“文档字段冲突必须先处理”的场景，可在 Case Library 中创建 <strong>Conflict Demo</strong>。
+        </div>
+      </section>
+
+      <section class="card" id="faq">
+        <h2>10. 常见问题</h2>
+
+        <h3>页面打不开或数据加载失败？</h3>
+        <p>请确认后端是否已启动，并访问 <code>http://127.0.0.1:8000/api/health</code> 检查是否返回 <code>{"status":"ok"}</code>。</p>
+
+        <h3>为什么无法运行 Agent？</h3>
+        <ul>
+          <li>尚未点击 <strong>Confirm Fields</strong></li>
+          <li>存在未解决的 High 级字段冲突</li>
+          <li>Case 已处于 MONITORING 状态</li>
+        </ul>
+
+        <h3>为什么看不到 LLM 摘要？</h3>
+        <p>需要在 <code>backend/.env</code> 中配置 <code>OPENAI_API_KEY</code>，并启用 <code>USE_LLM_SUMMARY=true</code>。未配置时系统会使用确定性规则生成摘要，Demo 仍可正常运行。</p>
+
+        <h3>外部事件是真实的吗？</h3>
+        <p>默认 Demo 使用 Mock 事件。若管理员配置了真实数据源，Overview 顶部会显示 Event Mode（如 MOCK / REAL / HYBRID）。</p>
+
+        <h3>我之前创建的 Case 不见了？</h3>
+        <p>Case 数据保存在本地数据库与浏览器缓存中。若更换目录、清空浏览器 localStorage 或使用新数据库文件，历史 Case 可能不会自动保留。</p>
+
+        <div class="callout danger">
+          <strong>安全提醒：</strong>请勿将包含 API Key 的 <code>.env</code> 文件分享给他人或提交到 Git 仓库。
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      ForeSail User Guide · MVP 3.0 · 生成于项目文档目录 <code>docs/user-guide.html</code>
+    </div>
+  </footer>
+</body>
+</html>

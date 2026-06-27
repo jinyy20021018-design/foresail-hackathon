@@ -162,6 +162,11 @@ export type ExternalEvent = {
 export type EventConfig = {
   event_source_mode: "MOCK" | "REAL" | "HYBRID" | string;
   connectors: string[];
+  gdelt_enabled?: boolean;
+  open_meteo_enabled?: boolean;
+  gdelt_lookback_days?: number;
+  gdelt_max_records?: number;
+  open_meteo_forecast_days?: number;
   real_search_enabled?: boolean;
   real_search_provider?: string;
   real_search_lookback_days?: number;
@@ -195,13 +200,27 @@ export type ExternalEventSearchResult = {
   case_id: string;
   mode: string;
   queries_generated: ExternalEventQuery[];
-  rss_items_fetched: number;
-  rss_items_matched: number;
+  gdelt_articles_fetched?: number;
+  gdelt_events_extracted?: ExternalEvent[];
+  weather_locations_checked?: number;
+  weather_events_extracted?: ExternalEvent[];
+  rss_items_fetched?: number;
+  rss_items_matched?: number;
   events_extracted: ExternalEvent[];
   events_extracted_count: number;
-  connector_errors: Array<{ feed_url?: string; title?: string; error: string }>;
+  connector_errors: Array<{ connector?: string; query_id?: string; query?: string; location?: string; feed_url?: string; title?: string; error: string }>;
   warnings: string[];
   deduplication: Record<string, unknown>;
+};
+
+export type RealEventConfig = {
+  event_source_mode: string;
+  gdelt_enabled: boolean;
+  open_meteo_enabled: boolean;
+  gdelt_lookback_days: number;
+  gdelt_max_records: number;
+  open_meteo_forecast_days: number;
+  use_llm_event_extraction: boolean;
 };
 
 export type RiskExposure = {
@@ -505,6 +524,7 @@ export const api = {
   getWatchProfile: (caseId: string) => request<WatchProfile>(`/api/cases/${caseId}/watch-profile`),
   getRelevanceResults: (caseId: string) => request<RelevanceResult[]>(`/api/cases/${caseId}/relevance-results`),
   getEventConfig: () => request<EventConfig>("/api/events/config"),
+  getRealEventConfig: () => request<RealEventConfig>("/api/events/real-config"),
   getExternalEvents: (caseId: string) => request<ExternalEvent[]>(`/api/cases/${caseId}/external-events`),
   getAgentRunExternalEvents: (caseId: string, agentRunId: string) =>
     request<ExternalEvent[]>(`/api/cases/${caseId}/agent-runs/${agentRunId}/external-events`),

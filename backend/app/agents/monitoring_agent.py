@@ -109,29 +109,30 @@ class MonitoringAgent:
         ingestion_result = fetch_events_for_case(case_id, watch_profile, agent_run_id=agent_run_id, persist=True)
         events = ingestion_result["events"]
         search_summary = ingestion_result.get("search_summary", {})
+        real_api_summary = ingestion_result.get("real_api_summary", {})
         trace.append(
             _trace_step(
                 4,
                 "Build Search Queries",
                 "Generated external information search queries from the case watch profile.",
                 "search_query_builder",
-                json.dumps({"queries_generated": search_summary.get("queries_generated", 0)}, ensure_ascii=True),
+                json.dumps({"queries_generated": real_api_summary.get("queries_generated", search_summary.get("queries_generated", 0))}, ensure_ascii=True),
             )
         )
         trace.append(
             _trace_step(
                 5,
-                "Search External Information",
-                "Searched configured external information sources through event connectors.",
-                "event_ingestion_service",
+                "Fetch GDELT Events",
+                "Fetched news, port, geopolitical, and trade-policy event candidates through the GDELT connector.",
+                "gdelt_event_connector",
                 json.dumps(
                     {
-                        "mode": ingestion_result["mode"],
-                        "feeds_checked": search_summary.get("feeds_checked", 0),
-                        "rss_items_fetched": search_summary.get("rss_items_fetched", 0),
-                        "rss_items_matched": search_summary.get("rss_items_matched", 0),
-                        "connector_errors": ingestion_result["connector_errors"] + search_summary.get("connector_errors", []),
-                        "warnings": search_summary.get("warnings", []),
+                        "enabled": real_api_summary.get("gdelt_enabled", False),
+                        "queries_generated": real_api_summary.get("queries_generated", 0),
+                        "articles_fetched": real_api_summary.get("gdelt_articles_fetched", 0),
+                        "events_extracted": real_api_summary.get("gdelt_events_extracted", 0),
+                        "connector_errors": real_api_summary.get("connector_errors", []),
+                        "warnings": real_api_summary.get("warnings", []),
                     },
                     ensure_ascii=True,
                 ),
@@ -140,15 +141,33 @@ class MonitoringAgent:
         trace.append(
             _trace_step(
                 6,
-                "Extract Events From Search Results",
-                "Converted matched search results into external event candidates.",
-                "news_event_extractor",
-                f"{search_summary.get('events_extracted', 0)} search events extracted.",
+                "Fetch Open-Meteo Weather",
+                "Fetched weather forecast event candidates for watched ports and route regions.",
+                "open_meteo_weather_connector",
+                json.dumps(
+                    {
+                        "enabled": real_api_summary.get("weather_enabled", False),
+                        "locations_checked": real_api_summary.get("weather_locations_checked", 0),
+                        "weather_events_extracted": real_api_summary.get("weather_events_extracted", 0),
+                        "connector_errors": real_api_summary.get("connector_errors", []),
+                        "warnings": real_api_summary.get("warnings", []),
+                    },
+                    ensure_ascii=True,
+                ),
             )
         )
         trace.append(
             _trace_step(
                 7,
+                "Extract Real Events",
+                "Converted real API results into normalized external event candidates before normalization.",
+                "event_connectors",
+                f"{real_api_summary.get('gdelt_events_extracted', 0)} GDELT and {real_api_summary.get('weather_events_extracted', 0)} weather events extracted.",
+            )
+        )
+        trace.append(
+            _trace_step(
+                8,
                 "Fetch External Events",
                 "Fetched events through the configured external event ingestion service.",
                 "event_ingestion_service",
@@ -167,7 +186,7 @@ class MonitoringAgent:
         )
         trace.append(
             _trace_step(
-                8,
+                9,
                 "Normalize Events",
                 "Converted connector outputs into the normalized external event schema before relevance scoring.",
                 "event_normalizer",
@@ -176,7 +195,7 @@ class MonitoringAgent:
         )
         trace.append(
             _trace_step(
-                9,
+                10,
                 "Deduplicate Events",
                 "Removed duplicate events by deduplication key and source confidence.",
                 "event_deduplicator",
@@ -190,7 +209,7 @@ class MonitoringAgent:
         irrelevant_count = _count(relevance_results, "Irrelevant")
         trace.append(
             _trace_step(
-                10,
+                11,
                 "Classify Event Relevance",
                 "Classified each event using deterministic relevance scoring.",
                 "relevance_engine",
@@ -201,7 +220,7 @@ class MonitoringAgent:
         risk_summary = summarize_exposures(facts, events, relevance_results)
         trace.append(
             _trace_step(
-                11,
+                12,
                 "Map Exposures",
                 "Mapped Relevant and Watch events to case-level risk exposure categories.",
                 "risk_mapper",
@@ -214,7 +233,7 @@ class MonitoringAgent:
         obligations_at_risk = [obligation for obligation in obligations if "risk" in obligation["current_assessment"].lower()]
         trace.append(
             _trace_step(
-                12,
+                13,
                 "Map Obligations & Deadlines",
                 "Mapped confirmed facts and risk results to preliminary operational obligation and deadline assessments.",
                 "obligation_service",
@@ -226,7 +245,7 @@ class MonitoringAgent:
         set_information_gaps(case_id, information_gaps)
         trace.append(
             _trace_step(
-                13,
+                14,
                 "Detect Information Gaps",
                 "Detected missing confirmations that may block operational decisions.",
                 "information_gap_service",
@@ -237,7 +256,7 @@ class MonitoringAgent:
         actions = generate_actions(risk_summary)
         trace.append(
             _trace_step(
-                14,
+                15,
                 "Generate Actions",
                 "Generated deduplicated recommended actions from aggregated exposures.",
                 "action_board_service",
@@ -249,7 +268,7 @@ class MonitoringAgent:
         set_action_drafts(case_id, action_drafts)
         trace.append(
             _trace_step(
-                15,
+                16,
                 "Generate Action Drafts",
                 "Generated draft outbound/internal messages for user review. Nothing was sent externally.",
                 "action_draft_service",
@@ -263,7 +282,7 @@ class MonitoringAgent:
         status_timeline = get_timeline(case_id)
         trace.append(
             _trace_step(
-                16,
+                17,
                 "Update Case Status",
                 "Updated case status through the existing deterministic status machine.",
                 "status_machine",
@@ -277,7 +296,7 @@ class MonitoringAgent:
             treatment_output = generate_treatment_plans(case_id)
             trace.append(
                 _trace_step(
-                    17,
+                    18,
                     "Generate Treatment Plans",
                     "Generated structured risk treatment plan options from current exposures, obligations, gaps, and actions.",
                     "treatment_plan_service",
@@ -286,7 +305,7 @@ class MonitoringAgent:
             )
             trace.append(
                 _trace_step(
-                    18,
+                    19,
                     "Generate Residual Risk Summary",
                     "Generated residual risk summaries for each treatment plan.",
                     "treatment_plan_service",
@@ -300,7 +319,7 @@ class MonitoringAgent:
                 approval_summary = "No recommended treatment plan available for approval package."
             trace.append(
                 _trace_step(
-                    19,
+                    20,
                     "Generate Approval Summary Draft",
                     "Generated a structured approval summary draft for the recommended treatment plan.",
                     "treatment_plan_service",
@@ -309,7 +328,7 @@ class MonitoringAgent:
             )
             trace.append(
                 _trace_step(
-                    20,
+                    21,
                     "Persist Treatment Outputs",
                     "Persisted treatment plans, residual risks, and approval package data for the case.",
                     "persistence_service",
@@ -319,7 +338,7 @@ class MonitoringAgent:
         except Exception as error:
             trace.append(
                 _trace_step(
-                    17,
+                    18,
                     "Generate Treatment Plans",
                     "Attempted to generate treatment plans after agent monitoring outputs.",
                     "treatment_plan_service",

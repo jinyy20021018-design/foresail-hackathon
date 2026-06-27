@@ -1,8 +1,0 @@
-Booking Reference: BKG-7788
-Vessel: CAPEMOLLINI
-Route: Shanghai -> Chittagong -> Dhaka
-Port of Loading: Shanghai
-Port of Discharge: Chittagong
-Final Destination: Dhaka
-ETD: 2026-11-25
-ETA: 2026-12-08
