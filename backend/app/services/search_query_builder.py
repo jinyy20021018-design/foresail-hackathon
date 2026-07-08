@@ -1,10 +1,10 @@
 import os
 
-from app.services.document_service import get_confirmed_facts
+from app.services.document_service import get_best_case_facts
 
 
 def build_external_event_queries(case_id: str, watch_profile: dict) -> list[dict]:
-    facts = get_confirmed_facts(case_id)
+    facts = get_best_case_facts(case_id)
     vessel = _value(facts.get("vessel") or watch_profile.get("watched_vessel"))
     ports = [port for port in watch_profile.get("watched_ports", []) if port and port != "TBD"]
     regions = [region for region in watch_profile.get("watched_route_regions", []) if region]

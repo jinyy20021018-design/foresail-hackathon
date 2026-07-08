@@ -1,5 +1,7 @@
 import os
 import unittest
+import urllib.error
+from unittest.mock import patch
 
 from app.agents.monitoring_agent import MonitoringAgent
 from app.api.monitoring import run_agent_monitoring_cycle
@@ -92,14 +94,42 @@ class MonitoringAgentTest(unittest.TestCase):
         self.assertIn("Agent scanned 3 external events", summary)
         self.assertIn("Trigger events: EVT-001", summary)
 
-    def test_required_llm_without_api_key_raises(self) -> None:
+    def test_required_llm_without_api_key_completes_with_fallback(self) -> None:
         os.environ["REQUIRE_LLM_AGENT"] = "true"
         os.environ["OPENAI_API_KEY"] = ""
         try:
-            with self.assertRaises(RuntimeError):
-                self.agent.run_monitoring_cycle(self.case["case_id"])
+            result = self.agent.run_monitoring_cycle(self.case["case_id"])
+            self.assertEqual(result["summary_source"], "deterministic_fallback")
+            self.assertTrue(result.get("summary_warning"))
+            self.assertTrue(result["llm_required"])
+            self.assertEqual(result["relevant_count"], 2)
+            self.assertIn("Agent scanned 5 external events", result["summary"])
         finally:
             os.environ.pop("REQUIRE_LLM_AGENT", None)
+
+    def test_required_llm_api_failure_completes_with_fallback(self) -> None:
+        os.environ["REQUIRE_LLM_AGENT"] = "true"
+        os.environ["USE_LLM_SUMMARY"] = "true"
+        os.environ["OPENAI_API_KEY"] = "test-key"
+        try:
+            with patch(
+                "app.services.agent_summary_service._openai_summary",
+                side_effect=urllib.error.HTTPError(
+                    url="https://api.openai.com/v1/chat/completions",
+                    code=404,
+                    msg="Not Found",
+                    hdrs=None,
+                    fp=None,
+                ),
+            ):
+                result = self.agent.run_monitoring_cycle(self.case["case_id"])
+            self.assertEqual(result["summary_source"], "deterministic_fallback")
+            self.assertTrue(result.get("summary_warning"))
+            self.assertIn("404", result["summary_warning"])
+        finally:
+            os.environ.pop("REQUIRE_LLM_AGENT", None)
+            os.environ.pop("USE_LLM_SUMMARY", None)
+            os.environ.pop("OPENAI_API_KEY", None)
 
     def test_continue_monitoring_after_agent_run(self) -> None:
         self.agent.run_monitoring_cycle(self.case["case_id"])

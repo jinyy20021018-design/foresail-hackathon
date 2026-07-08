@@ -1,8 +1,10 @@
 from datetime import date, datetime, timedelta
 
+from app.services.route_region_service import (
+    event_text_mentions_corridor,
+    merge_watched_route_regions,
+)
 from app.services.risk_mapper import map_event_to_exposures
-
-WATCHED_REGIONS = {"East China Sea", "South China Sea", "Bay of Bengal", "Bangladesh"}
 
 
 def classify_events(case: dict, events: list[dict]) -> list[dict]:
@@ -13,31 +15,48 @@ def classify_event(case: dict, event: dict) -> dict:
     score = 0
     matched_factors: list[str] = []
     watched_ports = {case["port_of_loading"], case["port_of_discharge"], case["final_destination"]}
+    watched_ports.discard(None)
+    watched_ports.discard("")
+    watched_ports.discard("TBD")
     affected_ports = set(event.get("affected_ports") or [])
+    effective_regions = _effective_watched_regions(case)
 
-    if event.get("affected_vessel") and event["affected_vessel"] == case["vessel"]:
+    vessel = case.get("vessel")
+    affected_vessel = event.get("affected_vessel")
+    affected_vessels = event.get("affected_vessels") or []
+    has_vessel_match = bool(vessel) and (
+        affected_vessel == vessel or vessel in affected_vessels
+    )
+    if has_vessel_match:
         score += 50
         matched_factors.append("vessel_match")
 
-    if affected_ports.intersection(watched_ports):
+    has_port_match = bool(affected_ports.intersection(watched_ports))
+    if has_port_match:
         score += 35
         matched_factors.append("watched_port_match")
 
-    if event.get("affected_region") in WATCHED_REGIONS:
+    affected_region = event.get("affected_region")
+    has_region_match = affected_region in effective_regions
+    if not has_region_match and event_text_mentions_corridor(event, effective_regions):
+        has_region_match = True
+        matched_factors.append("route_corridor_text_match")
+    if has_region_match:
         score += 25
-        matched_factors.append("route_region_match")
-    else:
+        if "route_corridor_text_match" not in matched_factors:
+            matched_factors.append("route_region_match")
+    elif not has_vessel_match and not has_port_match:
         score -= 40
         matched_factors.append("unrelated_region")
 
-    if affected_ports and not affected_ports.intersection(watched_ports):
+    if affected_ports and not has_port_match and not has_vessel_match and not has_region_match:
         score -= 50
         matched_factors.append("unrelated_port")
 
     hard_unrelated = (
-        "vessel_match" not in matched_factors
-        and "watched_port_match" not in matched_factors
-        and "route_region_match" not in matched_factors
+        not has_vessel_match
+        and not has_port_match
+        and not has_region_match
         and ("unrelated_region" in matched_factors or "unrelated_port" in matched_factors)
     )
 
@@ -76,6 +95,10 @@ def classify_event(case: dict, event: dict) -> dict:
         "url": event.get("url"),
         "confidence": event.get("confidence"),
     }
+
+
+def _effective_watched_regions(case: dict) -> set[str]:
+    return set(merge_watched_route_regions(case))
 
 
 def _classification(score: int) -> str:

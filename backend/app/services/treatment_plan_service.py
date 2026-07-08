@@ -1,4 +1,5 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+UTC = timezone.utc
 
 from app.services.case_service import get_case
 from app.services.document_service import (

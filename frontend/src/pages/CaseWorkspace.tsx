@@ -149,6 +149,7 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
   const [isRunning, setIsRunning] = useState(false);
   const [agentElapsedSeconds, setAgentElapsedSeconds] = useState(0);
   const [agentProgressStep, setAgentProgressStep] = useState(0);
+  const [agentRunComplete, setAgentRunComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const highOpenConflicts = useMemo(
@@ -233,7 +234,10 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
     setTreatmentPlans(perspectiveResult?.treatment_plans ?? planItems);
     setApprovalPackages(approvalItems);
     setCifResponsibility(perspectiveResult?.cif_responsibility ?? null);
-    setHasConfirmedFacts(confirmedFacts);
+    const confirmStepComplete = workflowState?.steps.some(
+      (step) => step.name === "Confirm Case Facts" && step.status === "COMPLETED"
+    ) ?? false;
+    setHasConfirmedFacts(Boolean(confirmedFacts) || confirmStepComplete);
     const latestRun = latestAgentRun(runs);
     if (latestRun) {
       const latestTrace = await api.getAgentRunTrace(caseId, latestRun.agent_run_id).catch(() => []);
@@ -287,18 +291,18 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
 
   useEffect(() => {
     if (!isRunning) {
-      setAgentElapsedSeconds(0);
-      setAgentProgressStep(0);
+      if (!agentRunComplete) {
+        setAgentElapsedSeconds(0);
+        setAgentProgressStep(0);
+      }
       return;
     }
     const startedAt = Date.now();
     const timer = window.setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-      setAgentElapsedSeconds(elapsed);
-      setAgentProgressStep(Math.min(agentProgressSteps.length - 1, Math.floor(elapsed / 8)));
+      setAgentElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [isRunning]);
+  }, [isRunning, agentRunComplete]);
 
   async function confirmFields() {
     if (fields.length === 0 || highOpenConflicts.length > 0 || missingConfirmFields.length > 0) return;
@@ -316,7 +320,18 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
   }
 
   async function runAgent() {
-    if (!hasConfirmedFacts || highOpenConflicts.length > 0) return;
+    const blockedReason = !hasConfirmedFacts
+      ? "Confirm case facts in Documents & Evidence before running the agent."
+      : highOpenConflicts.length > 0
+        ? "Resolve high-severity field conflicts before running the agent."
+        : tradeCase?.status === "MONITORING"
+          ? "This case is already in monitoring mode."
+          : null;
+    if (blockedReason) {
+      setError(blockedReason);
+      return;
+    }
+    setAgentRunComplete(false);
     setIsRunning(true);
     setAgentElapsedSeconds(0);
     setAgentProgressStep(0);
@@ -344,8 +359,11 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
       setAgentRuns(await api.getAgentRuns(caseId));
       setWorkflow(await api.getWorkflowState(caseId));
       setActiveTab("agent");
+      setAgentProgressStep(agentProgressSteps.length);
+      setAgentRunComplete(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Agent run failed.");
+      await refreshCase();
     } finally {
       setIsRunning(false);
     }
@@ -397,7 +415,14 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
     );
   }
 
-  const canRunAgent = hasConfirmedFacts && highOpenConflicts.length === 0 && tradeCase.status !== "MONITORING";
+  const agentRunBlockedReason = !hasConfirmedFacts
+    ? "Confirm case facts in Documents & Evidence first."
+    : highOpenConflicts.length > 0
+      ? "Resolve high-severity conflicts first."
+      : tradeCase.status === "MONITORING"
+        ? "Case is already in monitoring mode."
+        : null;
+  const canRunAgent = agentRunBlockedReason === null;
   const canContinue = tradeCase.status === "ACTION_REQUIRED";
   const selectedPerspective = tradeCase.trade_perspective ?? "SELLER";
 
@@ -435,7 +460,13 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
               </button>
             ))}
           </div>
-          <button className="secondary-action" type="button" onClick={runAgent} disabled={!canRunAgent || isRunning}>
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={runAgent}
+            disabled={!canRunAgent || isRunning}
+            title={agentRunBlockedReason ?? undefined}
+          >
             <span className="run-agent-icon" aria-hidden="true">↻</span>{isRunning ? "Agent Running..." : "Run Agent Monitoring Cycle"}
           </button>
           <button className="primary-action" type="button" onClick={continueMonitoring} disabled={!canContinue}>
@@ -453,11 +484,17 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
       </div>
 
       {error && <div className="error">{error}</div>}
-      {isRunning && (
+      {(isRunning || agentRunComplete) && (
         <AgentRunProgressPanel
           activeStep={agentProgressStep}
           elapsedSeconds={agentElapsedSeconds}
           eventConfig={eventConfig}
+          completed={agentRunComplete}
+          onDismiss={() => {
+            setAgentRunComplete(false);
+            setAgentProgressStep(0);
+            setAgentElapsedSeconds(0);
+          }}
         />
       )}
       <WorkflowStepper workflow={workflow} />
@@ -483,7 +520,11 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
             <CifResponsibilityCard responsibility={cifResponsibility} tradeCase={tradeCase} />
             {watchProfile && <WatchProfilePanel profile={watchProfile} language={language} />}
           </div>
-          <RouteRiskMap tradeCase={tradeCase} />
+          <RouteRiskMap
+            caseId={caseId}
+            tradeCase={tradeCase}
+            refreshKey={`${agentRuns.length}:${relevanceResults.length}:${tradeCase.port_of_loading}:${tradeCase.port_of_discharge}:${tradeCase.final_destination}`}
+          />
           <div className="workspace-grid">
             <LatestAgentRunCard runs={agentRuns} result={agentResult} />
             <StatusTimeline entries={timeline} language={language} />
@@ -672,7 +713,19 @@ function WorkspaceMetric({ icon, tone, label, value, detail, onClick }: { icon: 
   return <button className="workspace-metric" type="button" onClick={onClick}><span className={`metric-icon ${tone}`}><MetricGlyph name={icon} /></span><span><b>{label}</b><strong>{value}</strong><small>{detail}</small></span><em>View details →</em></button>;
 }
 
-function AgentRunProgressPanel({ activeStep, elapsedSeconds, eventConfig }: { activeStep: number; elapsedSeconds: number; eventConfig: EventConfig | null }) {
+function AgentRunProgressPanel({
+  activeStep,
+  elapsedSeconds,
+  eventConfig,
+  completed = false,
+  onDismiss,
+}: {
+  activeStep: number;
+  elapsedSeconds: number;
+  eventConfig: EventConfig | null;
+  completed?: boolean;
+  onDismiss?: () => void;
+}) {
   const mode = eventConfig?.event_source_mode ?? "REAL";
   const queryLimit = eventConfig?.external_event_query_limit ?? 3;
   const connectorText = eventConfig?.connectors?.length ? eventConfig.connectors.join(", ") : "configured connectors";
@@ -681,8 +734,8 @@ function AgentRunProgressPanel({ activeStep, elapsedSeconds, eventConfig }: { ac
     <section className="agent-run-window" aria-live="polite">
       <div className="agent-run-window-header">
         <div>
-          <span className="run-live-dot" />
-          <strong>Agent is running</strong>
+          <span className={completed ? "run-complete-dot" : "run-live-dot"} />
+          <strong>{completed ? "Agent run completed" : "Agent is running"}</strong>
           <small>
             {mode} mode · max {queryLimit} external event queries · {connectorText}
           </small>
@@ -691,7 +744,7 @@ function AgentRunProgressPanel({ activeStep, elapsedSeconds, eventConfig }: { ac
       </div>
       <div className="agent-run-progress">
         {agentProgressSteps.map((step, index) => {
-          const state = index < activeStep ? "done" : index === activeStep ? "active" : "pending";
+          const state = completed || index < activeStep ? "done" : index === activeStep ? "active" : "pending";
           return (
             <div className={`agent-run-progress-step ${state}`} key={step.title}>
               <span>{index + 1}</span>
@@ -704,8 +757,13 @@ function AgentRunProgressPanel({ activeStep, elapsedSeconds, eventConfig }: { ac
         })}
       </div>
       <p>
-        This window shows the current estimated stage while the backend request is running. The final persisted Agent Trace appears after completion.
+        {completed
+          ? "All monitoring stages finished. Review the Agent Runs tab for the persisted trace and summary."
+          : "This window tracks the live monitoring request. Steps update when the backend cycle completes."}
       </p>
+      {completed && onDismiss && (
+        <button className="secondary-action" type="button" onClick={onDismiss}>Dismiss</button>
+      )}
     </section>
   );
 }

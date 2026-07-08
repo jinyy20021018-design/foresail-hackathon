@@ -1,5 +1,6 @@
 import type { Language } from "../i18n";
 import type { ReactNode } from "react";
+import foresailLogo from "../assets/foresail-logo.png";
 
 type Props = {
   activePath: string;
@@ -15,7 +16,7 @@ export function AppShell({ activePath, children, language, onNavigate, onToggleL
       <header className="topbar">
         <div className="topbar-inner">
           <button className="brand" type="button" onClick={() => onNavigate("/cases")}>
-            <span className="brand-logo-crop"><img src="/foresail-logo.png" alt="ForeSail" draggable="false" /></span>
+            <span className="brand-logo-crop"><img src={foresailLogo} alt="ForeSail" draggable="false" /></span>
           </button>
           <nav className="top-nav" aria-label="Primary navigation">
             <button className={activePath.startsWith("/cases") ? "active" : ""} type="button" onClick={() => onNavigate("/cases")}>Trade Risk</button>

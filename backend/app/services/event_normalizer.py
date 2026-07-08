@@ -1,4 +1,5 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+UTC = timezone.utc
 
 VALID_SOURCE_TYPES = {"MOCK", "WEATHER", "NEWS", "PORT", "GEOPOLITICAL", "POLICY", "MANUAL"}
 VALID_EVENT_TYPES = {"VESSEL_DELAY", "PORT_DISRUPTION", "WEATHER", "SECURITY", "GEOPOLITICAL", "TRADE_POLICY", "ROUTE_DISRUPTION", "UNKNOWN"}

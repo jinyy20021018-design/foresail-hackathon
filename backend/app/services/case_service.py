@@ -1,7 +1,8 @@
 import copy
 import json
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+UTC = timezone.utc
 from pathlib import Path
 
 from app.services.status_machine import can_transition, transition_case

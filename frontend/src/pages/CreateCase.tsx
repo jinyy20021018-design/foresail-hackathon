@@ -95,9 +95,10 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
     setIsLoading(true);
     setAutofill(null);
     setSelectedEvidence(null);
+    setTrace(traceLabels.map((label) => ({ label, status: "Pending" })));
     try {
       setTraceStatus("Create draft case", "Running");
-      const draft = caseId ? await api.getCase(caseId) : await api.createCase({ notes: "Draft case created from uploaded trade documents." });
+      const draft = await api.createCase({ notes: "Draft case created from uploaded trade documents." });
       setCaseId(draft.case_id);
       setTraceStatus("Create draft case", "Completed");
 
@@ -111,20 +112,41 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
       }
 
       setTraceStatus("Run LLM-assisted extraction", "Running");
-      await api.extractDocuments(draft.case_id);
+      const extractResult = await api.extractDocuments(draft.case_id);
+      const extractedCount = extractResult.extracted_fields?.length ?? 0;
+      if (extractedCount === 0) {
+        const diagnosticMessage = extractResult.document_diagnostics
+          ?.flatMap((item) => item.errors?.map((error) => error.message) ?? [])
+          .find(Boolean);
+        throw new Error(
+          diagnosticMessage ?? "No reliable fields were extracted from the uploaded documents. Check file format and try again."
+        );
+      }
       setTraceStatus("Run LLM-assisted extraction", "Completed");
       setTraceStatus("Attach evidence snippets", "Completed");
       setTraceStatus("Detect field conflicts", "Completed");
 
       setTraceStatus("Build autofill case details", "Running");
-      const result = await api.autofillFromDocuments(draft.case_id);
+      let result: CaseAutofillResult;
+      try {
+        result = await api.autofillFromDocuments(draft.case_id);
+      } catch {
+        result = await api.getCaseAutofill(draft.case_id);
+      }
       setAutofill(result);
       if (result.status !== "FAILED" && Object.keys(result.autofill ?? {}).length > 0) {
         setForm(result.autofill);
       }
+      if (result.status === "FAILED") {
+        const autofillError = result.errors?.[0]?.message ?? "Autofill could not build case details from extracted fields.";
+        setTraceStatus("Build autofill case details", "Failed");
+        setError(autofillError);
+        setSlots((current) => current.map((slot) => slot.file ? { ...slot, status: "Failed" } : slot));
+        return;
+      }
       setTraceStatus("Build autofill case details", "Completed");
-      setTraceStatus("Ready for human review", result.status === "FAILED" ? "Failed" : "Completed");
-      setSlots((current) => current.map((slot) => slot.file ? { ...slot, status: result.status === "FAILED" ? "Failed" : "Extracted" } : slot));
+      setTraceStatus("Ready for human review", "Completed");
+      setSlots((current) => current.map((slot) => slot.file ? { ...slot, status: "Extracted" } : slot));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Extract case details failed.");
       setTrace((current) => current.map((step) => step.status === "Running" ? { ...step, status: "Failed" } : step));
@@ -138,7 +160,10 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
     setIsLoading(true);
     try {
       const currentCaseId = caseId ?? (await api.createCase(cleanPayload(form))).case_id;
-      const updated = await api.updateCaseDetails(currentCaseId, cleanPayload(form));
+      let updated = await api.updateCaseDetails(currentCaseId, cleanPayload(form));
+      if (autofill?.extra_facts && Object.keys(autofill.extra_facts).length > 0) {
+        updated = await api.applyExtractedFacts(currentCaseId, autofill.extra_facts);
+      }
       onCaseCreated(updated, `/cases/${updated.case_id}?tab=documents`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Continue to review failed.");

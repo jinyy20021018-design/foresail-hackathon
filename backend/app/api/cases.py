@@ -12,6 +12,7 @@ from app.services.case_service import (
     get_risk_summary,
     get_timeline,
     get_watch_profile,
+    replace_case_facts,
     update_case_details,
 )
 from app.services.case_library_service import list_case_summaries
@@ -23,6 +24,7 @@ from app.services.perspective_service import (
     perspective_analysis,
     update_case_perspective,
 )
+from app.services.route_map_service import build_route_map
 
 router = APIRouter(prefix="/api/cases", tags=["cases"])
 
@@ -45,6 +47,10 @@ class CreateCasePayload(BaseModel):
 
 class UpdateCaseDetailsPayload(CreateCasePayload):
     pass
+
+
+class TradeFactsPayload(BaseModel):
+    facts: dict
 
 
 class PerspectivePayload(BaseModel):
@@ -95,6 +101,15 @@ def update_case_detail_fields(case_id: str, payload: UpdateCaseDetailsPayload) -
     return _or_404(lambda: update_case_details(case_id, payload.model_dump(exclude_none=True)), case_id)
 
 
+@router.post("/{case_id}/trade-facts")
+def apply_case_trade_facts(case_id: str, payload: TradeFactsPayload) -> dict:
+    def _apply() -> dict:
+        replace_case_facts(case_id, payload.facts)
+        return get_case(case_id)
+
+    return _or_404(_apply, case_id)
+
+
 @router.get("/{case_id}/watch-profile")
 def read_watch_profile(case_id: str) -> dict:
     return _or_404(lambda: get_watch_profile(case_id), case_id)
@@ -134,6 +149,11 @@ def update_perspective(case_id: str, payload: PerspectivePayload):
 @router.get("/{case_id}/actions")
 def read_actions(case_id: str) -> list[dict]:
     return _or_404(lambda: get_actions(case_id), case_id)
+
+
+@router.get("/{case_id}/route-map")
+def read_route_map(case_id: str) -> dict:
+    return _or_404(lambda: build_route_map(case_id), case_id)
 
 
 @router.get("/{case_id}/status-timeline")

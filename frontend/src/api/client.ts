@@ -254,6 +254,63 @@ export type RiskSummary = {
   exposures: RiskExposure[];
 };
 
+export type RouteMapPort = {
+  name: string;
+  display_name: string;
+  unlocode: string | null;
+  lat: number | null;
+  lng: number | null;
+  region: string | null;
+};
+
+export type RouteMapLeg = {
+  type: "sea" | "inland" | string;
+  coordinates: Array<[number, number]>;
+};
+
+export type RouteMapEvent = {
+  event_id: string;
+  title: string;
+  classification: "Relevant" | "Watch" | string;
+  event_type?: string;
+  lat: number;
+  lng: number;
+  source?: string;
+};
+
+export type RouteMapPayload = {
+  case_id: string;
+  geometry: {
+    origin: RouteMapPort;
+    destination: RouteMapPort;
+    final_destination: RouteMapPort | null;
+    coordinates: Array<[number, number]>;
+    distance_nautical_miles: number;
+    source: string;
+    confidence: string;
+    legs: RouteMapLeg[];
+    warnings: string[];
+  };
+  ports: {
+    loading: RouteMapPort;
+    discharge: RouteMapPort;
+    final_destination: RouteMapPort | null;
+  };
+  map_events: RouteMapEvent[];
+  threat_summary: {
+    primary_threat: RouteMapEvent | null;
+    watch_count: number;
+    has_route_threats: boolean;
+    neutral_message: string | null;
+  };
+  meta: {
+    source: string;
+    confidence: string;
+    warnings: string[];
+    distance_nautical_miles: number;
+  };
+};
+
 export type RecommendedAction = {
   action_id: string;
   title: string;
@@ -505,6 +562,7 @@ export type AgentRunResponse = {
   summary_source: "llm" | "deterministic" | "deterministic_fallback";
   llm_enabled: boolean;
   llm_required: boolean;
+  summary_warning?: string;
   trace: AgentRunTraceStep[];
   events_scanned: number;
   relevant_count: number;
@@ -572,6 +630,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
+  applyExtractedFacts: (caseId: string, facts: Record<string, string | number | boolean | null>) =>
+    request<TradeCase>(`/api/cases/${caseId}/trade-facts`, {
+      method: "POST",
+      body: JSON.stringify({ facts })
+    }),
   createDemoCase: () => request<TradeCase>("/api/cases/demo", { method: "POST" }),
   createCleanDemoCase: () => request<TradeCase>("/api/cases/demo/clean", { method: "POST" }),
   createConflictDemoCase: () => request<TradeCase>("/api/cases/demo/conflict", { method: "POST" }),
@@ -595,6 +658,7 @@ export const api = {
   searchExternalEvents: (caseId: string) =>
     request<ExternalEventSearchResult>(`/api/cases/${caseId}/external-events/search`, { method: "POST" }),
   getRiskSummary: (caseId: string) => request<RiskSummary>(`/api/cases/${caseId}/risk-summary`),
+  getRouteMap: (caseId: string) => request<RouteMapPayload>(`/api/cases/${caseId}/route-map`),
   getActions: (caseId: string) => request<RecommendedAction[]>(`/api/cases/${caseId}/actions`),
   getCifResponsibility: (caseId: string) => request<CifResponsibility>(`/api/cases/${caseId}/cif-responsibility`),
   getPerspectiveAnalysis: (caseId: string, perspective: TradePerspective) =>

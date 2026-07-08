@@ -112,7 +112,7 @@ Core business decisions remain deterministic. The agent layer does not perform e
 
 ## Optional LLM Summary
 
-By default, agent summaries are generated deterministically and do not require an API key. For a demo where the system must visibly use an LLM Agent, create `backend/.env` from `backend/.env.example`.
+By default, external events are fetched in **REAL** mode from Open-Meteo, RSS search, and GDELT connectors (all enabled by default). Agent summaries are generated deterministically and do not require an API key unless you opt in.
 
 Recommended local setup:
 
@@ -121,18 +121,22 @@ cd backend
 copy .env.example .env
 ```
 
-Then edit `backend/.env`:
+Then edit `backend/.env` as needed:
 
 ```text
-USE_LLM_SUMMARY=true
-REQUIRE_LLM_AGENT=true
+EVENT_SOURCE_MODE=REAL
+OPEN_METEO_ENABLED=true
+REAL_SEARCH_ENABLED=true
+GDELT_ENABLED=true
+USE_LLM_SUMMARY=false
+REQUIRE_LLM_AGENT=false
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_SUMMARY_MODEL=gpt-4.1-mini
 ```
 
 Restart the backend after changing `.env`.
 
-If `REQUIRE_LLM_AGENT=true`, `/api/cases/{case_id}/agent-run` requires a working `OPENAI_API_KEY`. If the key is missing or the LLM call fails, the endpoint returns an error instead of silently using deterministic summary.
+If `REQUIRE_LLM_AGENT=true`, the agent run **must attempt** an LLM summary. If the key is missing or the LLM call fails, monitoring results still return HTTP 200 with a deterministic fallback summary and a `summary_warning` in the trace.
 
 If `REQUIRE_LLM_AGENT=false` or omitted, the backend can fall back to deterministic summary when no key is configured. LLM output is never used for scoring, classification, exposure mapping, status transition, or action generation.
 

@@ -6,7 +6,8 @@ import shutil
 import urllib.error
 import urllib.request
 import zipfile
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+UTC = timezone.utc
 from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO
@@ -230,11 +231,18 @@ def confirm_fields(case_id: str) -> dict:
         if field["review_status"] in {"APPROVED", "EDITED"}:
             facts[field["field_name"]] = field["edited_value"] if field["review_status"] == "EDITED" else field["value"]
 
+    base_case = get_case(case_id)
+    if not facts:
+        facts = {field: base_case.get(field) for field in CRITICAL_FIELDS if base_case.get(field) not in {None, ""}}
+        if facts.get("route") in {None, ""}:
+            facts["route"] = base_case.get("route")
+        if facts.get("final_destination") in {None, ""}:
+            facts["final_destination"] = base_case.get("final_destination")
+
     missing = sorted(field for field in CRITICAL_FIELDS if facts.get(field) in {None, ""})
     if missing:
         raise ValueError(f"Missing confirmed critical fields: {', '.join(missing)}")
 
-    base_case = get_case(case_id)
     confirmed = {
         "case_id": case_id,
         "vessel": str(facts["vessel"]),
@@ -696,7 +704,7 @@ def _llm_extract_fields(document: dict, raw_text: str) -> list[dict] | None:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=20) as response:
+        with urllib.request.urlopen(request, timeout=60) as response:
             body = json.loads(response.read().decode("utf-8"))
         content = body["choices"][0]["message"]["content"]
         parsed = json.loads(content)

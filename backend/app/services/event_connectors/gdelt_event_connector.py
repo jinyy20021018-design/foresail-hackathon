@@ -3,7 +3,8 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+UTC = timezone.utc
 from time import time
 
 from app.services.news_event_extractor import extract_event_from_gdelt_article
@@ -29,7 +30,7 @@ class GdeltEventConnector:
 
     def fetch_events(self, watch_profile: dict, case_id: str) -> list[dict]:
         queries = [query for query in build_external_event_queries(case_id, watch_profile) if _is_gdelt_query(query)]
-        if os.getenv("GDELT_ENABLED", "false").lower() != "true":
+        if os.getenv("GDELT_ENABLED", "true").lower() != "true":
             self.last_result = _summary(queries, warnings=["GDELT connector disabled."], enabled=False)
             return []
 
