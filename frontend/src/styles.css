@@ -1250,6 +1250,13 @@ dd { margin-top: 3px; }
   animation: livePulse 1.35s ease-out infinite;
 }
 
+.run-complete-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--green);
+}
+
 .agent-run-progress {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));

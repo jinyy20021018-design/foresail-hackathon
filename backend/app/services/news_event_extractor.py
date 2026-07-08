@@ -3,6 +3,8 @@ import os
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
+
+from app.services.route_region_service import CORRIDOR_ALIASES
 UTC = timezone.utc
 
 
@@ -28,7 +30,7 @@ def extract_event_from_gdelt_article(article: dict, query: dict, watch_profile: 
     if event_type == "UNKNOWN" and query.get("query_type") == "WEATHER_REGION":
         event_type = "WEATHER"
     ports = _matched_values(text, watch_profile.get("watched_ports", []))
-    regions = _matched_values(text, watch_profile.get("watched_route_regions", []))
+    regions = _matched_route_regions(text, watch_profile.get("watched_route_regions", []))
     vessel = watch_profile.get("watched_vessel")
     vessels = [vessel] if vessel and vessel.lower() in text else []
     severity = _severity(text)
@@ -69,7 +71,7 @@ def _keyword_extract(item: dict, watch_profile: dict) -> dict | None:
     if event_type == "UNKNOWN" and not item.get("matched_terms"):
         return None
     ports = _matched_values(text, watch_profile.get("watched_ports", []))
-    regions = _matched_values(text, watch_profile.get("watched_route_regions", []))
+    regions = _matched_route_regions(text, watch_profile.get("watched_route_regions", []))
     vessel = watch_profile.get("watched_vessel")
     vessels = [vessel] if vessel and vessel.lower() in text else []
     severity = _severity(text)
@@ -205,6 +207,20 @@ def _gdelt_confidence(text: str, ports: list[str], regions: list[str], vessels: 
 
 def _matched_values(text: str, values: list[str]) -> list[str]:
     return [value for value in values if value and value.lower() in text]
+
+
+def _matched_route_regions(text: str, corridors: list[str]) -> list[str]:
+    matched: list[str] = []
+    for corridor in corridors:
+        corridor_lower = corridor.lower()
+        if corridor_lower in text:
+            matched.append(corridor)
+            continue
+        for alias in CORRIDOR_ALIASES.get(corridor_lower, []):
+            if alias in text:
+                matched.append(corridor)
+                break
+    return list(dict.fromkeys(matched))
 
 
 def _recent(value: str | None) -> bool:

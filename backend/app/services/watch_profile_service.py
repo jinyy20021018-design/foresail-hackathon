@@ -1,3 +1,6 @@
+from app.services.route_region_service import merge_watched_route_regions
+
+
 def build_watch_profile(case: dict) -> dict:
     return {
         "case_id": case["case_id"],
@@ -7,12 +10,7 @@ def build_watch_profile(case: dict) -> dict:
             case["port_of_discharge"],
             case["final_destination"],
         ],
-        "watched_route_regions": [
-            "East China Sea",
-            "South China Sea",
-            "Bay of Bengal",
-            "Bangladesh",
-        ],
+        "watched_route_regions": merge_watched_route_regions(case),
         "shipment_window": {
             "etd": case["etd"],
             "eta": case["eta"],

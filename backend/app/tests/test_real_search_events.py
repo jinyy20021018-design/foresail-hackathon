@@ -94,7 +94,8 @@ class RealSearchEventsTest(unittest.TestCase):
         response = self.client.post(f"/api/cases/{case_id}/external-events/search")
         self.assertEqual(response.status_code, 200, response.text)
         payload = response.json()
-        self.assertEqual(payload["events_extracted_count"], 0)
+        self.assertEqual(payload.get("rss_items_fetched", 0), 0)
+        self.assertEqual(payload.get("rss_items_matched", 0), 0)
         self.assertIn("Real search connector disabled.", payload["warnings"])
 
     def test_rss_feed_file_search_extracts_and_persists_event(self) -> None:

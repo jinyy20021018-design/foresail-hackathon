@@ -1,9 +1,10 @@
 from datetime import date, datetime, timedelta
 
-from app.services.port_registry_service import resolve_port
+from app.services.route_region_service import (
+    event_text_mentions_corridor,
+    merge_watched_route_regions,
+)
 from app.services.risk_mapper import map_event_to_exposures
-
-WATCHED_REGIONS = {"East China Sea", "South China Sea", "Bay of Bengal", "Bangladesh"}
 
 
 def classify_events(case: dict, events: list[dict]) -> list[dict]:
@@ -37,9 +38,13 @@ def classify_event(case: dict, event: dict) -> dict:
 
     affected_region = event.get("affected_region")
     has_region_match = affected_region in effective_regions
+    if not has_region_match and event_text_mentions_corridor(event, effective_regions):
+        has_region_match = True
+        matched_factors.append("route_corridor_text_match")
     if has_region_match:
         score += 25
-        matched_factors.append("route_region_match")
+        if "route_corridor_text_match" not in matched_factors:
+            matched_factors.append("route_region_match")
     elif not has_vessel_match and not has_port_match:
         score -= 40
         matched_factors.append("unrelated_region")
@@ -49,9 +54,9 @@ def classify_event(case: dict, event: dict) -> dict:
         matched_factors.append("unrelated_port")
 
     hard_unrelated = (
-        "vessel_match" not in matched_factors
-        and "watched_port_match" not in matched_factors
-        and "route_region_match" not in matched_factors
+        not has_vessel_match
+        and not has_port_match
+        and not has_region_match
         and ("unrelated_region" in matched_factors or "unrelated_port" in matched_factors)
     )
 
@@ -93,20 +98,7 @@ def classify_event(case: dict, event: dict) -> dict:
 
 
 def _effective_watched_regions(case: dict) -> set[str]:
-    regions = set(WATCHED_REGIONS)
-    port_names = [
-        case.get("port_of_loading"),
-        case.get("port_of_discharge"),
-        case.get("final_destination"),
-    ]
-    for port_name in port_names:
-        if not port_name or str(port_name).strip().upper() == "TBD":
-            continue
-        regions.add(port_name)
-        record = resolve_port(port_name)
-        if record and record.get("region"):
-            regions.add(record["region"])
-    return regions
+    return set(merge_watched_route_regions(case))
 
 
 def _classification(score: int) -> str:

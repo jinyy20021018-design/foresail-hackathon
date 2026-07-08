@@ -20,7 +20,10 @@ def map_event_to_exposures(event: dict, classification: str, case: dict) -> list
             exposures.append("LC Deadline")
 
     elif event_type == "SECURITY":
-        if event.get("affected_region") in {"East China Sea", "South China Sea", "Bay of Bengal", "Bangladesh"}:
+        from app.services.route_region_service import event_text_mentions_corridor, merge_watched_route_regions
+
+        corridors = set(merge_watched_route_regions(case))
+        if event.get("affected_region") in corridors or event_text_mentions_corridor(event, corridors):
             exposures.append("Shipping")
 
     elif event_type == "PORT_CONGESTION":

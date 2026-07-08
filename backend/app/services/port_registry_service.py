@@ -27,6 +27,7 @@ REGION_COORDINATES: dict[str, tuple[float, float]] = {
     "Indian Ocean": (5.0, 75.0),
     "Arabian Sea": (18.0, 65.0),
     "Persian Gulf": (26.0, 52.0),
+    "Strait of Hormuz": (26.5, 56.5),
     "Red Sea": (20.0, 38.5),
     "Suez Canal": (30.0, 32.3),
     "Mediterranean": (36.0, 15.0),
