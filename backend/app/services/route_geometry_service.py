@@ -48,10 +48,16 @@ def build_route_geometry(
     reverse_key = f"{_route_key(destination)}-{_route_key(origin)}"
     stored = load_maritime_routes().get(route_key) or load_maritime_routes().get(reverse_key)
 
+    computed = None if stored else _searoute_route(origin, destination)
     if stored:
         coordinates = stored["coordinates"]
         source = stored.get("source", "lane_network")
         distance = stored.get("distance_nautical_miles", _estimate_distance_nm(coordinates))
+        confidence = "high"
+    elif computed:
+        coordinates = computed["coordinates"]
+        source = "searoute_marnet"
+        distance = computed["distance_nautical_miles"]
         confidence = "high"
     else:
         coordinates = _heuristic_route(origin, destination)
@@ -84,6 +90,30 @@ def build_route_geometry(
         "legs": legs,
         "warnings": warnings,
     }
+
+
+def _searoute_route(origin: PortRecord, destination: PortRecord) -> dict | None:
+    try:
+        import searoute
+    except ImportError:
+        return None
+    try:
+        result = searoute.searoute(
+            [origin["lng"], origin["lat"]],
+            [destination["lng"], destination["lat"]],
+            units="naut",
+        )
+        raw = result["geometry"]["coordinates"]
+        coordinates = [[point[1], point[0]] for point in raw if isinstance(point, (list, tuple)) and len(point) >= 2]
+        if len(coordinates) < 2:
+            return None
+        length = result.get("properties", {}).get("length")
+        return {
+            "coordinates": coordinates,
+            "distance_nautical_miles": int(round(float(length))) if length else _estimate_distance_nm(coordinates),
+        }
+    except Exception:
+        return None
 
 
 def _route_key(record: PortRecord) -> str:

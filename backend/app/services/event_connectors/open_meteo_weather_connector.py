@@ -1,7 +1,7 @@
 import os
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 UTC = timezone.utc
 
 from app.services.port_geo_service import resolve_location_coordinates
@@ -36,9 +36,21 @@ class OpenMeteoWeatherConnector:
             except Exception as error:
                 connector_errors.append({"location": location, "error": str(error)})
 
+        voyage_positions = _voyage_positions_within_horizon(case_id)
+        for position in voyage_positions:
+            checked += 1
+            try:
+                forecast = _fetch_forecast({"lat": position["lat"], "lon": position["lng"]})
+                voyage_event = _voyage_aligned_event(position, forecast, watch_profile)
+                if voyage_event:
+                    events.append(voyage_event)
+            except Exception as error:
+                connector_errors.append({"location": f"voyage@{position['date']}", "error": str(error)})
+
         self.last_result = {
             "enabled": True,
             "locations_checked": checked,
+            "voyage_positions_checked": len(voyage_positions),
             "weather_events_extracted": len(events),
             "connector_errors": connector_errors,
             "warnings": list(dict.fromkeys(warnings)),
@@ -53,7 +65,7 @@ def _fetch_forecast(coordinates: dict) -> dict:
         "latitude": coordinates["lat"],
         "longitude": coordinates["lon"],
         "hourly": "weather_code,precipitation,wind_speed_10m,wind_gusts_10m",
-        "forecast_days": _int_env("OPEN_METEO_FORECAST_DAYS", 3),
+        "forecast_days": min(16, _int_env("OPEN_METEO_FORECAST_DAYS", 16)),
         "timezone": "UTC",
     }
     url = f"{base_url}?{urllib.parse.urlencode(params)}"
@@ -154,6 +166,81 @@ def _aggregate_weather_events(events: list[dict]) -> list[dict]:
         per_location[location] = per_location.get(location, 0) + 1
         limited.append(event)
     return limited
+
+
+def _voyage_positions_within_horizon(case_id: str) -> list[dict]:
+    from app.services.case_service import get_case
+    from app.services.voyage_schedule_service import build_voyage_schedule
+
+    try:
+        case = get_case(case_id)
+    except KeyError:
+        return []
+    schedule = build_voyage_schedule(case)
+    today = date.today()
+    horizon = today + timedelta(days=min(16, _int_env("OPEN_METEO_FORECAST_DAYS", 16)))
+    upcoming = [
+        position
+        for position in schedule.get("positions", [])
+        if today <= date.fromisoformat(position["date"]) <= horizon
+    ]
+    limit = _int_env("OPEN_METEO_VOYAGE_SAMPLE_LIMIT", 6)
+    return upcoming[::2][:limit] if limit > 0 else upcoming[::2]
+
+
+def _voyage_aligned_event(position: dict, forecast: dict, watch_profile: dict) -> dict | None:
+    hourly = forecast.get("hourly") or {}
+    times = hourly.get("time") or []
+    precipitation = hourly.get("precipitation") or []
+    gusts = hourly.get("wind_gusts_10m") or []
+    codes = hourly.get("weather_code") or []
+    transit_date = date.fromisoformat(position["date"])
+    window_start = (transit_date - timedelta(days=1)).isoformat()
+    window_end = (transit_date + timedelta(days=1)).isoformat()
+
+    worst: tuple[int, str, str] | None = None
+    matched_times: list[str] = []
+    for index, event_time in enumerate(times):
+        if not (window_start <= str(event_time)[:10] <= window_end):
+            continue
+        severity, reason = _weather_signal(_number_at(precipitation, index), _number_at(gusts, index), int(_number_at(codes, index) or 0))
+        if not severity:
+            continue
+        matched_times.append(str(event_time))
+        rank = _severity_rank(severity)
+        if worst is None or rank > worst[0]:
+            worst = (rank, severity, reason)
+
+    if worst is None:
+        return None
+    _, severity, reason = worst
+    region = position["region"]
+    return {
+        "event_id": f"EVT-METEO-VOY-{abs(hash((position['date'], region, reason))) % 1000000:06d}",
+        "source": "open_meteo_weather_connector",
+        "source_type": "WEATHER",
+        "event_type": "WEATHER",
+        "title": f"Forecast weather risk on route near {region} around {position['date']}: {reason}",
+        "description": (
+            f"Open-Meteo forecast indicates {reason} near {region} in the window the vessel is expected to transit "
+            f"(~{position['date']})."
+        ),
+        "event_time": matched_times[0],
+        "published_at": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "locations": [region],
+        "affected_ports": [],
+        "affected_routes": [region],
+        "affected_vessels": [],
+        "affected_region": region,
+        "severity": severity,
+        "confidence": 0.75 if severity == "HIGH" else 0.62,
+        "voyage_aligned": True,
+        "expected_impact_window": {"start": min(matched_times)[:10], "end": max(matched_times)[:10], "basis": "forecast_voyage_aligned"},
+        "url": None,
+        "raw_payload": {"position": position, "matched_hours": len(matched_times)},
+        "dedup_key": f"OPEN_METEO|WEATHER_VOYAGE|{region.lower()}|{position['date']}|{reason}",
+        "impact": f"Forecast {reason} where the vessel is expected around {position['date']}; possible transit delay on this leg.",
+    }
 
 
 def _watch_locations(watch_profile: dict) -> list[str]:

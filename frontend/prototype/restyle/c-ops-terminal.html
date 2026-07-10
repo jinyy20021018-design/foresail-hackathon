@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForeSail · Ops Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#050605; --panel:#0A0C0A; --panel2:#0D100D;
+  --grid:#161A16; --grid2:#222722;
+  --p:#F5B942; --p-dim:rgba(245,185,66,.13);       /* phosphor amber */
+  --g:#39D98A; --g-dim:rgba(57,217,138,.1);         /* ok green */
+  --r:#FF5C5C; --r-dim:rgba(255,92,92,.12);
+  --text:#D8DCD3; --muted:#7C8578; --faint:#4A5147;
+}
+*{margin:0;box-sizing:border-box}
+body{background:var(--void);color:var(--text);font:13px/1.5 "IBM Plex Mono",ui-monospace,monospace;-webkit-font-smoothing:antialiased}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.015) 0 1px,transparent 1px 3px)}
+.frame{max-width:1280px;margin:0 auto;padding:0 20px 40px}
+
+/* ── Status bar ─────────────────────── */
+.statusbar{display:flex;gap:0;border:1px solid var(--grid2);border-top:0;font-size:11px;letter-spacing:.05em}
+.statusbar>div{padding:8px 14px;border-right:1px solid var(--grid)}
+.statusbar .sys{color:var(--p);font-weight:700}
+.statusbar .ok{color:var(--g)} .statusbar .alert{color:var(--r);animation:blink 1.6s steps(2) infinite}
+.statusbar .fill{flex:1;border-right:0;text-align:right;color:var(--faint)}
+@keyframes blink{50%{opacity:.35}}
+
+/* ── Case strip ─────────────────────── */
+.casestrip{display:flex;align-items:baseline;gap:26px;padding:20px 2px 14px}
+.casestrip h1{font-size:21px;font-weight:700;letter-spacing:.03em;color:#fff}
+.casestrip h1 span{color:var(--p)}
+.casestrip .kv{font-size:11.5px;color:var(--muted)}
+.casestrip .kv b{color:var(--text);font-weight:500}
+.deadline{margin-left:auto;text-align:right;border:1px solid var(--r);padding:8px 16px;background:var(--r-dim)}
+.deadline b{display:block;color:var(--r);font-size:19px;font-weight:700}
+.deadline span{font-size:10px;color:var(--muted);letter-spacing:.08em}
+
+/* ── Grid layout ────────────────────── */
+.cols{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+.panel{border:1px solid var(--grid2);background:var(--panel)}
+.panel-h{display:flex;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--grid2);background:var(--panel2);font-size:10.5px;letter-spacing:.14em;color:var(--p);font-weight:600}
+.panel-h span{color:var(--faint);font-weight:400}
+
+/* ── Radar map ──────────────────────── */
+.radar{position:relative}
+.radar svg{display:block;width:100%;height:auto}
+.sea{fill:#070907}
+.land{fill:none;stroke:var(--g);stroke-width:.8;opacity:.5}
+.graticule{stroke:var(--grid);stroke-width:1}
+.route-line{fill:none;stroke:var(--p);stroke-width:1.6;stroke-dasharray:6 4;animation:flow 24s linear infinite;filter:drop-shadow(0 0 4px rgba(245,185,66,.6))}
+@keyframes flow{to{stroke-dashoffset:-500}}
+.port-dot{fill:var(--p)}
+.port-label{font:600 11px "IBM Plex Mono";fill:var(--text);letter-spacing:.06em}
+.port-sub{font:9.5px "IBM Plex Mono";fill:var(--muted)}
+.cone{fill:none;stroke:var(--r);stroke-width:.9;opacity:.55;stroke-dasharray:2 3}
+.tc-track{fill:none;stroke:var(--r);stroke-width:1.5}
+.tc-eye{fill:var(--r);animation:blink 1.2s steps(2) infinite}
+.tc-label{font:600 10.5px "IBM Plex Mono";fill:var(--r);letter-spacing:.05em}
+.vessel-glyph{fill:var(--g)}
+.vessel-label{font:600 10px "IBM Plex Mono";fill:var(--g)}
+.transfer{fill:none;stroke:var(--p);stroke-width:1.4}
+.transfer-label{font:9.5px "IBM Plex Mono";fill:var(--p)}
+.sweep{position:absolute;inset:0;background:conic-gradient(from 0deg at 62% 32%, rgba(57,217,138,.10), transparent 18%);animation:sweep 7s linear infinite;pointer-events:none;mix-blend-mode:screen}
+@keyframes sweep{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sweep{display:none}}
+
+/* ── Threat table ───────────────────── */
+.threats table{width:100%;border-collapse:collapse;font-size:11.5px}
+.threats th{padding:6px 12px;text-align:left;color:var(--faint);font-weight:500;font-size:10px;letter-spacing:.12em;border-bottom:1px solid var(--grid2)}
+.threats td{padding:9px 12px;border-bottom:1px solid var(--grid);vertical-align:top}
+.threats tr:hover td{background:var(--p-dim)}
+.tag{display:inline-block;padding:1px 7px;font-size:10px;font-weight:700;letter-spacing:.08em}
+.tag.act{color:var(--void);background:var(--r)}
+.tag.prep{color:var(--void);background:var(--p)}
+.tag.mon{color:var(--muted);border:1px solid var(--grid2)}
+.threats .t-title{color:#fff;font-weight:500}
+.threats .t-sub{color:var(--muted);font-size:10.5px;margin-top:2px}
+.threats .win{color:var(--p);white-space:nowrap}
+.threats .own-y{color:var(--r);font-weight:700;font-size:10px}
+.threats .own-c{color:var(--faint);font-size:10px}
+
+/* ── Gantt ──────────────────────────── */
+.gantt{padding:12px 14px}
+.lane{display:grid;grid-template-columns:86px 1fr;align-items:center;min-height:26px}
+.lane .ln{font-size:9.5px;letter-spacing:.14em;color:var(--faint)}
+.track{position:relative;height:16px;background:repeating-linear-gradient(90deg,var(--grid) 0 1px,transparent 1px 10%)}
+.bar{position:absolute;top:3px;height:10px;font:700 9px "IBM Plex Mono";color:var(--void);padding:0 5px;line-height:10px;white-space:nowrap;overflow:hidden}
+.bar.voy{background:var(--g);opacity:.75}
+.bar.risk-r{background:var(--r)} .bar.risk-a{background:var(--p)} .bar.risk-m{background:var(--faint)}
+.flag{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--r)}
+.flag b{position:absolute;top:-1px;left:5px;font-size:8.5px;color:var(--r);white-space:nowrap;letter-spacing:.06em}
+.today{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--g);box-shadow:0 0 6px var(--g)}
+.today b{position:absolute;top:-3px;left:5px;font-size:8.5px;color:var(--g)}
+
+/* ── Console ticker ─────────────────── */
+.console{margin-top:14px;border:1px solid var(--grid2);background:var(--panel);padding:10px 14px;font-size:11px;color:var(--muted);overflow:hidden}
+.console .ln{white-space:nowrap}
+.console .t{color:var(--faint)} .console .ok{color:var(--g)} .console .warn{color:var(--p)} .console .crit{color:var(--r)}
+.cursor::after{content:"▊";color:var(--g);animation:blink 1s steps(2) infinite}
+.stack{display:flex;flex-direction:column;gap:14px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="statusbar">
+    <div class="sys">FORESAIL/OPS v3.1</div>
+    <div>CASE-002</div>
+    <div class="alert">■ ACTION_REQUIRED</div>
+    <div class="ok">FEED:REAL</div>
+    <div>SCAN 09:47:12Z</div>
+    <div>HAZ 5 · REL 4 · WATCH 4 · IRR 21</div>
+    <div class="fill">SEAT:SELLER · CIF · LC@SIGHT · USD 186,000.00</div>
+  </div>
+
+  <div class="casestrip">
+    <h1>MV <span>CAPEMOLLINI</span></h1>
+    <div class="kv">CNSHA → BDCGP → DHAKA · <b>2,847 NM</b> · ETD <b>07-12</b> · ETA <b>07-24</b></div>
+    <div class="deadline"><b>T-5 DAYS</b><span>LATEST SHIPMENT 07-15</span></div>
+  </div>
+
+  <div class="cols">
+    <div class="stack">
+      <div class="panel radar">
+        <div class="panel-h">ROUTE RADAR <span>CARTO/MARNET · TC FEED LIVE</span></div>
+        <svg viewBox="0 0 760 430" role="img" aria-label="Route radar">
+          <rect class="sea" width="760" height="430"/>
+          <g class="graticule">
+            <path d="M0 61h760M0 122h760M0 183h760M0 244h760M0 305h760M0 366h760"/>
+            <path d="M95 0v430M190 0v430M285 0v430M380 0v430M475 0v430M570 0v430M665 0v430"/>
+          </g>
+          <path class="land" d="M425 0 L760 0 L760 80 Q706 73 668 90 Q630 106 604 97 Q564 84 542 53 Q522 24 486 18 Q448 13 425 0 Z"/>
+          <path class="land" d="M196 0 Q228 49 242 90 Q256 130 240 161 Q220 145 203 156 Q217 192 258 203 Q298 213 313 255 Q328 302 357 337 Q378 363 369 395 Q342 388 325 353 Q304 307 289 273 Q264 289 278 329 Q288 366 273 395 Q250 373 240 329 Q228 280 216 232 Q199 165 179 107 Q167 58 196 0 Z"/>
+          <path class="land" d="M228 395 Q273 373 326 399 Q380 423 425 430 L228 430 Z"/>
+          <path class="land" d="M425 355 Q486 339 532 366 Q562 386 608 382 Q646 378 668 400 Q638 423 577 423 Q501 423 425 388 Z"/>
+          <path class="land" d="M662 140 Q680 165 674 201 Q668 238 683 264 Q654 261 645 228 Q636 191 647 162 Z"/>
+          <path class="land" d="M564 105 Q577 124 573 150 Q567 173 552 181 Q543 156 547 130 Q551 113 564 105 Z"/>
+          <circle class="cone" cx="688" cy="208" r="18"/>
+          <circle class="cone" cx="642" cy="169" r="31"/>
+          <circle class="cone" cx="589" cy="134" r="46"/>
+          <circle class="cone" cx="544" cy="107" r="61"/>
+          <path class="tc-track" d="M688 208 Q661 187 642 169 Q613 148 589 134 Q564 119 544 107"/>
+          <circle class="tc-eye" cx="688" cy="208" r="5"/>
+          <text class="tc-label" x="620" y="226">TC:TALIM 080KT ⟶ 07-14</text>
+          <path class="route-line" d="M565 80 Q532 156 493 248 Q456 330 389 353 Q357 362 327 320 Q297 272 268 198 Q255 156 251 123"/>
+          <rect class="transfer" x="560" y="75" width="9" height="9" transform="rotate(45 565 80)"/>
+          <text class="transfer-label" x="578" y="72">CIF-XFER</text>
+          <circle class="port-dot" cx="565" cy="80" r="3.5"/>
+          <text class="port-label" x="532" y="60">CNSHA</text><text class="port-sub" x="532" y="48">ETD 07-12</text>
+          <circle class="port-dot" cx="251" cy="123" r="3.5"/>
+          <text class="port-label" x="196" y="114">BDCGP</text><text class="port-sub" x="196" y="102">ETA 07-24</text>
+          <path class="vessel-glyph" d="M544 121 l13 5 -3.5 6.5 -14 -3.5 Z"/>
+          <text class="vessel-label" x="483" y="140">VSL·EST 09:47Z</text>
+        </svg>
+        <div class="sweep"></div>
+      </div>
+
+      <div class="panel gantt-panel">
+        <div class="panel-h">VOYAGE / THREAT / DEADLINE AXIS <span>07-06 → 08-18</span></div>
+        <div class="gantt">
+          <div class="lane"><span class="ln">VOYAGE</span>
+            <div class="track"><div class="bar voy" style="left:12%;width:56%">SHA→TWS→SCS→MLC→CTG</div><div class="today" style="left:8%"><b>NOW</b></div></div>
+          </div>
+          <div class="lane"><span class="ln">WX</span>
+            <div class="track"><div class="bar risk-r" style="left:14%;width:9%">GALE</div><div class="bar risk-a" style="left:26%;width:6%">TALIM</div></div>
+          </div>
+          <div class="lane"><span class="ln">POLICY</span>
+            <div class="track"><div class="bar risk-m" style="left:86%;width:9%">BD-SG</div></div>
+          </div>
+          <div class="lane"><span class="ln">DEADLN</span>
+            <div class="track"><div class="flag" style="left:22%"><b>SHIP 07-15</b></div><div class="flag" style="left:78%;background:var(--p)"><b style="color:var(--p)">LC 08-14</b></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel threats">
+      <div class="panel-h">THREAT BOARD <span>5 ACTIVE</span></div>
+      <table>
+        <tr><th>TIER</th><th>THREAT</th><th>WINDOW</th><th>RISK</th></tr>
+        <tr>
+          <td><span class="tag act">ACT</span></td>
+          <td><div class="t-title">Gale @ CNSHA loading window</div><div class="t-sub">60+ km/h gusts · buffer 3d to latest shipment</div></td>
+          <td class="win">07-11<br>T-1D</td><td class="own-y">YOURS</td>
+        </tr>
+        <tr>
+          <td><span class="tag act">ACT</span></td>
+          <td><div class="t-title">TSTM @ BDCGP anchorage</div><div class="t-sub">discharge + lighterage slowdown on arrival week</div></td>
+          <td class="win">07-10<br>NOW</td><td class="own-c">CPTY</td>
+        </tr>
+        <tr>
+          <td><span class="tag act">ACT</span></td>
+          <td><div class="t-title">TSTM @ DHAKA inland leg</div><div class="t-sub">monsoon flooding risk on CTG→DAC corridor</div></td>
+          <td class="win">07-10<br>NOW</td><td class="own-c">CPTY</td>
+        </tr>
+        <tr>
+          <td><span class="tag prep">PREP</span></td>
+          <td><div class="t-title">TC TALIM × Taiwan Strait leg</div><div class="t-sub">80kt · reroute E-of-Luzon +2.5d · decide by 07-12</div></td>
+          <td class="win">07-14<br>T-4D</td><td class="own-c">CPTY</td>
+        </tr>
+        <tr>
+          <td><span class="tag mon">MON</span></td>
+          <td><div class="t-title">BD safeguard inv. cotton yarn</div><div class="t-sub">prelim determination 08-20 · voyage clears prior</div></td>
+          <td class="win">08-20<br>T-41D</td><td class="own-c">CPTY</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="console">
+    <div class="ln"><span class="t">09:47:12</span> <span class="ok">SCAN OK</span> 29 events ingested · 5 hazards correlated · 1 corroborated multi-source</div>
+    <div class="ln"><span class="t">09:47:13</span> <span class="crit">OBL-001 LATEST-SHIPMENT</span> at risk: gale @ POL inside window · buffer 3d</div>
+    <div class="ln"><span class="t">09:47:13</span> <span class="warn">DRAFT LC-AMEND</span> prepared for Trade Finance review · deadline today <span class="cursor"></span></div>
+  </div>
+</div>
+</body>
+</html>

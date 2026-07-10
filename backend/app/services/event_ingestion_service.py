@@ -3,7 +3,10 @@ import os
 from app.services.event_connectors.gdelt_event_connector import GdeltEventConnector
 from app.services.event_connectors.mock_event_connector import MockEventConnector
 from app.services.event_connectors.open_meteo_weather_connector import OpenMeteoWeatherConnector
+from app.services.event_connectors.policy_registry_connector import PolicyRegistryConnector
 from app.services.event_connectors.real_search_event_connector import RealSearchEventConnector
+from app.services.event_connectors.risk_calendar_connector import RiskCalendarConnector
+from app.services.event_connectors.typhoon_track_connector import TyphoonTrackConnector
 from app.services.event_deduplicator import deduplicate_events
 from app.services.event_normalizer import normalize_events
 from app.services.persistence_service import list_items, save_item
@@ -86,9 +89,17 @@ def list_external_events_for_run(case_id: str, agent_run_id: str) -> list[dict]:
 def _connectors_for_mode(mode: str):
     if mode == "MOCK":
         return [MockEventConnector()]
+    real_connectors = [
+        GdeltEventConnector(),
+        RealSearchEventConnector(),
+        OpenMeteoWeatherConnector(),
+        TyphoonTrackConnector(),
+        RiskCalendarConnector(),
+        PolicyRegistryConnector(),
+    ]
     if mode == "REAL":
-        return [GdeltEventConnector(), RealSearchEventConnector(), OpenMeteoWeatherConnector()]
-    return [MockEventConnector(), GdeltEventConnector(), RealSearchEventConnector(), OpenMeteoWeatherConnector()]
+        return real_connectors
+    return [MockEventConnector(), *real_connectors]
 
 
 def _event_key(case_id: str, event_id: str, agent_run_id: str | None) -> str:
@@ -157,7 +168,14 @@ def _mode_warnings(mode: str, connector_results: list[dict]) -> list[str]:
     if mode == "REAL":
         enabled = [
             result for result in connector_results
-            if result.get("connector") in {"gdelt_event_connector", "real_search_event_connector", "open_meteo_weather_connector"} and result.get("enabled")
+            if result.get("connector") in {
+                "gdelt_event_connector",
+                "real_search_event_connector",
+                "open_meteo_weather_connector",
+                "typhoon_track_connector",
+                "risk_calendar_connector",
+                "policy_registry_connector",
+            } and result.get("enabled")
         ]
         if not enabled:
             warnings.append("REAL_MODE_NO_CONNECTORS_ENABLED")

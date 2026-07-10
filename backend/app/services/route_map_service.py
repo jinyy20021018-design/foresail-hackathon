@@ -1,7 +1,11 @@
+from datetime import date
+
 from app.services.case_service import get_case, get_relevance_results
+from app.services.corridor_risk_service import corridors_for_case, seasonal_baseline
 from app.services.event_ingestion_service import list_external_events
 from app.services.port_registry_service import resolve_port, resolve_region_coordinates
 from app.services.route_geometry_service import build_route_geometry
+from app.services.voyage_schedule_service import build_voyage_schedule, position_on
 
 
 def build_route_map(case_id: str) -> dict:
@@ -19,6 +23,22 @@ def build_route_map(case_id: str) -> dict:
     primary_threat = next((event for event in map_events if event["classification"] == "Relevant"), None)
     watch_events = [event for event in map_events if event["classification"] == "Watch"]
 
+    voyage_schedule = build_voyage_schedule(case)
+    vessel_position = position_on(voyage_schedule, date.today())
+    typhoon_tracks = _typhoon_tracks(external_events.values())
+    corridors_on_route = [
+        {
+            "corridor_id": state["corridor_id"],
+            "name": state["name"],
+            "state": state["state"],
+            "trend": state["trend"],
+            "lat": state["lat"],
+            "lng": state["lng"],
+            "capacity_notes": state.get("capacity_notes") or "",
+        }
+        for state in corridors_for_case(case, voyage_schedule)
+    ]
+
     return {
         "case_id": case_id,
         "geometry": geometry,
@@ -28,6 +48,11 @@ def build_route_map(case_id: str) -> dict:
             "final_destination": geometry.get("final_destination"),
         },
         "map_events": map_events,
+        "voyage_schedule": voyage_schedule,
+        "vessel_position": vessel_position,
+        "typhoon_tracks": typhoon_tracks,
+        "corridors_on_route": corridors_on_route,
+        "seasonal_baseline": seasonal_baseline(voyage_schedule),
         "threat_summary": {
             "primary_threat": primary_threat,
             "watch_count": len(watch_events),
@@ -41,6 +66,22 @@ def build_route_map(case_id: str) -> dict:
             "distance_nautical_miles": geometry.get("distance_nautical_miles"),
         },
     }
+
+
+def _typhoon_tracks(events) -> list[dict]:
+    tracks: dict[str, dict] = {}
+    for event in events:
+        payload = event.get("raw_payload") or {}
+        storm = payload.get("storm")
+        if not isinstance(storm, dict) or not storm.get("points"):
+            continue
+        tracks[str(storm.get("storm_id"))] = {
+            "storm_id": storm.get("storm_id"),
+            "name": storm.get("name"),
+            "points": storm["points"],
+            "source_event_id": event.get("event_id"),
+        }
+    return list(tracks.values())
 
 
 def _safe_relevance_results(case_id: str) -> list[dict]:

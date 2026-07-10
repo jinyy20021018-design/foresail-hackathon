@@ -1,0 +1,118 @@
+/* ============ fs2 Overview (g2 simple-business · scoped) ============ */
+.fs2-overview{
+  --card:#FAFBFD; --card2:#F0F2F7; --ink:#2C323B; --muted:#747B88; --faint:#A5ACB9;
+  --black:#2E3542; --red:#C4747C; --red-soft:#F3EBED; --blue:#5F7FD0; --blue-soft:#E8EDF8;
+  --r-lg:26px; --fs2-shadow:0 2px 10px rgba(20,20,20,.05);
+  --sans:"Plus Jakarta Sans",-apple-system,"Segoe UI",Inter,sans-serif;
+  font-family:var(--sans); color:var(--ink);
+}
+.fs2-overview *{ box-sizing:border-box; }
+
+/* hazard row */
+.fs2-overview .hazrow{ display:grid; grid-template-columns:repeat(4,1fr) auto; gap:12px; }
+.fs2-overview .haz{ background:var(--card); border-radius:20px; padding:15px 17px; box-shadow:var(--fs2-shadow); transition:transform .18s; }
+.fs2-overview .haz:hover{ transform:translateY(-2px); }
+.fs2-overview .haz.black{ background:var(--black); color:#fff; }
+.fs2-overview .haz .top{ display:flex; justify-content:space-between; align-items:baseline; }
+.fs2-overview .haz .code{ font-weight:800; font-size:15px; letter-spacing:.01em; }
+.fs2-overview .haz .tag{ font:600 10.5px var(--sans); color:var(--faint); }
+.fs2-overview .haz.black .tag{ color:#8F8F8F; }
+.fs2-overview .haz .tag.hot{ color:var(--red); }
+.fs2-overview .haz .win{ display:flex; align-items:center; gap:8px; margin:12px 0 10px; font:600 11.5px var(--sans); }
+.fs2-overview .haz .win .dotline{ flex:1; height:2px; background:repeating-linear-gradient(90deg,currentColor 0 3px,transparent 3px 8px); opacity:.25; }
+.fs2-overview .haz .win .glyph{ font-size:12px; opacity:.9; }
+.fs2-overview .haz .win .t2{ color:var(--muted); }
+.fs2-overview .haz .foot{ display:flex; align-items:center; gap:7px; }
+.fs2-overview .badge{ width:20px; height:20px; border-radius:999px; display:grid; place-items:center; font:800 9.5px var(--sans); color:#fff; flex:0 0 auto; }
+.fs2-overview .badge.r{ background:var(--red); }
+.fs2-overview .badge.a{ background:var(--blue); }
+.fs2-overview .badge.b{ background:var(--blue); }
+.fs2-overview .haz .foot .mini{ font:600 10.5px var(--sans); color:var(--faint); letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fs2-overview .haz.black .foot .mini{ color:#9B9B9B; }
+.fs2-overview .haz .foot .who{ margin-left:auto; font:700 10px var(--sans); letter-spacing:.05em; flex:0 0 auto; }
+.fs2-overview .haz .foot .who.ours{ color:var(--red); }
+.fs2-overview .haz .foot .who.them{ color:var(--faint); }
+.fs2-overview .hazmore{ display:grid; place-items:center; background:var(--card); border-radius:20px; padding:0 16px; color:var(--faint); font-weight:700; cursor:pointer; box-shadow:var(--fs2-shadow); }
+
+/* studio grid */
+.fs2-overview .studio{ display:grid; grid-template-columns:290px 1fr 330px; gap:14px; margin-top:14px; }
+.fs2-overview .panel{ background:var(--card); border-radius:var(--r-lg); box-shadow:var(--fs2-shadow); padding:18px 20px; }
+.fs2-overview .left{ display:flex; flex-direction:column; gap:14px; }
+.fs2-overview .count{ padding:22px; background:radial-gradient(360px 220px at 88% -24%, rgba(196,116,124,.18), transparent 65%),var(--card); }
+.fs2-overview .count .lbl{ font:600 11px var(--sans); color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
+.fs2-overview .count .num{ font-size:58px; font-weight:800; letter-spacing:-.03em; margin:2px 0; line-height:1; }
+.fs2-overview .count .num small{ font-size:16px; font-weight:700; color:var(--muted); }
+.fs2-overview .count .num.hot{ color:var(--red); }
+.fs2-overview .count .note{ font-size:12px; color:var(--muted); margin-top:8px; }
+.fs2-overview .gaugewrap{ margin-top:12px; height:8px; border-radius:99px; background:var(--card2); overflow:hidden; }
+.fs2-overview .gauge{ height:100%; border-radius:99px; background:var(--red); }
+.fs2-overview .blackcard{ background:var(--black); color:#fff; border-radius:var(--r-lg); padding:18px 20px; flex:1; }
+.fs2-overview .blackcard .bh{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+.fs2-overview .blackcard .bh h2{ font-size:14px; font-weight:800; color:#fff; }
+.fs2-overview .blackcard .bh b{ font-size:15px; font-weight:800; }
+.fs2-overview .task{ display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.09); }
+.fs2-overview .task.next{ background:rgba(95,127,208,.20); border-radius:14px; padding:10px 12px; border-bottom:0; margin:2px -6px; }
+.fs2-overview .task.next .upnext{ margin-left:auto; font:800 8.5px var(--sans); letter-spacing:.1em; color:#fff; background:var(--blue); border-radius:99px; padding:3px 8px; flex:0 0 auto; }
+.fs2-overview .task:last-child{ border-bottom:0; }
+.fs2-overview .task .ti{ width:30px; height:30px; border-radius:999px; background:rgba(255,255,255,.1); display:grid; place-items:center; flex:0 0 auto; }
+.fs2-overview .task .ti svg{ width:13px; height:13px; stroke:#fff; fill:none; stroke-width:2; }
+.fs2-overview .task .tt{ font:600 12.5px var(--sans); }
+.fs2-overview .task .ts{ font:500 10.5px var(--sans); color:#9B9B9B; margin-top:1px; }
+
+/* center */
+.fs2-overview .deckpanel{ padding:18px 20px 14px; display:flex; flex-direction:column; }
+
+/* timeline lanes */
+.fs2-overview .lanewrap{ margin-top:12px; background:var(--card2); border-radius:14px; padding:12px 14px; }
+.fs2-overview .lane{ display:grid; grid-template-columns:76px 1fr; align-items:center; min-height:26px; }
+.fs2-overview .lane .ln{ font:700 9.5px var(--sans); letter-spacing:.09em; color:var(--faint); text-transform:uppercase; }
+.fs2-overview .track{ position:relative; height:18px; }
+.fs2-overview .bar{ position:absolute; top:3px; height:12px; border-radius:99px; font:700 8.5px var(--sans); color:#fff; padding:0 8px; line-height:12px; white-space:nowrap; overflow:hidden; }
+.fs2-overview .bar.voy{ background:var(--ink); }
+.fs2-overview .bar.rr{ background:var(--red); }
+.fs2-overview .bar.rb{ background:var(--blue); opacity:.6; }
+.fs2-overview .flag{ position:absolute; top:-1px; bottom:-1px; width:2px; border-radius:2px; background:var(--red); }
+.fs2-overview .flag b{ position:absolute; top:-2px; left:5px; font:700 8.5px var(--sans); white-space:nowrap; }
+.fs2-overview .today{ position:absolute; top:-3px; bottom:-3px; width:2px; border-radius:2px; background:var(--blue); }
+.fs2-overview .today b{ position:absolute; top:-4px; left:5px; font:700 8.5px var(--sans); color:var(--blue); }
+.fs2-tl-axis{ display:none; }
+
+/* right */
+.fs2-overview .right{ display:flex; flex-direction:column; gap:14px; }
+.fs2-overview .form .fh{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.fs2-overview .form .fh h2{ font-size:13.5px; font-weight:800; }
+.fs2-overview .frow{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:9px; }
+.fs2-overview .field label{ display:block; font:600 10px var(--sans); color:var(--faint); letter-spacing:.05em; margin:0 0 4px 4px; text-transform:uppercase; }
+.fs2-overview .field .val{ background:transparent; border-bottom:1px solid var(--card2); padding:7px 4px; font:600 12px var(--sans); display:flex; justify-content:space-between; align-items:center; color:var(--muted); }
+.fs2-overview .field .val.warn{ color:var(--red); background:var(--red-soft); border-radius:10px; padding:7px 11px; border-bottom:0; }
+.fs2-overview .field .val span{ color:var(--faint); font-weight:700; font-size:10px; }
+.fs2-overview .od{ border-bottom:1px solid var(--card2); padding:9px 4px; margin-bottom:6px; }
+.fs2-overview .od .l{ font:600 10px var(--sans); color:var(--faint); letter-spacing:.05em; text-transform:uppercase; }
+.fs2-overview .od .v{ font:700 12.5px var(--sans); margin-top:2px; display:flex; justify-content:space-between; }
+.fs2-overview .od .v span{ color:var(--muted); font-weight:700; font-size:11px; }
+.fs2-overview .chips{ display:flex; flex-wrap:wrap; gap:7px; margin-top:4px; }
+.fs2-overview .fchip{ display:flex; align-items:center; gap:6px; font:600 10.5px var(--sans); border-radius:999px; padding:6px 11px; background:transparent; border:1px solid var(--card2); color:var(--faint); }
+.fs2-overview .fchip.on{ background:var(--blue-soft); border-color:transparent; color:var(--blue); font-weight:700; }
+.fs2-overview .fchip.on::before{ content:"\2713"; font-size:9px; }
+.fs2-overview .fchip.risk{ background:var(--red-soft); border-color:transparent; color:var(--red); font-weight:700; }
+.fs2-overview .fchip.risk::before{ content:"!"; font-size:9px; }
+
+@media (max-width:1080px){
+  .fs2-overview .studio{ grid-template-columns:1fr; }
+  .fs2-overview .hazrow{ grid-template-columns:1fr 1fr; }
+}
+
+/* ============ fs2 shell header + pill tabs ============ */
+.fs2-shell{ --fs2b-ink:#2C323B; --fs2b-muted:#747B88; --fs2b-card:#FAFBFD; --fs2b-black:#2E3542; }
+.fs2-shell .workspace-header h1{ font-size:28px; font-weight:800; letter-spacing:-.02em; color:var(--fs2b-ink); }
+.fs2-shell .workspace-header > div > p{ color:var(--fs2b-muted); font-size:12.5px; margin-top:4px; }
+.fs2-shell .title-row .tag{ font:600 11.5px "Plus Jakarta Sans",sans-serif; color:var(--fs2b-muted); background:var(--fs2b-card); border-radius:999px; padding:6px 12px; border:0; }
+.fs2-shell .header-actions .secondary-action{ background:var(--fs2b-black); color:#fff; border:0; border-radius:999px; padding:10px 18px; font-weight:700; box-shadow:0 2px 10px rgba(20,20,20,.08); }
+.fs2-shell .header-actions .secondary-action:disabled{ opacity:.5; }
+.fs2-shell .header-actions .primary-action{ border-radius:999px; }
+.fs2-shell .perspective-toggle{ border-radius:999px; }
+.fs2-shell .tabs.fs2-tabs{ display:flex; gap:6px; flex-wrap:wrap; border-bottom:0; margin-bottom:16px; }
+.fs2-shell .tabs.fs2-tabs button{ position:relative; font:600 12.5px "Plus Jakarta Sans",sans-serif; color:var(--fs2b-muted); background:var(--fs2b-card); border:0; border-radius:999px; padding:9px 16px; cursor:pointer; transition:color .18s, background .18s; box-shadow:0 1px 3px rgba(20,20,20,.04); }
+.fs2-shell .tabs.fs2-tabs button::after{ display:none; content:none; }
+.fs2-shell .tabs.fs2-tabs button:hover{ color:var(--fs2b-ink); }
+.fs2-shell .tabs.fs2-tabs button.active{ color:#fff; background:var(--fs2b-black); }

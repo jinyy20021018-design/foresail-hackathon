@@ -9,6 +9,7 @@ frontend/dist/
 
 # Local runtime / debug artifacts
 backend/foresail.db
+backend/foresail_test.db
 debug-*.log
 .cursor/debug-*.log
 backend/server*.log

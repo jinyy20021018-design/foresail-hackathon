@@ -75,6 +75,13 @@ def create_demo() -> dict:
     return get_case(case["case_id"])
 
 
+@router.post("/demo/imminent")
+def create_imminent_demo() -> dict:
+    case = create_demo_case(imminent=True)
+    confirm_fields(case["case_id"])
+    return get_case(case["case_id"])
+
+
 @router.post("/demo/clean")
 def create_clean_demo() -> dict:
     case = create_demo_case()

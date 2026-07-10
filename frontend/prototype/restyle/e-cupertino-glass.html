@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForeSail · Cupertino Glass</title>
+<style>
+:root{
+  --blue:#0A6CFF; --blue-soft:rgba(10,108,255,.1);
+  --red:#FF3B30; --red-soft:rgba(255,59,48,.1);
+  --orange:#FF9500; --orange-soft:rgba(255,149,0,.12);
+  --green:#34C759;
+  --ink:#1C1C1E; --muted:#6E6E73; --faint:#AEAEB2;
+  --glass:rgba(255,255,255,.72); --glass-border:rgba(255,255,255,.9);
+  --shadow:0 8px 32px rgba(28,28,30,.10), 0 1px 2px rgba(28,28,30,.06);
+  --sf:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Inter,sans-serif;
+  --mono:"SF Mono",ui-monospace,"Cascadia Mono",monospace;
+}
+*{margin:0;box-sizing:border-box}
+body{font:15px/1.5 var(--sf);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;
+  background:
+    radial-gradient(1100px 600px at 85% -10%, #DCEBFF 0%, transparent 55%),
+    radial-gradient(900px 600px at -5% 30%, #EDE7FB 0%, transparent 50%),
+    radial-gradient(800px 500px at 60% 110%, #DFF3EA 0%, transparent 55%),
+    #F4F5F7;
+  background-attachment:fixed}
+.wrap{max-width:1240px;margin:0 auto;padding:16px 24px 48px}
+
+/* ── Floating nav ─────────────────── */
+.nav{position:sticky;top:12px;z-index:50;display:flex;align-items:center;gap:18px;
+  background:var(--glass);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid var(--glass-border);border-radius:18px;padding:10px 18px;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;letter-spacing:-.01em}
+.logo svg{width:24px;height:24px}
+.crumb{font-size:13px;color:var(--muted)}
+.crumb b{color:var(--ink);font-weight:600}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.scan{font:12px var(--mono);color:var(--faint)}
+.btn{font:600 13px var(--sf);color:#fff;background:var(--blue);border:0;border-radius:12px;padding:9px 16px;cursor:pointer;transition:opacity .18s}
+.btn:hover{opacity:.85}
+
+/* ── Large title ──────────────────── */
+.large-title{padding:30px 6px 18px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+.large-title h1{font-size:34px;font-weight:800;letter-spacing:-.025em}
+.large-title .sub{margin-top:5px;color:var(--muted);font-size:14px}
+.large-title .sub b{color:var(--ink);font-weight:600}
+.pillrow{display:flex;gap:8px;margin-top:12px}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12px var(--sf);border-radius:999px;padding:5px 12px}
+.pill svg{width:12px;height:12px}
+.pill.alert{color:var(--red);background:var(--red-soft)}
+.pill.plain{color:var(--muted);background:rgba(28,28,30,.05)}
+.due{background:var(--glass);backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--glass-border);border-radius:20px;box-shadow:var(--shadow);padding:14px 22px;text-align:right;cursor:pointer;transition:transform .2s}
+.due:hover{transform:translateY(-2px)}
+.due b{display:block;font-size:26px;font-weight:800;color:var(--red);letter-spacing:-.02em}
+.due span{font-size:12px;color:var(--muted)}
+
+/* ── Bento grid ───────────────────── */
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.card{background:var(--glass);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);
+  border:1px solid var(--glass-border);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;transition:transform .22s cubic-bezier(.2,.9,.3,1.4),box-shadow .22s}
+.card:hover{transform:translateY(-3px);box-shadow:0 14px 44px rgba(28,28,30,.14),0 1px 2px rgba(28,28,30,.06)}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0}
+.card-h h2{font-size:16px;font-weight:700;letter-spacing:-.015em}
+.card-h span{font-size:12px;color:var(--faint)}
+.map-card{grid-column:span 8}
+.side-card{grid-column:span 4;display:flex;flex-direction:column}
+.full-card{grid-column:span 12}
+
+/* ── Map ──────────────────────────── */
+.map-card svg{display:block;width:100%;height:auto;margin-top:10px}
+.sea{fill:#EAF2FB}
+.land{fill:#DFE7F0;stroke:#C6D2E0;stroke-width:1}
+.graticule{stroke:rgba(28,28,30,.04);stroke-width:1}
+.route-line{fill:none;stroke:var(--blue);stroke-width:2.4;stroke-dasharray:.1 9;stroke-linecap:round;animation:flow 30s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-600}}
+.port-dot{fill:#fff;stroke:var(--ink);stroke-width:2}
+.port-label{font:600 12.5px var(--sf);fill:var(--ink)}
+.port-sub{font:10px var(--mono);fill:var(--muted)}
+.cone{fill:rgba(255,59,48,.07);stroke:rgba(255,59,48,.35);stroke-width:1}
+.tc-track{fill:none;stroke:var(--red);stroke-width:2;stroke-dasharray:5 6;stroke-linecap:round}
+.tc-eye{fill:var(--red)}
+.tc-label{font:600 11px var(--sf);fill:var(--red)}
+.vessel-dot{fill:var(--blue)}
+.vessel-halo{fill:none;stroke:var(--blue);stroke-width:1.6;opacity:.5;animation:halo 2.4s ease-out infinite}
+@keyframes halo{0%{r:7;opacity:.6}100%{r:18;opacity:0}}
+.vessel-label{font:600 11px var(--sf);fill:var(--blue)}
+.transfer{fill:var(--orange)}
+.transfer-label{font:10.5px var(--mono);fill:var(--orange)}
+
+/* ── Side facts ───────────────────── */
+.facts{padding:8px 20px 18px}
+.fact{display:flex;justify-content:space-between;align-items:baseline;padding:10.5px 0;border-bottom:1px solid rgba(28,28,30,.06);font-size:13.5px}
+.fact:last-child{border-bottom:0}
+.fact span{color:var(--muted)}
+.fact b{font-weight:600;font-variant-numeric:tabular-nums}
+.fact b.risk{color:var(--red)}
+.liab{margin:4px 20px 20px;background:var(--blue-soft);border-radius:14px;padding:13px 15px;font-size:12.5px;color:var(--ink)}
+.liab b{color:var(--blue)}
+
+/* ── Threat widgets ───────────────── */
+.threats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;grid-column:span 12}
+.threat{border-radius:22px;padding:18px 20px;background:var(--glass);backdrop-filter:blur(28px) saturate(180%);border:1px solid var(--glass-border);box-shadow:var(--shadow);transition:transform .22s cubic-bezier(.2,.9,.3,1.4)}
+.threat:hover{transform:translateY(-3px)}
+.t-top{display:flex;align-items:center;gap:8px}
+.t-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center}
+.t-icon svg{width:16px;height:16px}
+.t-icon.act{background:var(--red-soft);color:var(--red)}
+.t-icon.prep{background:var(--orange-soft);color:var(--orange)}
+.t-icon.mon{background:var(--blue-soft);color:var(--blue)}
+.t-tier{font:700 11px var(--sf);letter-spacing:.06em}
+.t-tier.act{color:var(--red)} .t-tier.prep{color:var(--orange)} .t-tier.mon{color:var(--blue)}
+.t-who{margin-left:auto;font:600 10.5px var(--sf);color:var(--faint);background:rgba(28,28,30,.05);border-radius:999px;padding:3px 9px}
+.t-who.ours{color:var(--red);background:var(--red-soft)}
+.threat h3{margin:11px 0 5px;font-size:15px;font-weight:700;letter-spacing:-.01em;line-height:1.35}
+.threat .meta{font-size:12.5px;color:var(--muted)}
+
+/* ── Timeline ─────────────────────── */
+.tl{padding:6px 20px 20px}
+.lane{display:grid;grid-template-columns:96px 1fr;align-items:center;min-height:30px}
+.lane .ln{font:600 10.5px var(--sf);letter-spacing:.07em;color:var(--faint);text-transform:uppercase}
+.track{position:relative;height:22px;border-radius:8px;background:rgba(28,28,30,.04)}
+.bar{position:absolute;top:4px;bottom:4px;border-radius:6px;font:700 9.5px var(--sf);color:#fff;padding:0 8px;line-height:14px;white-space:nowrap;overflow:hidden}
+.bar.voy{background:#B9CBE2;color:#3A4A61}
+.bar.risk-r{background:var(--red)} .bar.risk-o{background:var(--orange)} .bar.risk-b{background:var(--blue)}
+.flag{position:absolute;top:-2px;bottom:-2px;width:2px;border-radius:2px;background:var(--red)}
+.flag b{position:absolute;top:-1px;left:6px;font:700 9.5px var(--sf);color:var(--red);white-space:nowrap}
+.today{position:absolute;top:-5px;bottom:-5px;width:2px;border-radius:2px;background:var(--blue)}
+.today b{position:absolute;top:-3px;left:6px;font:700 9.5px var(--sf);color:var(--blue)}
+@media (max-width:980px){.map-card,.side-card{grid-column:span 12}.threats{grid-template-columns:1fr}.large-title{flex-direction:column;align-items:flex-start}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="nav">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 18 L12 3 L13.5 18 Z" fill="#0A6CFF"/><path d="M3 20.5 Q12 23 21 20.5" stroke="#0A6CFF" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      ForeSail
+    </div>
+    <div class="crumb">Case Library / <b>CASE-002</b></div>
+    <div class="right">
+      <span class="scan">REAL · scanned 09:47</span>
+      <button class="btn">Run monitoring cycle</button>
+    </div>
+  </nav>
+
+  <div class="large-title">
+    <div>
+      <h1>MV Capemollini</h1>
+      <p class="sub">Shanghai → Chittagong → Dhaka · <b>CIF</b> · LC at sight · <b>USD 186,000</b></p>
+      <div class="pillrow">
+        <span class="pill alert"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1 L15 14 H1 Z M7.2 6h1.6v4H7.2Zm0 5h1.6v1.6H7.2Z"/></svg>Action required</span>
+        <span class="pill plain">5 hazards · 3 act now</span>
+        <span class="pill plain">Seller seat</span>
+      </div>
+    </div>
+    <div class="due" role="button" tabindex="0">
+      <b>5 days</b>
+      <span>to latest shipment · Jul 15</span>
+    </div>
+  </div>
+
+  <div class="bento">
+    <div class="card map-card">
+      <div class="card-h"><h2>Route Risk Map</h2><span>marnet · typhoon feed live</span></div>
+      <svg viewBox="0 0 800 440" role="img" aria-label="Route risk map">
+        <rect class="sea" width="800" height="440"/>
+        <g class="graticule">
+          <path d="M0 63h800M0 126h800M0 189h800M0 252h800M0 315h800M0 378h800"/>
+          <path d="M100 0v440M200 0v440M300 0v440M400 0v440M500 0v440M600 0v440M700 0v440"/>
+        </g>
+        <path class="land" d="M447 0 L800 0 L800 81 Q743 74 703 91 Q663 108 636 99 Q594 86 570 54 Q549 24 511 18 Q471 13 447 0 Z"/>
+        <path class="land" d="M206 0 Q240 50 255 91 Q270 131 253 163 Q232 147 214 158 Q229 195 272 205 Q314 215 330 258 Q346 305 376 341 Q398 366 389 394 Q360 387 342 352 Q320 306 304 272 Q278 288 292 324 Q303 361 287 394 Q263 372 253 330 Q240 279 227 232 Q209 164 188 107 Q175 58 206 0 Z"/>
+        <path class="land" d="M240 394 Q287 372 343 397 Q400 421 447 428 L240 428 Q240 411 240 394 Z"/>
+        <path class="land" d="M447 355 Q511 339 560 367 Q591 387 639 383 Q679 379 703 401 Q671 424 607 424 Q527 424 447 389 Z"/>
+        <path class="land" d="M697 141 Q715 166 709 203 Q702 240 718 266 Q688 263 678 229 Q668 192 680 163 Z"/>
+        <path class="land" d="M594 106 Q607 124 603 150 Q597 173 581 181 Q572 157 576 131 Q580 114 594 106 Z"/>
+        <circle class="cone" cx="724" cy="211" r="19"/>
+        <circle class="cone" cx="676" cy="172" r="32"/>
+        <circle class="cone" cx="620" cy="137" r="48"/>
+        <circle class="cone" cx="572" cy="109" r="63"/>
+        <path class="tc-track" d="M724 211 Q696 190 676 172 Q645 151 620 137 Q593 121 572 109"/>
+        <circle class="tc-eye" cx="724" cy="211" r="5"/>
+        <text class="tc-label" x="648" y="232">Typhoon TALIM · 80 kt · Jul 14</text>
+        <path class="route-line" d="M594 81 Q560 158 519 250 Q480 332 409 356 Q375 365 344 322 Q312 273 282 200 Q268 158 264 125"/>
+        <rect class="transfer" x="588" y="75" width="10" height="10" rx="2" transform="rotate(45 594 81)"/>
+        <text class="transfer-label" x="608" y="73">CIF transfer</text>
+        <circle class="port-dot" cx="594" cy="81" r="4.5"/>
+        <text class="port-label" x="556" y="62">Shanghai</text><text class="port-sub" x="556" y="49">POL · ETD Jul 12</text>
+        <circle class="port-dot" cx="264" cy="125" r="4.5"/>
+        <text class="port-label" x="204" y="116">Chittagong</text><text class="port-sub" x="204" y="103">POD · ETA Jul 24</text>
+        <circle class="vessel-halo" cx="572" cy="126" r="10"/>
+        <circle class="vessel-dot" cx="572" cy="126" r="5"/>
+        <text class="vessel-label" x="506" y="146">Vessel · today</text>
+      </svg>
+    </div>
+
+    <div class="card side-card">
+      <div class="card-h"><h2>Position</h2><span>est.</span></div>
+      <div class="facts">
+        <div class="fact"><span>Course</span><b>SHA → CTG · 2,847 nm</b></div>
+        <div class="fact"><span>Vessel (est.)</span><b>East China Sea</b></div>
+        <div class="fact"><span>Latest shipment</span><b class="risk">Jul 15 · 5d</b></div>
+        <div class="fact"><span>LC expiry</span><b>Aug 14 · 35d</b></div>
+        <div class="fact"><span>Presentation</span><b>21 days</b></div>
+      </div>
+      <div class="liab"><b>CIF:</b> cargo risk passes to the buyer on board at Shanghai — the <b>payment risk</b> of missing Jul 15 stays yours.</div>
+    </div>
+
+    <div class="threats">
+      <div class="threat">
+        <div class="t-top">
+          <span class="t-icon act"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1 L15 14 H1 Z M7.2 6h1.6v4H7.2Zm0 5h1.6v1.6H7.2Z"/></svg></span>
+          <span class="t-tier act">ACT NOW · IN 1 DAY</span>
+          <span class="t-who ours">Your risk</span>
+        </div>
+        <h3>Gale at Shanghai threatens loading window</h3>
+        <p class="meta">Jul 11–13 · gusts 60+ km/h · 3-day buffer to latest shipment</p>
+      </div>
+      <div class="threat">
+        <div class="t-top">
+          <span class="t-icon prep"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 7 7h-2a5 5 0 1 1-5-5Z"/><path d="M8 4v4l3 2"/></svg></span>
+          <span class="t-tier prep">PREPARE · IN 4 DAYS</span>
+          <span class="t-who">Counterparty</span>
+        </div>
+        <h3>Typhoon TALIM crosses Taiwan Strait leg</h3>
+        <p class="meta">≈ Jul 14 · 80 kt · reroute east of Luzon adds 2.5 days</p>
+      </div>
+      <div class="threat">
+        <div class="t-top">
+          <span class="t-icon mon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="5"/><path d="M11 11 L15 15"/></svg></span>
+          <span class="t-tier mon">MONITOR · IN 41 DAYS</span>
+          <span class="t-who">Counterparty</span>
+        </div>
+        <h3>BD safeguard investigation, cotton yarn</h3>
+        <p class="meta">Preliminary determination Aug 20 · voyage clears before</p>
+      </div>
+    </div>
+
+    <div class="card full-card">
+      <div class="card-h"><h2>Voyage Timeline</h2><span>Jul 06 → Aug 18</span></div>
+      <div class="tl">
+        <div class="lane"><span class="ln">Voyage</span>
+          <div class="track"><div class="bar voy" style="left:12%;width:56%">Shanghai → Taiwan Str. → SCS → Malacca → Chittagong</div><div class="today" style="left:8%"><b>Today</b></div></div>
+        </div>
+        <div class="lane"><span class="ln">Weather</span>
+          <div class="track"><div class="bar risk-r" style="left:14%;width:9%">Gale</div><div class="bar risk-o" style="left:26%;width:6%">TALIM</div></div>
+        </div>
+        <div class="lane"><span class="ln">Policy</span>
+          <div class="track"><div class="bar risk-b" style="left:86%;width:9%">BD duty</div></div>
+        </div>
+        <div class="lane"><span class="ln">Deadlines</span>
+          <div class="track"><div class="flag" style="left:22%"><b>Latest shipment · Jul 15</b></div><div class="flag" style="left:78%;background:var(--orange)"><b style="color:var(--orange)">LC expiry · Aug 14</b></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -10,7 +10,15 @@ from app.services.case_service import (
     set_monitoring_outputs,
 )
 from app.services.agent_run_service import get_agent_runs, save_agent_run
-from app.services.hazard_service import apply_hazard_delta, build_hazards, hazard_ids_for_events
+from app.services.corridor_risk_service import (
+    corridors_for_case,
+    seasonal_baseline,
+    update_corridor_states,
+    update_port_states,
+)
+from app.services.hazard_service import apply_hazard_delta, build_hazards, corridor_hazards, hazard_ids_for_events
+from app.services.policy_registry_service import match_policies_for_case
+from app.services.voyage_schedule_service import build_voyage_schedule
 from app.services.document_service import (
     get_best_case_facts,
     get_field_conflicts,
@@ -75,6 +83,8 @@ class MonitoringAgent:
                 "hazards": [],
                 "hazard_delta": {"new": [], "escalated": [], "ongoing": [], "resolved": [], "all_clear": True},
                 "earliest_action_deadline": None,
+                "corridor_states": [],
+                "port_states": [],
                 "risk_summary": {"triggered": False, "trigger_events": [], "watch_events_considered": [], "exposures": []},
                 "obligations": [],
                 "information_gaps": [],
@@ -231,17 +241,44 @@ class MonitoringAgent:
             _trace_step(
                 len(trace) + 1,
                 "Classify Event Relevance",
-                "Classified each event using deterministic relevance scoring with Incoterms attribution and confidence weighting.",
+                "Classified each event using deterministic relevance scoring with Incoterms attribution, confidence weighting, and forecast-horizon decay.",
                 "relevance_engine",
                 f"{relevant_count} Relevant, {watch_count} Watch, {irrelevant_count} Irrelevant.",
             )
         )
+
+        voyage_schedule = build_voyage_schedule(facts)
+        corridor_states = update_corridor_states(events)
+        case_corridors = corridors_for_case(facts, voyage_schedule)
+        port_states = update_port_states(watch_profile.get("watched_ports") or [], events, [event for event in events if event.get("calendar_based")])
+        trace.append(
+            _trace_step(
+                len(trace) + 1,
+                "Assess Corridor & Port Risk States",
+                "Updated corridor and port risk state machines from current events and mapped the states onto this route.",
+                "corridor_risk_service",
+                f"{sum(1 for state in case_corridors if state['state'] != 'GREEN')} of {len(case_corridors)} corridors on route above GREEN; {sum(1 for state in port_states if state['state'] != 'GREEN')} watched ports above GREEN.",
+            )
+        )
+
+        policy_matches = match_policies_for_case(facts, voyage_schedule)
+        trace.append(
+            _trace_step(
+                len(trace) + 1,
+                "Match Policy Registry",
+                "Matched the case (origin, destination, commodity, transit regions) against the deterministic policy registry.",
+                "policy_registry_service",
+                f"{len(policy_matches['active_policies'])} active policies apply; {len(policy_matches['pending_policy_events'])} pending policy measures on the horizon.",
+            )
+        )
+
+        hazards.extend(corridor_hazards(facts, case_corridors))
         corroborated_count = sum(1 for hazard in hazards if hazard.get("corroborated"))
         trace.append(
             _trace_step(
                 len(trace) + 1,
                 "Correlate Hazards",
-                "Clustered related events into hazard objects, corroborated multi-source evidence, and gated single low-confidence sources.",
+                "Clustered related events into hazard objects, corroborated multi-source evidence, gated single low-confidence sources, and added corridor-state hazards.",
                 "hazard_service",
                 f"{len(hazards)} hazards identified ({corroborated_count} corroborated by multiple sources).",
             )
@@ -258,9 +295,30 @@ class MonitoringAgent:
         )
 
         risk_summary = summarize_exposures(facts, events, relevance_results)
+        perspective = str(facts.get("trade_perspective") or case.get("trade_perspective") or "SELLER").upper()
+        for policy in policy_matches["active_policies"]:
+            risk_summary["exposures"].append(
+                {
+                    "category": "Trade Compliance",
+                    "impact": policy["note"] or "Active trade policy applies to this shipment.",
+                    "severity": "High" if str(policy.get("severity")).upper() == "HIGH" else "Medium",
+                    "party_perspective": perspective,
+                    "affected_party": perspective,
+                    "responsible_party": "SHARED",
+                    "incoterm_basis": facts.get("incoterm") or "",
+                    "cif_scenario": "standing_policy",
+                    "evidence_event_ids": [],
+                    "trigger_event_ids": [],
+                    "watch_event_ids": [],
+                    "policy_id": policy["policy_id"],
+                    "policy_title": policy["title"],
+                }
+            )
         for exposure in risk_summary["exposures"]:
             exposure["hazard_ids"] = hazard_ids_for_events(hazards, exposure.get("evidence_event_ids") or [])
         risk_summary["hazard_ids"] = [hazard["hazard_id"] for hazard in hazards]
+        risk_summary["background_risks"] = seasonal_baseline(voyage_schedule)
+        risk_summary["active_policies"] = policy_matches["active_policies"]
         trace.append(
             _trace_step(
                 len(trace) + 1,
@@ -493,6 +551,8 @@ class MonitoringAgent:
             "hazards": hazards,
             "hazard_delta": hazard_delta,
             "earliest_action_deadline": next_action_deadline,
+            "corridor_states": case_corridors,
+            "port_states": port_states,
             "risk_summary": risk_summary,
             "obligations": obligations,
             "information_gaps": information_gaps,

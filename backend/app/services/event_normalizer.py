@@ -67,6 +67,7 @@ def normalize_event(event: dict, case_id: str, index: int = 1, source_hint: str 
         "event_time": event_time,
         "published_at": published_at,
         "expected_impact_window": _impact_window(event, event_type, event_time),
+        "voyage_aligned": bool(event.get("voyage_aligned")),
         "locations": locations,
         "affected_ports": affected_ports,
         "affected_routes": affected_routes,

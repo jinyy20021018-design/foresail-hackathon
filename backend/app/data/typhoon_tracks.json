@@ -1,0 +1,15 @@
+[
+  {
+    "storm_id": "MOCK-TC-01",
+    "name": "TALIM (simulated)",
+    "points": [
+      {"offset_hours": 0, "lat": 15.0, "lng": 135.0, "max_wind_kt": 45},
+      {"offset_hours": 24, "lat": 17.0, "lng": 131.0, "max_wind_kt": 55},
+      {"offset_hours": 48, "lat": 19.5, "lng": 127.0, "max_wind_kt": 65},
+      {"offset_hours": 72, "lat": 22.0, "lng": 123.0, "max_wind_kt": 75},
+      {"offset_hours": 96, "lat": 24.5, "lng": 120.0, "max_wind_kt": 80},
+      {"offset_hours": 120, "lat": 27.0, "lng": 117.5, "max_wind_kt": 70},
+      {"offset_hours": 144, "lat": 30.0, "lng": 116.0, "max_wind_kt": 50}
+    ]
+  }
+]

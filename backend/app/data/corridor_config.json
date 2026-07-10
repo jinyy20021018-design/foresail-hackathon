@@ -1,0 +1,130 @@
+[
+  {
+    "id": "strait-of-hormuz",
+    "name": "Strait of Hormuz",
+    "region": "Strait of Hormuz",
+    "aliases": ["hormuz", "persian gulf", "gulf of oman"],
+    "lat": 26.5,
+    "lng": 56.5,
+    "baseline_state": "AMBER",
+    "escalation_triggers": [
+      "Attack on commercial shipping or naval incident in the strait",
+      "War risk premium increase or insurer advisories for Persian Gulf calls",
+      "State threat to close or restrict transit"
+    ],
+    "capacity_notes": ""
+  },
+  {
+    "id": "red-sea",
+    "name": "Red Sea / Bab el-Mandeb",
+    "region": "Red Sea",
+    "aliases": ["red sea", "bab el-mandeb", "bab al-mandab", "mandeb", "houthi"],
+    "lat": 16.0,
+    "lng": 41.5,
+    "baseline_state": "AMBER",
+    "escalation_triggers": [
+      "Missile/drone attack on merchant vessel",
+      "Joint War Committee listed-area expansion",
+      "Major carriers suspending Red Sea transits (Cape rerouting)"
+    ],
+    "capacity_notes": "Rerouting via Cape of Good Hope adds ~10-14 days for Asia-Europe voyages."
+  },
+  {
+    "id": "suez-canal",
+    "name": "Suez Canal",
+    "region": "Suez Canal",
+    "aliases": ["suez"],
+    "lat": 30.0,
+    "lng": 32.3,
+    "baseline_state": "GREEN",
+    "escalation_triggers": [
+      "Grounding or blockage incident",
+      "Convoy schedule reduction or transit fee emergency change"
+    ],
+    "capacity_notes": "Convoy system; limited daily transit slots."
+  },
+  {
+    "id": "strait-of-malacca",
+    "name": "Strait of Malacca",
+    "region": "Malacca Strait",
+    "aliases": ["malacca", "singapore strait"],
+    "lat": 2.5,
+    "lng": 101.5,
+    "baseline_state": "GREEN",
+    "escalation_triggers": [
+      "Piracy/armed robbery incident cluster",
+      "Major collision or channel obstruction"
+    ],
+    "capacity_notes": ""
+  },
+  {
+    "id": "south-china-sea",
+    "name": "South China Sea",
+    "region": "South China Sea",
+    "aliases": ["south china sea"],
+    "lat": 14.0,
+    "lng": 115.0,
+    "baseline_state": "GREEN",
+    "escalation_triggers": [
+      "Naval standoff or live-fire exercise closing shipping lanes",
+      "Typhoon season peak with multiple active systems"
+    ],
+    "capacity_notes": ""
+  },
+  {
+    "id": "east-china-sea",
+    "name": "East China Sea",
+    "region": "East China Sea",
+    "aliases": ["east china sea"],
+    "lat": 28.0,
+    "lng": 125.0,
+    "baseline_state": "GREEN",
+    "escalation_triggers": [
+      "Typhoon warning affecting Yangtze delta ports",
+      "Military exercise notice closing sea areas"
+    ],
+    "capacity_notes": ""
+  },
+  {
+    "id": "taiwan-strait",
+    "name": "Taiwan Strait",
+    "region": "Taiwan Strait",
+    "aliases": ["taiwan strait"],
+    "lat": 24.5,
+    "lng": 119.0,
+    "baseline_state": "GREEN",
+    "escalation_triggers": [
+      "Military exercise or exclusion zone announcement",
+      "Cross-strait incident affecting commercial transit"
+    ],
+    "capacity_notes": ""
+  },
+  {
+    "id": "bay-of-bengal",
+    "name": "Bay of Bengal",
+    "region": "Bay of Bengal",
+    "aliases": ["bay of bengal", "chittagong anchorage"],
+    "lat": 15.0,
+    "lng": 88.0,
+    "baseline_state": "GREEN",
+    "escalation_triggers": [
+      "Cyclone formation in pre/post-monsoon season",
+      "Port congestion spillover at Chittagong/Colombo"
+    ],
+    "capacity_notes": ""
+  },
+  {
+    "id": "panama-canal",
+    "name": "Panama Canal",
+    "region": "Panama Canal",
+    "aliases": ["panama"],
+    "lat": 9.0,
+    "lng": -79.5,
+    "baseline_state": "GREEN",
+    "escalation_triggers": [
+      "Gatun Lake water level below draft threshold (dry season)",
+      "Daily transit slot reduction or auction premium spike"
+    ],
+    "capacity_notes": "Drought-sensitive; draft and slot restrictions typical in dry season (Jan-May)."
+  }
+]

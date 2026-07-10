@@ -17,6 +17,7 @@ export type TradeCase = {
   etd: string;
   eta: string;
   latest_shipment_date: string;
+  lc_expiry_date?: string;
   payment_method: string;
   incoterm: string;
   incoterm_named_place?: string;
@@ -278,6 +279,47 @@ export type RouteMapEvent = {
   source?: string;
 };
 
+export type VoyagePosition = {
+  day_offset: number;
+  date: string;
+  lat: number;
+  lng: number;
+  region: string;
+};
+
+export type TyphoonTrackPoint = {
+  time: string;
+  lat: number;
+  lng: number;
+  max_wind_kt: number;
+  cone_radius_km: number;
+};
+
+export type TyphoonTrack = {
+  storm_id: string;
+  name: string;
+  points: TyphoonTrackPoint[];
+  source_event_id?: string;
+};
+
+export type CorridorOnRoute = {
+  corridor_id: string;
+  name: string;
+  state: "GREEN" | "AMBER" | "RED" | string;
+  trend: "UP" | "DOWN" | "STABLE" | string;
+  lat: number;
+  lng: number;
+  capacity_notes: string;
+};
+
+export type SeasonalAdvisory = {
+  region: string;
+  level: string;
+  months: number[];
+  note: string;
+  transit_date: string;
+};
+
 export type RouteMapPayload = {
   case_id: string;
   geometry: {
@@ -297,6 +339,11 @@ export type RouteMapPayload = {
     final_destination: RouteMapPort | null;
   };
   map_events: RouteMapEvent[];
+  voyage_schedule?: { positions: VoyagePosition[]; etd?: string; eta?: string; warnings?: string[] };
+  vessel_position?: VoyagePosition | null;
+  typhoon_tracks?: TyphoonTrack[];
+  corridors_on_route?: CorridorOnRoute[];
+  seasonal_baseline?: SeasonalAdvisory[];
   threat_summary: {
     primary_threat: RouteMapEvent | null;
     watch_count: number;
@@ -311,12 +358,43 @@ export type RouteMapPayload = {
   };
 };
 
+export type Hazard = {
+  hazard_id: string;
+  case_id: string;
+  family: string;
+  anchor: string;
+  title: string;
+  classification: "Relevant" | "Watch" | string;
+  severity: string;
+  confidence: number;
+  corroborated: boolean;
+  sources: string[];
+  evidence_event_ids: string[];
+  legs_hit: string[];
+  expected_impact_window: { start: string; end: string; basis?: string } | null;
+  attribution?: {
+    incoterm?: string;
+    trade_perspective?: string;
+    our_cargo_risk?: boolean;
+    our_payment_risk?: boolean;
+    attribution_note?: string;
+  } | null;
+  mapped_exposures: string[];
+  lifecycle: "NEW" | "ONGOING" | "ESCALATED" | "RESOLVED" | string;
+  urgency?: "ACT_NOW" | "PREPARE" | "MONITOR" | string;
+  lead_days?: number | null;
+  recommended_posture?: string;
+  corridor_state?: { corridor_id: string; state: string; trend: string } | null;
+};
+
 export type RecommendedAction = {
   action_id: string;
   title: string;
   owner_role: string;
   priority: string;
   deadline: string;
+  deadline_date?: string;
+  hazard_ids?: string[];
   status: string;
   related_exposure: string;
   party_perspective?: TradePerspective;
@@ -659,6 +737,7 @@ export const api = {
     request<ExternalEventSearchResult>(`/api/cases/${caseId}/external-events/search`, { method: "POST" }),
   getRiskSummary: (caseId: string) => request<RiskSummary>(`/api/cases/${caseId}/risk-summary`),
   getRouteMap: (caseId: string) => request<RouteMapPayload>(`/api/cases/${caseId}/route-map`),
+  getHazards: (caseId: string) => request<Hazard[]>(`/api/cases/${caseId}/hazards`),
   getActions: (caseId: string) => request<RecommendedAction[]>(`/api/cases/${caseId}/actions`),
   getCifResponsibility: (caseId: string) => request<CifResponsibility>(`/api/cases/${caseId}/cif-responsibility`),
   getPerspectiveAnalysis: (caseId: string, perspective: TradePerspective) =>

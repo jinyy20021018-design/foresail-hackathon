@@ -24,7 +24,7 @@ class RouteGeometryTests(unittest.TestCase):
 
     def test_heuristic_route_has_multiple_points(self) -> None:
         geometry = build_route_geometry("Shenzhen", "Surabaya")
-        self.assertIn(geometry["source"], {"lane_network", "heuristic_lane"})
+        self.assertIn(geometry["source"], {"lane_network", "searoute_marnet", "heuristic_lane"})
         self.assertGreater(len(geometry["coordinates"]), 2)
 
     def test_inland_leg_appended_for_dhaka(self) -> None:

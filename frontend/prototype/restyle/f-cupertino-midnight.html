@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForeSail · Cupertino Midnight</title>
+<style>
+:root{
+  --blue:#409CFF; --blue-soft:rgba(64,156,255,.16);
+  --red:#FF6961; --red-soft:rgba(255,105,97,.16);
+  --orange:#FFB340; --orange-soft:rgba(255,179,64,.15);
+  --text:#F5F5F7; --muted:#98989F; --faint:#636369;
+  --glass:rgba(28,28,32,.55); --glass2:rgba(38,38,44,.5);
+  --glass-border:rgba(255,255,255,.12);
+  --shadow:0 16px 48px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
+  --sf:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Inter,sans-serif;
+  --mono:"SF Mono",ui-monospace,"Cascadia Mono",monospace;
+}
+*{margin:0;box-sizing:border-box}
+body{font:15px/1.5 var(--sf);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh;background:#000;overflow-x:hidden}
+
+/* full-bleed map behind everything */
+.mapbg{position:fixed;inset:0;z-index:0}
+.mapbg svg{width:100%;height:100%;display:block}
+.sea{fill:#05070C}
+.land{fill:#101623;stroke:#1C2637;stroke-width:1}
+.graticule{stroke:rgba(255,255,255,.035);stroke-width:1}
+.route-line{fill:none;stroke:var(--blue);stroke-width:2.4;stroke-dasharray:.1 10;stroke-linecap:round;animation:flow 32s linear infinite;filter:drop-shadow(0 0 8px rgba(64,156,255,.7))}
+@keyframes flow{to{stroke-dashoffset:-600}}
+.port-dot{fill:#fff}
+.port-halo{fill:none;stroke:rgba(255,255,255,.5);stroke-width:1.2}
+.port-label{font:600 13px var(--sf);fill:#fff}
+.port-sub{font:10.5px var(--mono);fill:var(--muted)}
+.cone{fill:rgba(255,105,97,.07);stroke:rgba(255,105,97,.4);stroke-width:1}
+.tc-track{fill:none;stroke:var(--red);stroke-width:2;stroke-dasharray:5 6}
+.tc-eye{fill:var(--red);filter:drop-shadow(0 0 8px rgba(255,105,97,.9));animation:eye 1.8s ease-in-out infinite}
+@keyframes eye{50%{opacity:.45}}
+.tc-label{font:600 11.5px var(--sf);fill:var(--red)}
+.vessel-dot{fill:var(--blue);filter:drop-shadow(0 0 10px rgba(64,156,255,.9))}
+.vessel-label{font:600 11px var(--sf);fill:var(--blue)}
+.transfer{fill:var(--orange)}
+.transfer-label{font:11px var(--mono);fill:var(--orange)}
+
+/* floating windows */
+.stage{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:18px 26px 46px;display:flex;flex-direction:column;min-height:100vh}
+.glass{background:var(--glass);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);
+  border:1px solid var(--glass-border);border-radius:24px;box-shadow:var(--shadow)}
+
+.nav{display:flex;align-items:center;gap:18px;padding:12px 20px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px}
+.logo svg{width:24px;height:24px}
+.crumb{font-size:13px;color:var(--muted)}
+.crumb b{color:var(--text);font-weight:600}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.scan{font:11.5px var(--mono);color:var(--faint)}
+.btn{font:600 13px var(--sf);color:#04070D;background:var(--blue);border:0;border-radius:12px;padding:9px 16px;cursor:pointer;transition:filter .18s}
+.btn:hover{filter:brightness(1.15)}
+
+.headline{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:26px 8px 20px}
+.headline h1{font-size:36px;font-weight:800;letter-spacing:-.03em;text-shadow:0 2px 20px rgba(0,0,0,.6)}
+.headline .sub{margin-top:6px;color:var(--muted);font-size:14px;text-shadow:0 1px 8px rgba(0,0,0,.8)}
+.headline .sub b{color:var(--text)}
+.pillrow{display:flex;gap:8px;margin-top:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12px var(--sf);border-radius:999px;padding:6px 13px;backdrop-filter:blur(20px);border:1px solid var(--glass-border)}
+.pill svg{width:12px;height:12px}
+.pill.alert{color:var(--red);background:var(--red-soft);animation:pulse 2.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,105,97,.3)}50%{box-shadow:0 0 0 8px rgba(255,105,97,0)}}
+.pill.plain{color:var(--muted);background:rgba(28,28,32,.5)}
+.due{padding:16px 24px;text-align:right;cursor:pointer;transition:transform .22s}
+.due:hover{transform:translateY(-2px)}
+.due b{display:block;font-size:30px;font-weight:800;color:var(--red);letter-spacing:-.02em}
+.due span{font-size:12px;color:var(--muted)}
+
+/* spacer lets the map breathe mid-page */
+.breathe{flex:1;min-height:170px;position:relative}
+.breathe .maphint{position:absolute;right:8px;bottom:10px;font:11px var(--mono);color:var(--faint);text-shadow:0 1px 6px #000}
+
+/* dock: threats */
+.dock{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.threat{padding:17px 19px;transition:transform .24s cubic-bezier(.2,.9,.3,1.35)}
+.threat:hover{transform:translateY(-4px)}
+.t-top{display:flex;align-items:center;gap:8px}
+.t-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center}
+.t-icon svg{width:15px;height:15px}
+.t-icon.act{background:var(--red-soft);color:var(--red)}
+.t-icon.prep{background:var(--orange-soft);color:var(--orange)}
+.t-icon.mon{background:var(--blue-soft);color:var(--blue)}
+.t-tier{font:700 10.5px var(--sf);letter-spacing:.08em}
+.t-tier.act{color:var(--red)} .t-tier.prep{color:var(--orange)} .t-tier.mon{color:var(--blue)}
+.t-who{margin-left:auto;font:600 10px var(--sf);color:var(--faint);border:1px solid var(--glass-border);border-radius:999px;padding:3px 9px}
+.t-who.ours{color:var(--red);border-color:rgba(255,105,97,.4)}
+.threat h3{margin:10px 0 5px;font-size:14.5px;font-weight:700;line-height:1.35;letter-spacing:-.01em}
+.threat .meta{font-size:12px;color:var(--muted)}
+
+/* timeline window */
+.tlwin{margin-top:14px;padding:16px 22px 18px}
+.tlwin h2{font-size:14px;font-weight:700;letter-spacing:-.01em;color:var(--muted);margin-bottom:12px}
+.lane{display:grid;grid-template-columns:92px 1fr;align-items:center;min-height:28px}
+.lane .ln{font:600 10px var(--sf);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+.track{position:relative;height:20px;border-radius:7px;background:rgba(255,255,255,.05)}
+.bar{position:absolute;top:4px;bottom:4px;border-radius:5px;font:700 9px var(--sf);color:#04070D;padding:0 7px;line-height:12px;white-space:nowrap;overflow:hidden}
+.bar.voy{background:#3E5B85;color:#C9DCF7}
+.bar.risk-r{background:var(--red)} .bar.risk-o{background:var(--orange)} .bar.risk-b{background:var(--blue)}
+.flag{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:2px;background:var(--red)}
+.flag b{position:absolute;top:-2px;left:6px;font:700 9px var(--sf);color:var(--red);white-space:nowrap}
+.today{position:absolute;top:-5px;bottom:-5px;width:2px;border-radius:2px;background:var(--blue);box-shadow:0 0 10px rgba(64,156,255,.9)}
+.today b{position:absolute;top:-4px;left:6px;font:700 9px var(--sf);color:var(--blue)}
+@media (max-width:980px){.dock{grid-template-columns:1fr}.headline{flex-direction:column}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="mapbg" aria-hidden="true">
+  <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <rect class="sea" width="1440" height="900"/>
+    <g transform="translate(40 150) scale(.97)">
+    <g class="graticule">
+      <path d="M0 129h1440M0 258h1440M0 387h1440M0 516h1440M0 645h1440M0 774h1440"/>
+      <path d="M180 0v900M360 0v900M540 0v900M720 0v900M900 0v900M1080 0v900M1260 0v900"/>
+    </g>
+    <path class="land" d="M805 0 L1440 0 L1440 166 Q1337 151 1265 186 Q1193 221 1145 203 Q1069 176 1026 110 Q988 49 920 37 Q848 27 805 0 Z"/>
+    <path class="land" d="M371 0 Q432 102 459 186 Q486 270 456 334 Q418 301 385 323 Q412 399 490 420 Q565 440 594 528 Q623 624 677 696 Q716 748 700 806 Q648 792 616 720 Q576 626 547 556 Q500 589 526 662 Q545 738 516 806 Q474 761 456 675 Q432 570 409 474 Q377 335 338 219 Q315 119 371 0 Z"/>
+    <path class="land" d="M432 806 Q517 761 617 812 Q720 858 805 872 L432 872 Q432 839 432 806 Z"/>
+    <path class="land" d="M805 726 Q920 693 1008 750 Q1064 790 1150 781 Q1222 773 1265 818 Q1207 866 1092 866 Q948 866 805 795 Z"/>
+    <path class="land" d="M1254 288 Q1287 339 1276 414 Q1264 490 1292 543 Q1238 537 1220 468 Q1202 392 1224 333 Z"/>
+    <path class="land" d="M1069 216 Q1093 253 1085 306 Q1074 353 1046 369 Q1030 320 1037 267 Q1044 232 1069 216 Z"/>
+    <circle class="cone" cx="1303" cy="432" r="38"/>
+    <circle class="cone" cx="1217" cy="351" r="65"/>
+    <circle class="cone" cx="1116" cy="280" r="97"/>
+    <circle class="cone" cx="1030" cy="223" r="127"/>
+    <path class="tc-track" d="M1303 432 Q1253 388 1217 351 Q1161 309 1116 280 Q1067 248 1030 223"/>
+    <circle class="tc-eye" cx="1303" cy="432" r="8"/>
+    <text class="tc-label" x="1188" y="470">Typhoon TALIM · 80 kt · Jul 14</text>
+    <path class="route-line" d="M1069 166 Q1008 324 933 511 Q864 679 736 727 Q675 745 619 659 Q562 558 508 409 Q483 324 476 256"/>
+    <rect class="transfer" x="1062" y="159" width="13" height="13" rx="3" transform="rotate(45 1069 166)"/>
+    <text class="transfer-label" x="1094" y="150">CIF transfer · on board</text>
+    <circle class="port-dot" cx="1069" cy="166" r="6"/><circle class="port-halo" cx="1069" cy="166" r="12"/>
+    <text class="port-label" x="1002" y="128">Shanghai</text><text class="port-sub" x="1002" y="106">POL · ETD JUL 12</text>
+    <circle class="port-dot" cx="476" cy="256" r="6"/><circle class="port-halo" cx="476" cy="256" r="12"/>
+    <text class="port-label" x="368" y="238">Chittagong</text><text class="port-sub" x="368" y="216">POD · ETA JUL 24</text>
+    <circle class="vessel-dot" cx="1030" cy="255" r="7"/>
+    <text class="vessel-label" x="912" y="292">VESSEL · TODAY</text>
+    </g>
+  </svg>
+</div>
+
+<div class="stage">
+  <nav class="nav glass">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 18 L12 3 L13.5 18 Z" fill="#409CFF"/><path d="M3 20.5 Q12 23 21 20.5" stroke="#409CFF" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      ForeSail
+    </div>
+    <div class="crumb">Library / <b>CASE-002</b></div>
+    <div class="right">
+      <span class="scan">REAL · 09:47Z</span>
+      <button class="btn">Run monitoring cycle</button>
+    </div>
+  </nav>
+
+  <div class="headline">
+    <div>
+      <h1>MV Capemollini</h1>
+      <p class="sub">Shanghai → Chittagong → Dhaka · <b>CIF</b> · LC at sight · <b>USD 186,000</b></p>
+      <div class="pillrow">
+        <span class="pill alert"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1 L15 14 H1 Z M7.2 6h1.6v4H7.2Zm0 5h1.6v1.6H7.2Z"/></svg>Action required</span>
+        <span class="pill plain">5 hazards · 3 act now</span>
+        <span class="pill plain">Seller seat</span>
+      </div>
+    </div>
+    <div class="due glass" role="button" tabindex="0">
+      <b>5 days</b>
+      <span>to latest shipment · Jul 15</span>
+    </div>
+  </div>
+
+  <div class="breathe"><span class="maphint">live route · typhoon cone · vessel estimate</span></div>
+
+  <div class="dock">
+    <div class="threat glass">
+      <div class="t-top">
+        <span class="t-icon act"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1 L15 14 H1 Z M7.2 6h1.6v4H7.2Zm0 5h1.6v1.6H7.2Z"/></svg></span>
+        <span class="t-tier act">ACT NOW · IN 1 DAY</span><span class="t-who ours">Your risk</span>
+      </div>
+      <h3>Gale at Shanghai threatens loading window</h3>
+      <p class="meta">Jul 11–13 · gusts 60+ km/h · 3-day buffer to latest shipment</p>
+    </div>
+    <div class="threat glass">
+      <div class="t-top">
+        <span class="t-icon prep"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 7 7h-2a5 5 0 1 1-5-5Z"/></svg></span>
+        <span class="t-tier prep">PREPARE · IN 4 DAYS</span><span class="t-who">Counterparty</span>
+      </div>
+      <h3>Typhoon TALIM crosses Taiwan Strait leg</h3>
+      <p class="meta">≈ Jul 14 · 80 kt · reroute east of Luzon adds 2.5 days</p>
+    </div>
+    <div class="threat glass">
+      <div class="t-top">
+        <span class="t-icon mon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="5"/><path d="M11 11 L15 15"/></svg></span>
+        <span class="t-tier mon">MONITOR · IN 41 DAYS</span><span class="t-who">Counterparty</span>
+      </div>
+      <h3>BD safeguard investigation, cotton yarn</h3>
+      <p class="meta">Preliminary determination Aug 20 · voyage clears before</p>
+    </div>
+  </div>
+
+  <div class="tlwin glass">
+    <h2>Voyage · threats · deadlines</h2>
+    <div class="lane"><span class="ln">Voyage</span>
+      <div class="track"><div class="bar voy" style="left:12%;width:56%">Shanghai → Taiwan Str. → SCS → Malacca → Chittagong</div><div class="today" style="left:8%"><b>Today</b></div></div>
+    </div>
+    <div class="lane"><span class="ln">Weather</span>
+      <div class="track"><div class="bar risk-r" style="left:14%;width:9%">Gale</div><div class="bar risk-o" style="left:26%;width:6%">TALIM</div></div>
+    </div>
+    <div class="lane"><span class="ln">Policy</span>
+      <div class="track"><div class="bar risk-b" style="left:86%;width:9%">BD duty</div></div>
+    </div>
+    <div class="lane"><span class="ln">Deadlines</span>
+      <div class="track"><div class="flag" style="left:22%"><b>Latest shipment · Jul 15</b></div><div class="flag" style="left:78%;background:var(--orange)"><b style="color:var(--orange)">LC expiry · Aug 14</b></div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

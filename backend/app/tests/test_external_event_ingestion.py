@@ -20,6 +20,9 @@ class ExternalEventIngestionTest(unittest.TestCase):
         os.environ["GDELT_ENABLED"] = "false"
         os.environ["OPEN_METEO_ENABLED"] = "false"
         os.environ["REAL_SEARCH_ENABLED"] = "false"
+        os.environ["TYPHOON_ENABLED"] = "false"
+        os.environ["RISK_CALENDAR_ENABLED"] = "false"
+        os.environ["POLICY_REGISTRY_ENABLED"] = "false"
         os.environ["REAL_SEARCH_FEED_URLS"] = ""
         os.environ["USE_LLM_EVENT_EXTRACTION"] = "false"
         os.environ["USE_LLM_EXTRACTION"] = "false"
@@ -51,14 +54,35 @@ class ExternalEventIngestionTest(unittest.TestCase):
         os.environ["EVENT_SOURCE_MODE"] = "REAL"
         case_id = self.create_confirmed_case()
         result = fetch_events_for_case(case_id, get_watch_profile(case_id))
-        self.assertEqual(result["connectors_called"], ["gdelt_event_connector", "real_search_event_connector", "open_meteo_weather_connector"])
+        self.assertEqual(
+            result["connectors_called"],
+            [
+                "gdelt_event_connector",
+                "real_search_event_connector",
+                "open_meteo_weather_connector",
+                "typhoon_track_connector",
+                "risk_calendar_connector",
+                "policy_registry_connector",
+            ],
+        )
         self.assertEqual(result["events_deduped_count"], 0)
 
     def test_hybrid_mode_calls_mock_and_real_connectors(self) -> None:
         os.environ["EVENT_SOURCE_MODE"] = "HYBRID"
         case_id = self.create_confirmed_case()
         result = fetch_events_for_case(case_id, get_watch_profile(case_id))
-        self.assertEqual(result["connectors_called"], ["mock_event_connector", "gdelt_event_connector", "real_search_event_connector", "open_meteo_weather_connector"])
+        self.assertEqual(
+            result["connectors_called"],
+            [
+                "mock_event_connector",
+                "gdelt_event_connector",
+                "real_search_event_connector",
+                "open_meteo_weather_connector",
+                "typhoon_track_connector",
+                "risk_calendar_connector",
+                "policy_registry_connector",
+            ],
+        )
         self.assertGreater(result["events_deduped_count"], 0)
 
     def test_disabled_real_connectors_return_empty_without_error(self) -> None:

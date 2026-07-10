@@ -73,9 +73,14 @@ def classify_event(case: dict, event: dict) -> dict:
         score += 10
         matched_factors.append("high_severity")
 
+    voyage_aligned = bool(event.get("voyage_aligned"))
+    if not hard_unrelated and voyage_aligned:
+        score += 15
+        matched_factors.append("voyage_alignment_match")
+
     if event["type"] == "WEATHER" and "vessel_match" not in matched_factors:
         departure_threat = has_port_match and "shipment_window_overlap" in matched_factors
-        if not departure_threat:
+        if not departure_threat and not voyage_aligned:
             score = min(score, 60)
             matched_factors.append("weather_watch_cap")
 
@@ -83,6 +88,10 @@ def classify_event(case: dict, event: dict) -> dict:
     if confidence is not None and score > 0:
         try:
             factor = 0.6 + 0.4 * max(0.0, min(float(confidence), 1.0))
+            decay = _forecast_horizon_decay(event)
+            if decay < 1.0:
+                factor *= decay
+                matched_factors.append("forecast_horizon_decay")
             score = round(score * factor)
             matched_factors.append("confidence_weighted")
         except (TypeError, ValueError):
@@ -162,11 +171,27 @@ def _parse_date_like(value) -> date | None:
         return None
 
 
+FORECAST_WINDOW_BASES = {"forecast", "forecast_voyage_aligned", "typhoon_forecast"}
+
+
+def _forecast_horizon_decay(event: dict) -> float:
+    window = event.get("expected_impact_window") or {}
+    if str(window.get("basis") or "") not in FORECAST_WINDOW_BASES:
+        return 1.0
+    start = _parse_date_like(window.get("start"))
+    if not start:
+        return 1.0
+    lead_days = (start - date.today()).days
+    if lead_days <= 0:
+        return 1.0
+    return max(0.55, 1 - 0.03 * lead_days)
+
+
 def _affects_deadline(event: dict) -> bool:
     if event["type"] == "VESSEL_DELAY" and int(event.get("delay_days") or 0) >= 3:
         return True
     impact = event.get("impact", "").lower()
-    return "eta" in impact or "latest shipment" in impact or "departure delay" in impact
+    return "eta" in impact or "latest shipment" in impact or "departure delay" in impact or "transit delay" in impact
 
 
 def _explain(event: dict, classification: str, mapped_exposures: list[str], attribution: dict) -> str:

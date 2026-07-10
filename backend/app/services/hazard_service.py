@@ -1,9 +1,18 @@
 import hashlib
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from app.services.persistence_service import load_item, save_item
 
 UTC = timezone.utc
+
+URGENCY_ACT_NOW_DAYS = 3
+URGENCY_PREPARE_DAYS = 10
+
+URGENCY_POSTURE = {
+    "ACT_NOW": "Act now: impact window is imminent; execute the prepared response before the deadline.",
+    "PREPARE": "Prepare: line up the fallback plan (rerouting, LC amendment, buyer notice) so it can be executed on short notice.",
+    "MONITOR": "Monitor: no action needed yet; the window is far enough out that the forecast may still shift.",
+}
 
 TYPE_FAMILY = {
     "WEATHER": "WEATHER",
@@ -48,6 +57,7 @@ def build_hazards(case: dict, events: list[dict], relevance_results: list[dict])
         hazard["classification"] = _best_classification(
             [result_by_id[event_id] for event_id in hazard["evidence_event_ids"] if event_id in result_by_id]
         )
+        _apply_urgency(hazard)
     hazards.sort(key=lambda hazard: (CLASSIFICATION_RANK.get(hazard["classification"], 0), hazard["confidence"]), reverse=True)
     return hazards, adjusted_results
 
@@ -96,6 +106,80 @@ def hazard_ids_for_events(hazards: list[dict], event_ids: list[str]) -> list[str
     wanted = set(event_ids)
     ids = [hazard["hazard_id"] for hazard in hazards if wanted.intersection(hazard["evidence_event_ids"])]
     return list(dict.fromkeys(ids))
+
+
+def corridor_hazards(case: dict, corridor_states: list[dict]) -> list[dict]:
+    from app.services.incoterm_rule_service import attribute_event
+
+    hazards: list[dict] = []
+    for state in corridor_states:
+        if state.get("state") not in {"AMBER", "RED"}:
+            continue
+        synthetic_event = {
+            "event_id": f"CORR-{state['corridor_id']}",
+            "title": f"Corridor risk {state['state']}: {state['name']}",
+            "type": "SECURITY",
+            "affected_ports": [],
+            "affected_region": state["region"],
+        }
+        attribution = attribute_event(case, synthetic_event)
+        classification = "Relevant" if state["state"] == "RED" else "Watch"
+        hazard = {
+                "hazard_id": f"HAZ-CORR-{state['corridor_id'].upper().replace('-', '')[:12]}",
+                "case_id": case.get("case_id"),
+                "family": "CORRIDOR",
+                "anchor": state["name"].lower(),
+                "title": f"{state['name']} corridor risk is {state['state']} ({state['trend']})",
+                "classification": classification,
+                "severity": "HIGH" if state["state"] == "RED" else "MEDIUM",
+                "confidence": 0.8,
+                "corroborated": len(state.get("evidence_sources") or []) > 1,
+                "sources": ["corridor_risk_service", *(state.get("evidence_sources") or [])],
+                "evidence_event_ids": state.get("evidence_event_ids") or [],
+                "legs_hit": attribution.get("legs_hit") or ["MAIN_CARRIAGE"],
+                "expected_impact_window": None,
+                "attribution": attribution,
+                "mapped_exposures": ["Shipping"],
+                "max_score": None,
+                "lifecycle": "NEW",
+                "corridor_state": {
+                    "corridor_id": state["corridor_id"],
+                    "state": state["state"],
+                    "trend": state["trend"],
+                    "escalation_triggers": state.get("escalation_triggers") or [],
+                    "capacity_notes": state.get("capacity_notes") or "",
+                },
+                "updated_at": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+            }
+        _apply_urgency(hazard)
+        hazards.append(hazard)
+    return hazards
+
+
+def _apply_urgency(hazard: dict) -> None:
+    window = hazard.get("expected_impact_window") or {}
+    start = _parse_date(window.get("start"))
+    lead_days = (start - date.today()).days if start else None
+    if lead_days is None:
+        urgency = "PREPARE" if hazard.get("classification") == "Relevant" else "MONITOR"
+    elif lead_days <= URGENCY_ACT_NOW_DAYS:
+        urgency = "ACT_NOW"
+    elif lead_days <= URGENCY_PREPARE_DAYS:
+        urgency = "PREPARE"
+    else:
+        urgency = "MONITOR"
+    if hazard.get("classification") == "Watch" and urgency == "ACT_NOW":
+        urgency = "PREPARE"
+    hazard["lead_days"] = lead_days
+    hazard["urgency"] = urgency
+    hazard["recommended_posture"] = URGENCY_POSTURE[urgency]
+
+
+def _parse_date(value) -> date | None:
+    try:
+        return date.fromisoformat(str(value)[:10])
+    except (ValueError, TypeError):
+        return None
 
 
 def _cluster_key(case: dict, event: dict, result: dict) -> str:

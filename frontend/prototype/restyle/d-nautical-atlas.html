@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForeSail · Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sea:#0F2430; --sea2:#0C1E29; --panel:#122A37; --panel2:#16303E;
+  --line:rgba(200,170,110,.16); --line2:rgba(200,170,110,.3);
+  --text:#EAE3D2; --muted:#A99F87; --faint:#6E6A5A;
+  --brass:#C9A227; --brass-soft:rgba(201,162,39,.12);
+  --red:#D96C5B; --red-soft:rgba(217,108,91,.14);
+  --sage:#7FA98F;
+  --serif:"Cormorant Garamond",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{margin:0;box-sizing:border-box}
+body{background:var(--sea2);color:var(--text);font:14px/1.55 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;background:
+  radial-gradient(1000px 500px at 80% -5%, rgba(201,162,39,.05), transparent 55%),
+  radial-gradient(800px 480px at 0% 105%, rgba(127,169,143,.04), transparent 60%)}
+.page{max-width:1200px;margin:0 auto;padding:0 30px 50px;position:relative}
+
+/* ── Masthead ─────────────────────── */
+.masthead{display:flex;align-items:center;gap:22px;padding:20px 0 16px;border-bottom:1px solid var(--line2)}
+.wordmark{font:600 22px var(--serif);letter-spacing:.05em;color:var(--brass)}
+.wordmark small{font:11px var(--mono);color:var(--faint);letter-spacing:.2em;display:block;margin-top:-2px}
+.masthead nav{font:12px Inter;color:var(--muted);display:flex;gap:16px}
+.masthead .right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.mode{font:10.5px var(--mono);color:var(--faint);letter-spacing:.1em}
+.btn{font:600 12px Inter;color:var(--sea2);background:var(--brass);border:0;border-radius:3px;padding:9px 18px;cursor:pointer;letter-spacing:.02em}
+.btn:hover{filter:brightness(1.08)}
+
+/* ── Voyage plate (hero) ──────────── */
+.plate{display:grid;grid-template-columns:1fr 330px;gap:0;margin-top:24px;border:1px solid var(--line2);background:var(--sea)}
+.plate-map{position:relative;border-right:1px solid var(--line)}
+.plate-map svg{display:block;width:100%;height:auto}
+.psea{fill:var(--sea)}
+.land{fill:#1A3644;stroke:rgba(201,162,39,.35);stroke-width:.8}
+.graticule{stroke:rgba(200,170,110,.08);stroke-width:1}
+.rhumb{stroke:rgba(200,170,110,.06);stroke-width:.7}
+.route-line{fill:none;stroke:var(--brass);stroke-width:1.8;stroke-dasharray:1 8;stroke-linecap:round;animation:flow 36s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-500}}
+.waypoint{stroke:var(--brass);stroke-width:1.3;fill:none}
+.port-label{font:600 15px var(--serif);fill:var(--text);letter-spacing:.04em}
+.port-sub{font:9.5px var(--mono);fill:var(--muted);letter-spacing:.08em}
+.cone{fill:var(--red-soft);stroke:rgba(217,108,91,.45);stroke-width:.9}
+.tc-track{fill:none;stroke:var(--red);stroke-width:1.5;stroke-dasharray:5 5}
+.tc-glyph{font:600 15px var(--serif);fill:var(--red)}
+.tc-label{font:10px var(--mono);fill:var(--red);letter-spacing:.06em}
+.vessel-glyph{fill:var(--sage)}
+.vessel-label{font:10px var(--mono);fill:var(--sage);letter-spacing:.06em}
+.transfer-label{font:italic 12.5px var(--serif);fill:var(--brass)}
+.compass{opacity:.75}
+.compass circle{fill:none;stroke:var(--line2);stroke-width:1}
+.compass path{fill:var(--brass)}
+.compass text{font:600 9px var(--mono);fill:var(--muted)}
+.plate-cap{position:absolute;left:18px;bottom:12px;font:italic 13px var(--serif);color:var(--muted)}
+
+/* ── Manifest side ────────────────── */
+.manifest{padding:22px 24px;display:flex;flex-direction:column}
+.manifest h1{font:600 30px/1.1 var(--serif);letter-spacing:.01em}
+.manifest .route{font:italic 15px var(--serif);color:var(--brass);margin:4px 0 14px}
+.mrow{display:flex;justify-content:space-between;padding:7.5px 0;border-bottom:1px solid var(--line);font-size:12px}
+.mrow span{color:var(--muted)} .mrow b{font:500 11.5px var(--mono);letter-spacing:.02em}
+.mrow b.warn{color:var(--red)}
+.seal{margin-top:auto;padding-top:18px;text-align:center}
+.seal .days{font:600 52px/1 var(--serif);color:var(--red)}
+.seal .lbl{font:10px var(--mono);color:var(--muted);letter-spacing:.22em;margin-top:4px}
+.seal .note{font:italic 13px var(--serif);color:var(--muted);margin-top:10px}
+.seal .note b{color:var(--text);font-weight:600}
+
+/* ── Log of perils ────────────────── */
+.log-head{display:flex;align-items:baseline;gap:14px;padding:30px 0 4px}
+.log-head h2{font:600 24px var(--serif);letter-spacing:.02em}
+.log-head span{font:10.5px var(--mono);color:var(--faint);letter-spacing:.14em}
+.log-head::after{content:"";flex:1;height:1px;background:var(--line2);align-self:center}
+.perils{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.peril{border:1px solid var(--line);background:var(--panel);padding:18px 20px;position:relative;transition:border-color .2s,transform .2s}
+.peril:hover{border-color:var(--line2);transform:translateY(-2px)}
+.peril .tier{font:10px var(--mono);letter-spacing:.18em}
+.peril.act .tier{color:var(--red)} .peril.prep .tier{color:var(--brass)} .peril.mon .tier{color:var(--sage)}
+.peril h3{font:600 19px/1.25 var(--serif);margin:9px 0 7px}
+.peril .meta{font:10.5px var(--mono);color:var(--faint);letter-spacing:.03em}
+.peril .who{position:absolute;top:16px;right:18px;font:italic 12.5px var(--serif)}
+.who.ours{color:var(--red)} .who.them{color:var(--faint)}
+.peril.act{box-shadow:inset 3px 0 0 var(--red)} .peril.prep{box-shadow:inset 3px 0 0 var(--brass)} .peril.mon{box-shadow:inset 3px 0 0 var(--sage)}
+
+/* ── Passage timeline ─────────────── */
+.passage{margin-top:26px;border:1px solid var(--line);background:var(--panel);padding:20px 24px}
+.passage h2{font:600 20px var(--serif);margin-bottom:14px}
+.lane{display:grid;grid-template-columns:100px 1fr;align-items:center;min-height:30px}
+.lane .ln{font:10px var(--mono);letter-spacing:.16em;color:var(--faint)}
+.track{position:relative;height:20px}
+.track::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line)}
+.bar{position:absolute;top:4px;height:12px;border-radius:2px;font:500 9px var(--mono);color:var(--sea2);padding:0 6px;line-height:12px;white-space:nowrap;overflow:hidden;letter-spacing:.04em}
+.bar.voy{background:#3D5A6B;color:#CFDDE5}
+.bar.risk-r{background:var(--red)} .bar.risk-a{background:var(--brass)} .bar.risk-s{background:var(--sage)}
+.flag{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:var(--red)}
+.flag b{position:absolute;top:-3px;left:6px;font:500 9px var(--mono);color:var(--red);white-space:nowrap;letter-spacing:.06em}
+.today{position:absolute;top:-5px;bottom:-5px;width:1.5px;background:var(--sage)}
+.today b{position:absolute;top:-4px;left:6px;font:600 9px var(--mono);color:var(--sage)}
+.colophon{margin-top:20px;text-align:center;font:italic 12.5px var(--serif);color:var(--faint)}
+@media (max-width:900px){.plate{grid-template-columns:1fr}.perils{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="masthead">
+    <div class="wordmark">ForeSail<small>TRADE RISK ATLAS</small></div>
+    <nav><span>Library</span><span style="color:var(--text)">Case 002</span></nav>
+    <div class="right">
+      <span class="mode">FEED LIVE · 09:47 UTC</span>
+      <button class="btn">Run the watch</button>
+    </div>
+  </div>
+
+  <div class="plate">
+    <div class="plate-map">
+      <svg viewBox="0 0 800 500" role="img" aria-label="Voyage chart">
+        <rect class="psea" width="800" height="500"/>
+        <g class="graticule">
+          <path d="M0 71h800M0 142h800M0 213h800M0 284h800M0 355h800M0 426h800"/>
+          <path d="M100 0v500M200 0v500M300 0v500M400 0v500M500 0v500M600 0v500M700 0v500"/>
+        </g>
+        <g class="rhumb">
+          <path d="M0 0 L800 500M0 500 L800 0M0 250 L800 0M0 250 L800 500M400 0 L0 400M400 0 L800 400"/>
+        </g>
+        <path class="land" d="M447 0 L800 0 L800 92 Q743 84 703 103 Q663 122 636 112 Q594 98 570 61 Q549 27 511 21 Q471 15 447 0 Z"/>
+        <path class="land" d="M206 0 Q240 57 255 103 Q270 149 253 185 Q232 167 214 179 Q229 221 272 233 Q314 244 330 293 Q346 347 376 387 Q398 415 389 448 Q360 440 342 400 Q320 348 304 309 Q278 326 292 372 Q303 414 287 448 Q263 424 253 375 Q240 318 227 264 Q209 187 188 122 Q175 66 206 0 Z"/>
+        <path class="land" d="M240 448 Q287 424 343 452 Q400 478 447 486 L240 486 Q240 467 240 448 Z"/>
+        <path class="land" d="M447 404 Q511 386 560 417 Q591 439 639 434 Q679 430 703 455 Q671 481 607 481 Q527 481 447 441 Z"/>
+        <path class="land" d="M697 160 Q715 188 709 230 Q702 272 718 302 Q688 298 678 261 Q668 219 680 185 Z"/>
+        <path class="land" d="M594 120 Q607 141 603 171 Q597 197 581 206 Q572 179 576 149 Q580 129 594 120 Z"/>
+        <!-- compass rose -->
+        <g class="compass" transform="translate(88 388)">
+          <circle r="34"/><circle r="4"/>
+          <path d="M0 -30 L6 0 L0 8 L-6 0 Z"/>
+          <path d="M0 30 L4 6 L0 2 L-4 6 Z" opacity=".5"/>
+          <text x="-3" y="-40">N</text>
+        </g>
+        <!-- typhoon -->
+        <circle class="cone" cx="724" cy="240" r="21"/>
+        <circle class="cone" cx="676" cy="196" r="36"/>
+        <circle class="cone" cx="620" cy="156" r="53"/>
+        <circle class="cone" cx="572" cy="124" r="70"/>
+        <path class="tc-track" d="M724 240 Q696 216 676 196 Q645 172 620 156 Q593 138 572 124"/>
+        <text class="tc-glyph" x="716" y="247">☈</text>
+        <text class="tc-label" x="646" y="262">TALIM · 80 kt · Jul 14</text>
+        <!-- route -->
+        <path class="route-line" d="M594 92 Q560 180 519 285 Q480 378 409 405 Q375 415 344 367 Q312 311 282 228 Q268 180 264 142"/>
+        <text class="transfer-label" x="608" y="84">risk passes here — on board, CIF</text>
+        <path class="waypoint" d="M588 86 l12 12 M600 86 l-12 12"/>
+        <text class="port-label" x="548" y="70">Shanghai</text><text class="port-sub" x="548" y="56">POL · ETD JUL 12</text>
+        <path class="waypoint" d="M258 136 l12 12 M270 136 l-12 12"/>
+        <text class="port-label" x="196" y="128">Chittagong</text><text class="port-sub" x="196" y="114">POD · ETA JUL 24</text>
+        <path class="vessel-glyph" d="M572 140 l14 5 -3.5 7 -15 -3.5 Z"/>
+        <text class="vessel-label" x="506" y="160">VESSEL · TODAY</text>
+      </svg>
+      <div class="plate-cap">Plate II — Passage of the Capemollini, Shanghai to Chittagong, with the storm Talim as forecast.</div>
+    </div>
+
+    <aside class="manifest">
+      <h1>MV Capemollini</h1>
+      <div class="route">Shanghai → Chittagong → Dhaka</div>
+      <div class="mrow"><span>Terms</span><b>CIF CHITTAGONG · LC AT SIGHT</b></div>
+      <div class="mrow"><span>Cargo</span><b>COTTON YARN · USD 186,000</b></div>
+      <div class="mrow"><span>Status</span><b class="warn">ACTION REQUIRED</b></div>
+      <div class="mrow"><span>Departure</span><b>JUL 12</b></div>
+      <div class="mrow"><span>Arrival</span><b>JUL 24</b></div>
+      <div class="mrow"><span>LC expiry</span><b>AUG 14</b></div>
+      <div class="seal">
+        <div class="days">5</div>
+        <div class="lbl">DAYS TO LATEST SHIPMENT</div>
+        <p class="note">A gale stands over the load port. Decide the <b>LC amendment today</b>, or the payment sails without you.</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="log-head"><h2>Log of Perils</h2><span>FIVE ENTERED · BY URGENCY</span></div>
+  <div class="perils">
+    <div class="peril act">
+      <div class="tier">ACT NOW — IN ONE DAY</div><span class="who ours">your risk</span>
+      <h3>Gale at Shanghai threatens the loading window</h3>
+      <div class="meta">JUL 11–13 · GUSTS 60+ KM/H · BUFFER 3 DAYS</div>
+    </div>
+    <div class="peril prep">
+      <div class="tier">PREPARE — IN FOUR DAYS</div><span class="who them">counterparty</span>
+      <h3>Typhoon Talim crosses the Taiwan Strait leg</h3>
+      <div class="meta">≈ JUL 14 · 80 KT · REROUTE ADDS 2.5 DAYS</div>
+    </div>
+    <div class="peril mon">
+      <div class="tier">MONITOR — IN 41 DAYS</div><span class="who them">counterparty</span>
+      <h3>Bangladesh safeguard inquiry, cotton yarn</h3>
+      <div class="meta">PRELIM. DETERMINATION AUG 20 · VOYAGE CLEARS PRIOR</div>
+    </div>
+  </div>
+
+  <div class="passage">
+    <h2>The Passage, day by day</h2>
+    <div class="lane"><span class="ln">VOYAGE</span>
+      <div class="track"><div class="bar voy" style="left:12%;width:56%">SHANGHAI → TAIWAN STR. → S. CHINA SEA → MALACCA → CHITTAGONG</div><div class="today" style="left:8%"><b>TODAY</b></div></div>
+    </div>
+    <div class="lane"><span class="ln">WEATHER</span>
+      <div class="track"><div class="bar risk-r" style="left:14%;width:9%">GALE</div><div class="bar risk-a" style="left:26%;width:6%">TALIM</div></div>
+    </div>
+    <div class="lane"><span class="ln">POLICY</span>
+      <div class="track"><div class="bar risk-s" style="left:86%;width:9%">BD DUTY</div></div>
+    </div>
+    <div class="lane"><span class="ln">DEADLINES</span>
+      <div class="track"><div class="flag" style="left:22%"><b>LATEST SHIPMENT · JUL 15</b></div><div class="flag" style="left:78%;background:var(--brass)"><b style="color:var(--brass)">LC EXPIRY · AUG 14</b></div></div>
+    </div>
+  </div>
+
+  <p class="colophon">Preliminary operational assessment — not legal, banking, or insurance advice. · ForeSail, in the year 2026.</p>
+</div>
+</body>
+</html>

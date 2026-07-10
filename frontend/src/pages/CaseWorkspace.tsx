@@ -39,10 +39,12 @@ import { OperationalPanels } from "../components/OperationalPanels";
 import { RiskSummaryPanel } from "../components/RiskSummaryPanel";
 import { RouteRiskMap } from "../components/RouteRiskMap";
 import { StatusTimeline } from "../components/StatusTimeline";
+import { WorkspaceOverview } from "../components/WorkspaceOverview";
 import { TreatmentPlansPanel } from "../components/TreatmentPlansPanel";
 import { WatchProfilePanel } from "../components/WatchProfilePanel";
 import { WorkflowStepper } from "../components/WorkflowStepper";
 import type { Language } from "../i18n";
+import "../styles/fs2-overview.css";
 
 type TabKey = "overview" | "documents" | "conflicts" | "agent" | "events" | "risks" | "actions" | "treatment" | "audit";
 
@@ -90,6 +92,13 @@ const fieldLabels: Record<string, string> = {
   amount: "Amount",
   currency: "Currency",
 };
+
+function workspaceAmount(tc: TradeCase): string | null {
+  const amt = (tc as unknown as { amount?: number }).amount;
+  const cur = (tc as unknown as { currency?: string }).currency;
+  if (amt == null) return null;
+  return `${cur ? cur + " " : ""}${Number(amt).toLocaleString()}`;
+}
 
 const agentProgressSteps = [
   {
@@ -426,8 +435,16 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
   const canContinue = tradeCase.status === "ACTION_REQUIRED";
   const selectedPerspective = tradeCase.trade_perspective ?? "SELLER";
 
+  const overviewSubtitle = [
+    tradeCase.route,
+    tradeCase.incoterm ? tradeCase.incoterm.toUpperCase() : null,
+    tradeCase.payment_method,
+    workspaceAmount(tradeCase),
+    `${selectedPerspective === "SELLER" ? "Seller" : "Buyer"} seat`,
+  ].filter(Boolean).join(" · ");
+
   return (
-    <section className="page workspace-page">
+    <section className="page workspace-page fs2-shell">
       <div className="breadcrumb">
         <button type="button" onClick={() => onNavigate("/cases")}>Case Library</button>
         <span>/</span>
@@ -441,7 +458,7 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
           <CaseStatusBadge value={tradeCase.status} />
             <span className="tag">Event Mode: {eventConfig?.event_source_mode ?? "Loading"}</span>
           </div>
-          <p>Live trade-risk workspace for {tradeCase.route}</p>
+          <p>{overviewSubtitle}</p>
           {highOpenConflicts.length > 0 && (
             <div className="warning-banner">High severity conflicts must be resolved before confirming case facts or running the agent.</div>
           )}
@@ -475,13 +492,15 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
         </div>
       </div>
 
-      <div className="case-facts-bar">
-        <Fact label="Vessel" value={tradeCase.vessel} />
-        <Fact label="Route" value={tradeCase.route} />
-        <Fact label="Incoterm" value={tradeCase.incoterm || "Not set"} />
-        <Fact label="Payment" value={tradeCase.payment_method || "Not set"} />
-        <Fact label="Latest shipment" value={tradeCase.latest_shipment_date || "Not set"} />
-      </div>
+      {activeTab !== "overview" && (
+        <div className="case-facts-bar">
+          <Fact label="Vessel" value={tradeCase.vessel} />
+          <Fact label="Route" value={tradeCase.route} />
+          <Fact label="Incoterm" value={tradeCase.incoterm || "Not set"} />
+          <Fact label="Payment" value={tradeCase.payment_method || "Not set"} />
+          <Fact label="Latest shipment" value={tradeCase.latest_shipment_date || "Not set"} />
+        </div>
+      )}
 
       {error && <div className="error">{error}</div>}
       {(isRunning || agentRunComplete) && (
@@ -497,9 +516,9 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
           }}
         />
       )}
-      <WorkflowStepper workflow={workflow} />
+      {activeTab !== "overview" && <WorkflowStepper workflow={workflow} />}
 
-      <div className="tabs">
+      <div className="tabs fs2-tabs">
         {tabs.map((tab) => (
           <button key={tab.key} className={activeTab === tab.key ? "active" : ""} type="button" onClick={() => setActiveTab(tab.key)}>
             {tab.label}
@@ -508,28 +527,14 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
       </div>
 
       {activeTab === "overview" && (
-        <>
-          <div className="workspace-metrics">
-            <WorkspaceMetric icon="shield" tone="red" label="Risk Level" value={tradeCase.status} detail={`${riskSummary?.exposures.length ?? 0} exposures detected`} onClick={() => setActiveTab("risks")} />
-            <WorkspaceMetric icon="check" tone="blue" label="Open Actions" value={String(actions.length)} detail="Recommended next steps" onClick={() => setActiveTab("actions")} />
-            <WorkspaceMetric icon="info" tone="amber" label="Info Gaps" value={String(gaps.length)} detail="Missing decision inputs" onClick={() => setActiveTab("risks")} />
-            <WorkspaceMetric icon="agent" tone="green" label="Agent Runs" value={String(agentRuns.length)} detail="Visible audit trail" onClick={() => setActiveTab("agent")} />
-          </div>
-          <div className="workspace-grid">
-            <CaseSnapshot tradeCase={tradeCase} language={language} />
-            <CifResponsibilityCard responsibility={cifResponsibility} tradeCase={tradeCase} />
-            {watchProfile && <WatchProfilePanel profile={watchProfile} language={language} />}
-          </div>
-          <RouteRiskMap
-            caseId={caseId}
-            tradeCase={tradeCase}
-            refreshKey={`${agentRuns.length}:${relevanceResults.length}:${tradeCase.port_of_loading}:${tradeCase.port_of_discharge}:${tradeCase.final_destination}`}
-          />
-          <div className="workspace-grid">
-            <LatestAgentRunCard runs={agentRuns} result={agentResult} />
-            <StatusTimeline entries={timeline} language={language} />
-          </div>
-        </>
+        <WorkspaceOverview
+          caseId={caseId}
+          tradeCase={tradeCase}
+          actions={actions}
+          riskSummary={riskSummary}
+          refreshKey={`${agentRuns.length}:${relevanceResults.length}`}
+          onOpenTab={(tab) => setActiveTab(tab as TabKey)}
+        />
       )}
 
       {activeTab === "documents" && (

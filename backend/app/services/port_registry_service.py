@@ -49,6 +49,47 @@ def load_port_registry() -> list[PortRecord]:
         return json.load(handle)
 
 
+EXTENDED_DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "port_registry_extended.json"
+
+
+@lru_cache(maxsize=1)
+def load_extended_port_registry() -> list[dict]:
+    if not EXTENDED_DATA_PATH.exists():
+        return []
+    with EXTENDED_DATA_PATH.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+@lru_cache(maxsize=1)
+def _extended_index() -> dict[str, dict]:
+    index: dict[str, dict] = {}
+    for record in load_extended_port_registry():
+        keys = [
+            str(record.get("unlocode") or "").lower(),
+            str(record.get("name") or "").lower(),
+            *[str(alias).lower() for alias in record.get("aliases") or []],
+        ]
+        for key in keys:
+            if key:
+                index.setdefault(key, record)
+    return index
+
+
+def _resolve_extended(name: str) -> dict | None:
+    normalized = name.strip().lower()
+    candidates = [
+        normalized,
+        normalized.replace("port of ", "").strip(),
+        normalized.split(",")[0].strip(),
+    ]
+    index = _extended_index()
+    for candidate in candidates:
+        record = index.get(candidate)
+        if record:
+            return record
+    return None
+
+
 def normalize_port_key(name: str) -> str:
     value = name.strip().lower()
     aliases = {
@@ -82,7 +123,7 @@ def resolve_port(name: str | None) -> PortRecord | None:
                     best = record
                     best_score = score
 
-    return best
+    return best or _resolve_extended(name)
 
 
 def resolve_region_coordinates(region: str | None) -> tuple[float, float] | None:

@@ -1,0 +1,77 @@
+[
+  {
+    "policy_id": "POL-BD-COTTON-SG",
+    "policy_type": "ANTIDUMPING_CASE",
+    "title": "Bangladesh safeguard investigation on imported cotton yarn (illustrative)",
+    "scope": {
+      "origin_countries": ["CN"],
+      "destination_countries": ["BD"],
+      "commodity_keywords": ["cotton yarn", "yarn"],
+      "regions": []
+    },
+    "status": "INVESTIGATION",
+    "effective_date": null,
+    "stages": [
+      {"stage": "INITIATION", "date": "2026-05-15"},
+      {"stage": "PRELIMINARY_DETERMINATION", "date": "2026-08-20"},
+      {"stage": "FINAL_DETERMINATION", "date": "2026-12-10"},
+      {"stage": "EFFECTIVE", "date": "2027-01-15"}
+    ],
+    "severity": "HIGH",
+    "note": "Provisional duties possible after preliminary determination; shipments arriving after that date may face retroactive safeguard duty and customs holds.",
+    "source_url": "https://example.org/bd-safeguard-cotton-yarn"
+  },
+  {
+    "policy_id": "POL-EU-CBAM-2027",
+    "policy_type": "EMISSION",
+    "title": "EU CBAM definitive regime reporting obligations",
+    "scope": {
+      "origin_countries": [],
+      "destination_countries": ["NL", "DE", "BE", "FR", "IT", "ES"],
+      "commodity_keywords": ["steel", "aluminium", "aluminum", "cement", "fertilizer", "hydrogen"],
+      "regions": []
+    },
+    "status": "ANNOUNCED",
+    "effective_date": "2027-01-01",
+    "stages": [
+      {"stage": "EFFECTIVE", "date": "2027-01-01"}
+    ],
+    "severity": "MEDIUM",
+    "note": "Covered goods entering the EU require embedded-emissions declarations and certificate purchases; documentation gaps can hold clearance.",
+    "source_url": "https://taxation-customs.ec.europa.eu/carbon-border-adjustment-mechanism_en"
+  },
+  {
+    "policy_id": "POL-RED-SEA-WRA",
+    "policy_type": "SANCTION",
+    "title": "War-risk area designation for Red Sea transits (insurer listed area)",
+    "scope": {
+      "origin_countries": [],
+      "destination_countries": [],
+      "commodity_keywords": [],
+      "regions": ["Red Sea", "Suez Canal"]
+    },
+    "status": "ACTIVE",
+    "effective_date": "2024-01-01",
+    "stages": [],
+    "severity": "HIGH",
+    "note": "Transits require war-risk premium confirmation; some cargo insurance policies exclude the listed area unless endorsed.",
+    "source_url": "https://example.org/jwc-listed-areas"
+  },
+  {
+    "policy_id": "POL-PANAMA-DRAFT",
+    "policy_type": "CANAL_RULE",
+    "title": "Panama Canal draft and transit slot restrictions (dry season regime)",
+    "scope": {
+      "origin_countries": [],
+      "destination_countries": [],
+      "commodity_keywords": [],
+      "regions": ["Panama Canal"]
+    },
+    "status": "ACTIVE",
+    "effective_date": "2026-01-01",
+    "stages": [],
+    "severity": "MEDIUM",
+    "note": "Booking slots and maximum draft may be cut at short notice when Gatun Lake levels fall; plan buffer or alternate routing.",
+    "source_url": "https://www.pancanal.com"
+  }
+]

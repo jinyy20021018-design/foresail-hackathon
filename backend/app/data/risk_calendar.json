@@ -1,0 +1,62 @@
+[
+  {
+    "calendar_id": "CAL-CNY",
+    "calendar_type": "HOLIDAY_CAPACITY",
+    "title": "Chinese New Year capacity crunch and factory shutdown",
+    "region_or_port": "Shanghai",
+    "annual_window": {"start": "01-28", "end": "02-25"},
+    "affects": ["POL"],
+    "severity": "HIGH",
+    "note": "Pre-CNY booking rush, rate spikes and rollover risk; factories and trucking pause during the holiday."
+  },
+  {
+    "calendar_id": "CAL-GOLDEN-WEEK",
+    "calendar_type": "HOLIDAY_CAPACITY",
+    "title": "China Golden Week port and factory slowdown",
+    "region_or_port": "Shanghai",
+    "annual_window": {"start": "09-24", "end": "10-08"},
+    "affects": ["POL"],
+    "severity": "MEDIUM",
+    "note": "Pre-holiday cargo rush followed by a week of reduced operations."
+  },
+  {
+    "calendar_id": "CAL-RAMADAN-BD",
+    "calendar_type": "HOLIDAY_CAPACITY",
+    "title": "Ramadan/Eid reduced port and inland operations in Bangladesh",
+    "region_or_port": "Chittagong",
+    "annual_window": {"start": "02-17", "end": "03-30"},
+    "affects": ["POD", "ETA"],
+    "severity": "MEDIUM",
+    "note": "Shorter working hours and Eid closures slow discharge and inland delivery."
+  },
+  {
+    "calendar_id": "CAL-CTG-LABOR",
+    "calendar_type": "LABOR_CONTRACT",
+    "title": "Chittagong dock workers wage agreement expiry window (illustrative)",
+    "region_or_port": "Chittagong",
+    "annual_window": {"start": "11-15", "end": "12-15"},
+    "affects": ["POD", "ETA"],
+    "severity": "MEDIUM",
+    "note": "Wage negotiation window; strike calls historically cluster around expiry."
+  },
+  {
+    "calendar_id": "CAL-BD-ELECTION",
+    "calendar_type": "ELECTION",
+    "title": "Bangladesh general election window (illustrative)",
+    "region_or_port": "Bangladesh",
+    "annual_window": {"start": "12-20", "end": "01-15"},
+    "affects": ["POD", "ETA"],
+    "severity": "MEDIUM",
+    "note": "Hartals and transport blockades around election periods can halt inland movement."
+  },
+  {
+    "calendar_id": "CAL-TOKYO-MOU-CIC",
+    "calendar_type": "PSC_CIC",
+    "title": "Tokyo MOU Concentrated Inspection Campaign window",
+    "region_or_port": "East China Sea",
+    "annual_window": {"start": "09-01", "end": "11-30"},
+    "affects": ["POL", "TRANSIT"],
+    "severity": "LOW",
+    "note": "Elevated port state control inspection intensity; detention risk for non-compliant vessels."
+  }
+]

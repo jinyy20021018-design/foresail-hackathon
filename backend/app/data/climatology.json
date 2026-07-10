@@ -1,0 +1,11 @@
+[
+  {"region": "East China Sea", "months": [7, 8, 9, 10], "level": "HIGH", "note": "Northwest Pacific typhoon season; Yangtze delta ports see closures and departure delays."},
+  {"region": "South China Sea", "months": [6, 7, 8, 9, 10, 11], "level": "HIGH", "note": "Typhoon corridor; transits may require weather routing."},
+  {"region": "Taiwan Strait", "months": [7, 8, 9], "level": "MEDIUM", "note": "Typhoon passages funnel through the strait in peak season."},
+  {"region": "Bay of Bengal", "months": [4, 5, 6], "level": "HIGH", "note": "Pre-monsoon cyclone season; Chittagong anchorage operations vulnerable."},
+  {"region": "Bay of Bengal", "months": [10, 11], "level": "HIGH", "note": "Post-monsoon cyclone season; historically the most destructive window."},
+  {"region": "Bangladesh", "months": [6, 7, 8, 9], "level": "MEDIUM", "note": "Monsoon flooding can disrupt inland delivery from Chittagong to Dhaka."},
+  {"region": "Arabian Sea", "months": [5, 6, 10, 11], "level": "MEDIUM", "note": "Arabian Sea cyclone windows before and after monsoon."},
+  {"region": "Panama Canal", "months": [1, 2, 3, 4, 5], "level": "MEDIUM", "note": "Dry season; Gatun Lake levels may force draft and slot restrictions."},
+  {"region": "North Sea", "months": [11, 12, 1, 2], "level": "MEDIUM", "note": "Winter storm season affects northern European port calls."}
+]

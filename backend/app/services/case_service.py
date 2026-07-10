@@ -1,7 +1,7 @@
 import copy
 import json
 import re
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 UTC = timezone.utc
 from pathlib import Path
 
@@ -53,6 +53,7 @@ def reset_store() -> None:
         "approval_package",
         "external_event",
         "hazards",
+        "corridor_state",
     ]:
         clear_namespace(namespace)
 
@@ -66,12 +67,18 @@ def clear_runtime_case_cache() -> None:
     _timelines.clear()
 
 
-def create_demo_case(uploaded_files: list[str] | None = None) -> dict:
+def create_demo_case(uploaded_files: list[str] | None = None, imminent: bool = False) -> dict:
     case = _load_demo_case()
     case["case_id"] = generate_next_case_id()
     _ensure_case_defaults(case)
+    if imminent:
+        today = _today()
+        case["etd"] = (today + timedelta(days=2)).isoformat()
+        case["eta"] = (today + timedelta(days=14)).isoformat()
+        case["latest_shipment_date"] = (today + timedelta(days=5)).isoformat()
+        case["lc_expiry_date"] = (today + timedelta(days=35)).isoformat()
     case["uploaded_files"] = uploaded_files or []
-    case["case_name"] = "CAPEMOLLINI Shanghai to Dhaka Demo"
+    case["case_name"] = "CAPEMOLLINI Imminent Departure Demo" if imminent else "CAPEMOLLINI Shanghai to Dhaka Demo"
     case["buyer"] = "Demo Buyer"
     case["seller"] = "Demo Seller"
     case["commodity"] = "Cotton Yarn"
@@ -343,6 +350,10 @@ def _persist_case_bundle(case_id: str) -> None:
 
 def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _today() -> date:
+    return datetime.now(UTC).date()
 
 
 def _ensure_case_defaults(case: dict) -> None:
