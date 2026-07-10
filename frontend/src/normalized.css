@@ -246,7 +246,7 @@ input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var
 .review-state i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .review-state.approved { color: var(--green); }.review-state.pending { color: var(--amber); }.review-state.rejected { color: var(--red); }
 .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.review-actions button { min-height: 30px !important; border-radius: 5px !important; padding: 0 9px !important; font-size: 10.5px !important; }
+.review-actions button { min-height: 30px !important; border-radius: 999px !important; padding: 0 12px !important; font-size: 10.5px !important; }
 .review-actions .review-primary { border-color: var(--blue) !important; background: var(--blue) !important; color: #f7f9ff !important; }
 .review-actions .review-reject { border-color: transparent !important; background: transparent !important; color: var(--muted) !important; }
 .review-actions .review-reject:hover { color: var(--red) !important; }

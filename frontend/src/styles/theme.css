@@ -279,3 +279,39 @@ body { background: #C7CBD2; padding: 22px; }
 .upload-format-tag { border-radius: 999px; padding: 6px 12px; }
 .document-slot { border-radius: 0; }
 .file-picker { border-radius: var(--r-sm); }
+
+/* ============================================================
+   P6 · Tab content — shared chips → capsules, softer cards
+   Structure (grids/list rows/tables) is kept; only skin changes.
+   ============================================================ */
+/* chip-like elements → capsules */
+.priority-pill,
+.event-severity,
+.status-transition,
+.exposure-tags span,
+.risk-owner-badge,
+.upload-format-tag,
+.classification { border-radius: 999px; }
+.exposure-tags span { padding: 3px 9px; }
+.event-severity, .priority-pill { padding: 4px 10px; }
+
+/* segmented view toggle (Documents review) → pill */
+.review-view-toggle { border-radius: 999px; }
+.review-view-toggle button { border-radius: 999px; }
+.review-view-toggle button.active { background: var(--card); box-shadow: 0 1px 3px rgba(20, 20, 20, .08); }
+
+/* Treatment plan cards → soft capsule cards */
+.plan-card { border: 0; border-radius: 20px; box-shadow: var(--shadow); }
+.plan-card.selected { box-shadow: 0 0 0 2px var(--blue); }
+
+/* action / exposure / residual → soft filled chips-cards */
+.action-item, .exposure-item, .residual-risk { border: 0; border-radius: 14px; background: var(--card2); }
+
+/* metric strips + data tables → rounded */
+.mini-metrics, .summary-metrics, .table-wrap { border: 0; border-radius: 14px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
+
+/* empty / evidence blocks → soft */
+.empty-block, .evidence-viewer, .prerequisite-inline { border: 0; border-radius: 14px; }
+
+/* agent run history: selected row uses misty blue (already via token) */
+.run-list > div.selected, .selected-row, .inline-evidence-row td { border-radius: 0; }
