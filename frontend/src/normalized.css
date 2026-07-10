@@ -1,9 +1,9 @@
 /* Final normalization layer. Loaded after legacy styles by design. */
 :root {
-  --font-ui: "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
+  --font-ui: "Plus Jakarta Sans", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
   --aqua: oklch(0.55 0.085 190);
   --aqua-deep: oklch(0.42 0.075 190);
   --aqua-wash: oklch(0.965 0.025 195);

@@ -1,0 +1,139 @@
+/* ============================================================
+   Freight Studio theme layer — global design system.
+   Loaded LAST (after styles.css + normalized.css) in main.tsx.
+   Strategy: re-point the legacy token names to Freight Studio
+   values (recolors the whole app in one place), then reshape
+   the shared semantic components (.panel/.badge/buttons/tabs)
+   into the capsule language. fs2-overview.css stays scoped and
+   untouched — its local tokens already equal these values.
+   Source of truth: prototype/restyle/foresail-overview-demo.html
+   ============================================================ */
+
+:root {
+  /* Freight Studio named tokens */
+  --canvas: #EBEDF1;
+  --card: #FAFBFD;
+  --card2: #F0F2F7;
+  --ink: #2C323B;
+  --black: #2E3542;
+  --r-lg: 26px;
+  --r-md: 16px;
+  --r-sm: 10px;
+  --pill: 999px;
+  --sans: "Plus Jakarta Sans", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  /* ---- legacy token re-point (one-line global recolor) ---- */
+  --bg: #EBEDF1;
+  --surface: #FAFBFD;
+  --surface-soft: #F0F2F7;
+  --border: #E4E8EF;
+  --border-strong: #D7DDE8;
+  --text: #2C323B;
+  --muted: #747B88;
+  --faint: #A5ACB9;
+
+  --blue: #5F7FD0;
+  --blue-dark: #4E6BB8;
+  --blue-soft: #E8EDF8;
+
+  --navy: #2E3542;
+  --navy-raised: #3A4150;
+
+  --red: #C4747C;
+  --red-soft: #F3EBED;
+  --amber: #C69D66;
+  --amber-soft: #F3EEE4;
+  --green: #67A08E;
+  --green-soft: #E8F0EC;
+
+  --shadow: 0 2px 10px rgba(20, 20, 20, .05);
+  --shadow-surface: 0 2px 10px rgba(20, 20, 20, .05);
+  --font-ui: var(--sans);
+}
+
+body { font-family: var(--sans); background: var(--bg); color: var(--text); }
+
+/* focus ring recolor (was hardcoded royal blue) */
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  box-shadow: 0 0 0 3px rgba(95, 127, 208, .22);
+  border-color: var(--blue) !important;
+}
+
+/* ---- Surfaces: soft cards, big radius, shadow not border ---- */
+.panel, .summary-card, .case-facts-bar, .interpretation-panel, .case-list-panel {
+  border: 0;
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.table-panel { border-radius: 20px; }
+
+/* ---- Buttons → capsules ---- */
+.primary-action, .secondary-action, .ghost-button, .compact-button,
+.panel .inline-actions button, .action-row button, .action-item > button {
+  min-height: 38px;
+  border: 0;
+  border-radius: var(--pill);
+  padding: 0 18px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: none;
+  transition: transform .15s var(--ease-product, ease), background .18s, color .18s;
+}
+/* primary = black pill (hero CTA) */
+.primary-action {
+  background: var(--black);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(20, 20, 20, .10);
+}
+.primary-action:hover:not(:disabled) { background: #1f242e; transform: translateY(-1px); }
+.primary-action:disabled { background: var(--card2); color: var(--faint); box-shadow: none; }
+/* secondary/ghost/compact = white card pill */
+.secondary-action, .ghost-button, .compact-button,
+.panel .inline-actions button, .action-row .secondary-action, .action-item > button {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(20, 20, 20, .05);
+}
+.secondary-action:hover:not(:disabled), .ghost-button:hover:not(:disabled),
+.compact-button:hover:not(:disabled), .panel .inline-actions button:hover:not(:disabled),
+.action-item > button:hover:not(:disabled) {
+  background: #fff;
+  color: var(--ink);
+  border: 0;
+  transform: translateY(-1px);
+}
+.link-button { color: var(--blue); }
+
+/* ---- Inputs → rounded, soft ---- */
+input, select, textarea, .inline-edit-input,
+.filter-bar input, .filter-bar select, .upload-row select,
+.form-grid input, .form-grid textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--text);
+  font-family: var(--sans);
+}
+input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var(--blue) 40%, var(--border)); }
+
+/* ---- Badges / tags / status pills → capsules ---- */
+.badge, .tag, .status-pill, .classification {
+  min-height: 24px;
+  border: 0;
+  border-radius: var(--pill);
+  padding: 4px 11px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+.status-active, .risk-low { background: var(--green-soft); color: #3f7d68; }
+.status-watching, .status-monitoring { background: var(--blue-soft); color: var(--blue-dark); }
+.status-at-risk, .status-action-required, .risk-high { background: var(--red-soft); color: var(--red); }
+.risk-medium { background: var(--amber-soft); color: #93693a; }
+
+/* breadcrumb + case facts bar polish */
+.breadcrumb { color: var(--faint); }
+.case-facts-bar { border-radius: var(--r-md); }
