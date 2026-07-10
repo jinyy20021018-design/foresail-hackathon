@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, type RouteMapPayload, type TradeCase } from "../api/client";
+import { RouteLeafletMap } from "./RouteLeafletMap";
 
 type Props = {
   caseId: string;
@@ -65,10 +66,11 @@ export function RouteChart({ caseId, tradeCase, refreshKey = "", children }: Pro
         </div>
       </div>
 
-      <div className="rc-stage">
+      <div className={`rc-stage${view === "map" ? " rc-stage-map" : ""}`}>
         {loading && <div className="rc-empty">Plotting voyage…</div>}
         {error && !loading && <div className="rc-empty rc-empty-err">{error}</div>}
-        {!loading && !error && model && (
+        {!loading && !error && view === "map" && <RouteLeafletMap routeMap={routeMap} tradeCase={tradeCase} />}
+        {!loading && !error && view !== "map" && model && (
           <svg viewBox={`0 0 ${W} ${H}`} className="rc-svg" role="img" aria-label={`Voyage chart from ${model.origin.display_name} to ${model.dest.display_name}`}>
             <defs>
               <linearGradient id="rcSeaDepth" x1="0" y1="0" x2="0" y2="1">
