@@ -139,9 +139,9 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
               </div>
               <div className="foot">
                 <span className={`badge ${meta.badge}`}>{meta.letter}</span>
-                <span className="mini" title={h.title}>{hazardMini(h)}</span>
                 <span className={`who ${ours ? "ours" : "them"}`}>{ours ? "YOUR RISK" : "CPTY"}</span>
               </div>
+              <p className="haz-desc" title={h.title}>{hazardMini(h)}</p>
             </div>
           );
         })}
@@ -261,7 +261,7 @@ function TimelineLanes({ tradeCase, hazards }: { tradeCase: TradeCase; hazards: 
 
       <div className="lane"><span className="ln">Voyage</span>
         <div className="track">
-          <div className="bar voy" style={{ left: `${voyage.left}%`, width: `${voyage.width}%` }}>{voyage.label}</div>
+          <div className="bar voy" style={{ left: `${voyage.left}%`, width: `${voyage.width}%` }} title={voyage.label}>{voyage.width > 24 ? voyage.label : ""}</div>
         </div>
       </div>
       <div className="lane"><span className="ln">Weather</span>
@@ -276,10 +276,10 @@ function TimelineLanes({ tradeCase, hazards }: { tradeCase: TradeCase; hazards: 
           {policy.map((b, i) => <div key={i} className="bar rb" style={{ left: `${b.left}%`, width: `${b.width}%` }} title={b.title}>{b.width > 10 ? b.short : ""}</div>)}
         </div>
       </div>
-      <div className="lane"><span className="ln">Deadline</span>
+      <div className="lane lane-deadline"><span className="ln">Deadline</span>
         <div className="track">
           {deadlines.map((d, i) => (
-            <div key={i} className={`dl-tag${d.pct > 55 ? " flag-end" : ""}`} style={{ left: `${d.pct}%`, color: d.color }}>{d.label}</div>
+            <div key={i} className={`dl-tag${d.pct > 55 ? " flag-end" : ""}${i % 2 ? " dl-low" : ""}`} style={{ left: `${d.pct}%`, color: d.color }}>{d.label}</div>
           ))}
         </div>
       </div>
@@ -364,8 +364,7 @@ function hazardCode(h: Hazard): string {
 }
 
 function hazardMini(h: Hazard): string {
-  const note = h.title.replace(/^(High|Watch) weather risk near /i, "").replace(/^Typhoon /i, "");
-  return note.length > 30 ? `${note.slice(0, 29)}…` : note;
+  return h.title.replace(/^(High|Watch) weather risk near /i, "").replace(/^Typhoon /i, "");
 }
 
 function locAbbr(text?: string): string {

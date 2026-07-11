@@ -358,3 +358,22 @@ body { background: #C7CBD2; padding: 22px; }
 .fs2-overview .tl-axis .track { height: 14px; }
 .fs2-overview .tl-axtick { position: absolute; top: 1px; transform: translateX(-50%); font: 600 9px var(--sans); color: var(--faint); white-space: nowrap; }
 .fs2-overview .tl-axtoday { position: absolute; top: -2px; transform: translateX(-50%); padding: 1px 7px; border-radius: 999px; background: var(--blue-soft); color: var(--blue-dark); font: 800 8px var(--sans); }
+
+/* deadline lane taller so the two markers stagger instead of overlapping */
+.fs2-overview .lane-deadline { min-height: 42px; }
+.fs2-overview .lane-deadline .track { height: 34px; }
+.fs2-overview .dl-tag.dl-low { top: 17px; }
+
+/* hazard card: description on its own full-width line (up to 2 lines) */
+.fs2-overview .haz-desc {
+  margin: 8px 0 0;
+  font: 600 11px var(--sans);
+  color: var(--muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fs2-overview .haz.black .haz-desc { color: #AEB4BE; }
+.fs2-overview .haz .foot .who { margin-left: auto; }
