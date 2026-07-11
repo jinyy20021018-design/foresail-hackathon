@@ -139,7 +139,7 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
               </div>
               <div className="foot">
                 <span className={`badge ${meta.badge}`}>{meta.letter}</span>
-                <span className="mini">{hazardMini(h)}</span>
+                <span className="mini" title={h.title}>{hazardMini(h)}</span>
                 <span className={`who ${ours ? "ours" : "them"}`}>{ours ? "YOUR RISK" : "CPTY"}</span>
               </div>
             </div>
@@ -246,35 +246,50 @@ function Od({ label, value, note }: { label: string; value: string; note?: strin
 function TimelineLanes({ tradeCase, hazards }: { tradeCase: TradeCase; hazards: Hazard[] }) {
   const model = useMemo(() => buildTimeline(tradeCase, hazards), [tradeCase, hazards]);
   if (!model) return null;
-  const { pct, voyage, weather, policy, deadlines, todayPct } = model;
+  const { voyage, weather, policy, deadlines, todayPct, ticks } = model;
   return (
     <div className="lanewrap">
+      {/* vertical alignment grid: date ticks + today + deadline lines, spanning all lanes */}
+      <div className="tl-grid">
+        <span className="tl-grid-col1" />
+        <div className="tl-grid-lines">
+          {ticks.map((t, i) => <span key={`k${i}`} className="tl-tick" style={{ left: `${t.pct}%` }} />)}
+          {deadlines.map((d, i) => <span key={`d${i}`} className="tl-vline" style={{ left: `${d.pct}%`, background: d.color }} />)}
+          {todayPct != null && <span className="tl-vline tl-today" style={{ left: `${todayPct}%` }} />}
+        </div>
+      </div>
+
       <div className="lane"><span className="ln">Voyage</span>
         <div className="track">
           <div className="bar voy" style={{ left: `${voyage.left}%`, width: `${voyage.width}%` }}>{voyage.label}</div>
-          {todayPct != null && <div className="today" style={{ left: `${todayPct}%` }}><b>TODAY</b></div>}
         </div>
       </div>
       <div className="lane"><span className="ln">Weather</span>
         <div className="track">
+          {weather.length === 0 && <span className="lane-empty">No weather events on route</span>}
           {weather.map((b, i) => <div key={i} className="bar rr" style={{ left: `${b.left}%`, width: `${b.width}%` }} title={b.title}>{b.width > 10 ? b.short : ""}</div>)}
         </div>
       </div>
       <div className="lane"><span className="ln">Policy</span>
         <div className="track">
+          {policy.length === 0 && <span className="lane-empty">No policy events on route</span>}
           {policy.map((b, i) => <div key={i} className="bar rb" style={{ left: `${b.left}%`, width: `${b.width}%` }} title={b.title}>{b.width > 10 ? b.short : ""}</div>)}
         </div>
       </div>
       <div className="lane"><span className="ln">Deadline</span>
         <div className="track">
           {deadlines.map((d, i) => (
-            <div key={i} className={`flag${d.pct > 55 ? " flag-end" : ""}${i % 2 ? " flag-low" : ""}`} style={{ left: `${d.pct}%`, background: d.color }}>
-              <b style={{ color: d.color }}>{d.label}</b>
-            </div>
+            <div key={i} className={`dl-tag${d.pct > 55 ? " flag-end" : ""}`} style={{ left: `${d.pct}%`, color: d.color }}>{d.label}</div>
           ))}
         </div>
       </div>
-      <span className="fs2-tl-axis">{pct}</span>
+
+      <div className="lane tl-axis"><span className="ln" />
+        <div className="track">
+          {ticks.map((t, i) => <span key={i} className="tl-axtick" style={{ left: `${t.pct}%` }}>{t.label}</span>)}
+          {todayPct != null && <span className="tl-axtoday" style={{ left: `${todayPct}%` }}>TODAY</span>}
+        </div>
+      </div>
     </div>
   );
 }
@@ -327,7 +342,13 @@ function buildTimeline(tc: TradeCase, hazards: Hazard[]) {
   ].filter((d): d is { pct: number; label: string; color: string } => Boolean(d));
   const todayPct = today >= rangeStart && today <= rangeEnd ? toPct(today) : null;
 
-  return { pct: "", voyage, weather, policy, deadlines, todayPct };
+  const stepDays = span <= 21 ? 7 : span <= 45 ? 14 : Math.max(7, Math.round(span / 42) * 7);
+  const ticks: { pct: number; label: string }[] = [];
+  for (let t = new Date(rangeStart); diffDays(t, rangeEnd) >= 0; t = addDays(t, stepDays)) {
+    ticks.push({ pct: toPct(t), label: t.toLocaleDateString("en-US", { month: "short", day: "numeric" }) });
+  }
+
+  return { voyage, weather, policy, deadlines, todayPct, ticks };
 }
 
 function voyageLabel(tc: TradeCase) {

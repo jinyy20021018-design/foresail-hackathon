@@ -324,31 +324,37 @@ body { background: #C7CBD2; padding: 22px; }
 .perspective-toggle button { border: 0; border-radius: 999px; }
 .perspective-toggle button.active { border: 0; background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(20, 20, 20, .12); }
 
-/* Timeline → capsule language (bars, row labels, deadline/today tags) */
-.fs2-overview .lanewrap { overflow: hidden; background: var(--card2); padding: 14px 16px; }
-.fs2-overview .lane { min-height: 30px; grid-template-columns: 92px 1fr; }
-.fs2-overview .lane:last-child { min-height: 36px; }
-/* row label → soft capsule chip */
+/* Timeline: capsule bars + a shared date scale so events read against real dates */
+.fs2-overview .lanewrap { position: relative; overflow: hidden; background: var(--card2); padding: 14px 16px 12px; }
+.fs2-overview .lane { min-height: 28px; grid-template-columns: 92px 1fr; }
 .fs2-overview .lane .ln {
-  justify-self: start;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--card);
-  box-shadow: 0 1px 3px rgba(20, 20, 20, .05);
-  letter-spacing: .06em;
-  color: var(--muted);
+  justify-self: start; align-self: center;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--card); box-shadow: 0 1px 3px rgba(20, 20, 20, .05);
+  letter-spacing: .05em; color: var(--muted);
 }
-/* bars → fuller capsules */
-.fs2-overview .track { height: 20px; }
+.fs2-overview .track { position: relative; height: 20px; }
 .fs2-overview .bar { top: 3px; height: 14px; line-height: 14px; border-radius: 999px; padding: 0 10px; }
-/* deadline + today tags → white capsule chips with the semantic color as text */
-.fs2-overview .flag b, .fs2-overview .today b {
-  top: -3px;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--card);
-  box-shadow: 0 1px 4px rgba(20, 20, 20, .12);
-  font-size: 8px;
+.fs2-overview .lane-empty { position: absolute; left: 2px; top: 5px; font: 600 9.5px var(--sans); color: var(--faint); }
+
+/* alignment grid overlay — vertical lines span the four data lanes, above the axis */
+.fs2-overview .tl-grid { position: absolute; left: 16px; right: 16px; top: 14px; bottom: 32px; display: grid; grid-template-columns: 92px 1fr; pointer-events: none; }
+.fs2-overview .tl-grid-lines { grid-column: 2; position: relative; }
+.fs2-overview .tl-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(44, 50, 59, .07); }
+.fs2-overview .tl-vline { position: absolute; top: 0; bottom: 0; width: 2px; border-radius: 2px; opacity: .4; }
+.fs2-overview .tl-today { opacity: 1; background: var(--blue) !important; box-shadow: 0 0 0 1px rgba(95, 127, 208, .25); }
+
+/* deadline labels → capsule chips (their vertical line comes from the grid) */
+.fs2-overview .dl-tag {
+  position: absolute; top: 1px; transform: translateX(4px);
+  padding: 2px 9px; border-radius: 999px;
+  background: var(--card); box-shadow: 0 1px 4px rgba(20, 20, 20, .14);
+  font: 700 8.5px var(--sans); white-space: nowrap;
 }
-.fs2-overview .flag.flag-end b { left: auto; right: 6px; text-align: right; }
-.fs2-overview .flag.flag-low b { top: auto; bottom: -3px; }
+.fs2-overview .dl-tag.flag-end { transform: translateX(calc(-100% - 4px)); }
+
+/* bottom date axis */
+.fs2-overview .lane.tl-axis { min-height: 18px; margin-top: 3px; }
+.fs2-overview .tl-axis .track { height: 14px; }
+.fs2-overview .tl-axtick { position: absolute; top: 1px; transform: translateX(-50%); font: 600 9px var(--sans); color: var(--faint); white-space: nowrap; }
+.fs2-overview .tl-axtoday { position: absolute; top: -2px; transform: translateX(-50%); padding: 1px 7px; border-radius: 999px; background: var(--blue-soft); color: var(--blue-dark); font: 800 8px var(--sans); }
