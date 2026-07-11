@@ -307,8 +307,10 @@ body { background: #C7CBD2; padding: 22px; }
 /* action / exposure / residual → soft filled chips-cards */
 .action-item, .exposure-item, .residual-risk { border: 0; border-radius: 14px; background: var(--card2); }
 
-/* metric strips + data tables → rounded */
-.mini-metrics, .summary-metrics, .table-wrap { border: 0; border-radius: 14px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
+/* metric strips → rounded */
+.mini-metrics, .summary-metrics { border: 0; border-radius: 14px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
+/* data tables → rounded but KEEP horizontal scroll (wide tables must not be clipped) */
+.table-wrap { border: 0; border-radius: 14px; overflow-x: auto; overflow-y: hidden; box-shadow: inset 0 0 0 1px var(--border); }
 
 /* empty / evidence blocks → soft */
 .empty-block, .evidence-viewer, .prerequisite-inline { border: 0; border-radius: 14px; }
