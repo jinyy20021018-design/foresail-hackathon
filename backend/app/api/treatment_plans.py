@@ -9,9 +9,11 @@ from app.services.treatment_plan_service import (
     generate_treatment_plans,
     get_treatment_plan,
     list_approval_packages,
+    list_plan_sets,
     list_treatment_plans,
     select_treatment_plan,
     update_approval_status,
+    PlanGenerationError,
 )
 
 router = APIRouter(prefix="/api/cases", tags=["treatment-plans"])
@@ -22,14 +24,26 @@ class ApprovalStatusPayload(BaseModel):
     decision_note: str | None = None
 
 
+class PlanGenerationPayload(BaseModel):
+    action_set_id: str | None = None
+
+
 @router.post("/{case_id}/treatment-plans/generate")
-def generate_case_treatment_plans(case_id: str) -> dict:
+def generate_case_treatment_plans(case_id: str, payload: PlanGenerationPayload | None = None) -> dict:
     try:
-        return generate_treatment_plans(case_id)
+        return generate_treatment_plans(case_id, payload.action_set_id if payload else None)
     except ConfirmedFactsRequiredError as error:
         return JSONResponse(status_code=409, content={"error": error.error, "message": error.message})
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Case or confirmed facts not found: {case_id}") from None
+    except PlanGenerationError as error:
+        status = 503 if error.code == "LLM_GENERATION_FAILED" else 409
+        return JSONResponse(status_code=status, content={"error": error.code, "message": error.message})
+
+
+@router.get("/{case_id}/plan-sets")
+def read_plan_sets(case_id: str) -> list[dict]:
+    return _or_404(lambda: list_plan_sets(case_id), case_id)
 
 
 @router.get("/{case_id}/treatment-plans")

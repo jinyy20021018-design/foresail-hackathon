@@ -290,6 +290,7 @@ small {
 
 .primary-action,
 .secondary-action,
+.danger-action,
 .ghost-button,
 .compact-button {
   min-height: 38px;
@@ -310,6 +311,20 @@ small {
   border-color: #cfd9e6;
   background: #fff;
   color: #0f172a;
+}
+
+.danger-action {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+.danger-action:hover:not(:disabled) {
+  border-color: #b91c1c;
+  background: #b91c1c;
+}
+.danger-action:disabled {
+  cursor: wait;
+  opacity: .62;
 }
 
 .compact-button {
@@ -829,7 +844,7 @@ dd {
   margin-bottom: 4px;
 }
 
-.trace-title span,
+.trace-title > span:not(.trace-status-badge),
 .agent-trace small {
   color: #64748b;
   font-size: 12px;
@@ -1341,7 +1356,7 @@ dd { margin-top: 3px; }
 .case-list-toolbar .inline-actions { margin: 0; }
 .case-list { border-top: 1px solid var(--border); }
 .case-list-panel > .case-list { border-top: 0; }
-.case-list-head, .case-list-row { display: grid; grid-template-columns: minmax(250px, 2.2fr) minmax(160px, 1.35fr) minmax(135px, 1.05fr) minmax(215px, 1.5fr) minmax(135px, 1fr) 38px; gap: 20px; align-items: center; }
+.case-list-head, .case-list-row { display: grid; grid-template-columns: minmax(250px, 2.2fr) minmax(160px, 1.35fr) minmax(135px, 1.05fr) minmax(215px, 1.5fr) minmax(135px, 1fr) 92px; gap: 20px; align-items: center; }
 .case-list-head { min-height: 43px; padding: 0 22px; background: var(--surface-soft); color: var(--faint); font-size: 10.5px; font-weight: 800; letter-spacing: .065em; text-transform: uppercase; }
 .case-list-row { position: relative; min-height: 126px; border-top: 1px solid var(--border); padding: 20px 22px; transition: background .18s cubic-bezier(.22, 1, .36, 1); }
 .case-list-head + .case-list-row { border-top: 0; }
@@ -1364,8 +1379,23 @@ dd { margin-top: 3px; }
 .queue-metric b { color: var(--text); font-size: 17px; line-height: 1; }
 .queue-metric small { color: var(--faint); font-size: 10.5px; }
 .queue-metric.critical b { color: var(--red); }
-.case-open-button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 0; background: var(--surface); color: var(--blue); font-size: 16px; font-weight: 800; transition: transform .18s cubic-bezier(.22, 1, .36, 1), border-color .18s, background .18s; }
+.case-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.case-open-button, .case-delete-button { display: grid; place-items: center; height: 34px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 0; background: var(--surface); font-weight: 800; transition: transform .18s cubic-bezier(.22, 1, .36, 1), border-color .18s, background .18s, color .18s; }
+.case-open-button { width: 34px; color: var(--blue); font-size: 16px; }
+.case-delete-button { min-width: 46px; padding: 0 11px; color: var(--red); font-size: 11px; letter-spacing: .02em; }
 .case-list-row:hover .case-open-button { border-color: var(--blue); background: var(--blue-soft); transform: translateX(2px); }
+.case-delete-button:hover:not(:disabled) { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+.case-delete-button:disabled { cursor: wait; opacity: .62; }
+.confirm-modal-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgba(15, 23, 42, .34); backdrop-filter: blur(8px); }
+.confirm-modal { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 16px; width: min(520px, 100%); border: 1px solid rgba(220, 38, 38, .18); border-radius: 24px; padding: 24px; background: var(--surface); box-shadow: 0 26px 90px rgba(15, 23, 42, .24); }
+.confirm-modal-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 18px; background: #fee2e2; color: #dc2626; font-size: 24px; font-weight: 900; }
+.confirm-modal-body { display: grid; gap: 8px; min-width: 0; }
+.confirm-modal-body h2 { margin: 0; color: var(--text); font-size: 22px; letter-spacing: -.03em; }
+.confirm-modal-body p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.delete-case-preview { display: grid; gap: 3px; margin-top: 6px; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; background: var(--surface-soft); }
+.delete-case-preview strong { color: var(--text); font-size: 13px; }
+.delete-case-preview span { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.confirm-modal-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
 
 @media (max-width: 1050px) {
   .summary-card-grid, .workspace-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1375,8 +1405,8 @@ dd { margin-top: 3px; }
   .case-facts-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .case-list-head { display: none; }
   .case-list { display: grid; gap: 12px; border-top: 0; padding: 0 14px 14px; }
-  .case-list-row, .case-list-head + .case-list-row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px 24px; min-height: 0; border: 1px solid var(--border); border-radius: 14px; padding: 18px 54px 18px 18px; }
-  .case-open-button { position: absolute; top: 18px; right: 16px; }
+  .case-list-row, .case-list-head + .case-list-row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px 24px; min-height: 0; border: 1px solid var(--border); border-radius: 14px; padding: 18px 110px 18px 18px; }
+  .case-row-actions { position: absolute; top: 18px; right: 16px; }
 }
 
 @media (max-width: 760px) {
@@ -1401,10 +1431,13 @@ dd { margin-top: 3px; }
   .case-list-toolbar .inline-actions button { padding-inline: 9px; }
   .case-list { padding-inline: 12px; }
   .case-list-row, .case-list-head + .case-list-row { grid-template-columns: 1fr; gap: 14px; padding: 17px; }
-  .case-open-button { top: 17px; right: 15px; }
-  .case-identity { padding-right: 42px; }
+  .case-row-actions { top: 17px; right: 15px; }
+  .case-identity { padding-right: 96px; }
   .case-work-queue { max-width: 280px; }
   .case-deadline, .case-last-run { grid-template-columns: 110px 1fr; align-items: baseline; }
+  .confirm-modal { grid-template-columns: 1fr; }
+  .confirm-modal-actions { flex-direction: column-reverse; }
+  .confirm-modal-actions button { width: 100%; }
 }
 
 /* Threat Center */

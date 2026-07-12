@@ -6,9 +6,10 @@ type Props = {
   caseIds: string[];
   onNavigate: (path: string) => void;
   onRegisterCase: (tradeCase: TradeCase) => void;
+  onForgetCase: (caseId: string) => void;
 };
 
-export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
+export function CaseLibrary({ caseIds, onNavigate, onRegisterCase, onForgetCase }: Props) {
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("ALL");
@@ -16,6 +17,8 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
   const [owner, setOwner] = useState("ALL");
   const [isLoading, setIsLoading] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
+  const [pendingDeleteCase, setPendingDeleteCase] = useState<CaseSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fallbackWarning, setFallbackWarning] = useState<string | null>(null);
   const seedAttempted = useRef(false);
@@ -78,6 +81,21 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
       setError(caught instanceof Error ? caught.message : "Failed to create demo case.");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function deleteCase(caseId: string) {
+    setDeletingCaseId(caseId);
+    setError(null);
+    try {
+      await api.deleteCase(caseId);
+      setCases((currentCases) => currentCases.filter((caseSummary) => caseSummary.case_id !== caseId));
+      onForgetCase(caseId);
+      setPendingDeleteCase(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : `Failed to delete ${caseId}.`);
+    } finally {
+      setDeletingCaseId(null);
     }
   }
 
@@ -217,12 +235,72 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
                   <strong>{caseSummary.last_agent_run_id || "Not run"}</strong>
                   <small>{formatTimestamp(caseSummary.last_agent_run_at)}</small>
                 </div>
-                <button className="case-open-button" type="button" aria-label={`Open ${caseSummary.case_id}`} onClick={() => onNavigate(`/cases/${caseSummary.case_id}`)}>→</button>
+                <div className="case-row-actions">
+                  <button
+                    className="case-delete-button"
+                    type="button"
+                    aria-label={`Delete ${caseSummary.case_id}`}
+                    title={`Delete ${caseSummary.case_id}`}
+                    disabled={deletingCaseId === caseSummary.case_id}
+                    onClick={() => setPendingDeleteCase(caseSummary)}
+                  >
+                    {deletingCaseId === caseSummary.case_id ? "..." : "Del"}
+                  </button>
+                  <button
+                    className="case-open-button"
+                    type="button"
+                    aria-label={`Open ${caseSummary.case_id}`}
+                    title={`Open ${caseSummary.case_id}`}
+                    onClick={() => onNavigate(`/cases/${caseSummary.case_id}`)}
+                  >
+                    →
+                  </button>
+                </div>
               </article>
             ))}
           </div>
         )}
       </section>
+
+      {pendingDeleteCase && (
+        <div
+          className="confirm-modal-backdrop"
+          role="presentation"
+          onClick={() => {
+            if (deletingCaseId !== pendingDeleteCase.case_id) setPendingDeleteCase(null);
+          }}
+        >
+          <section
+            className="confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-case-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="confirm-modal-icon">!</div>
+            <div className="confirm-modal-body">
+              <span className="section-kicker">Delete case</span>
+              <h2 id="delete-case-title">Delete {pendingDeleteCase.case_id}?</h2>
+              <p>
+                This will remove the case workspace, saved documents, extracted fields, agent runs, risks, gaps, drafts,
+                and treatment outputs for this case.
+              </p>
+              <div className="delete-case-preview">
+                <strong>{pendingDeleteCase.vessel || "Unknown Vessel"}</strong>
+                <span>{pendingDeleteCase.route || routePorts(pendingDeleteCase) || "Route unavailable"}</span>
+              </div>
+            </div>
+            <div className="confirm-modal-actions">
+              <button className="secondary-action" type="button" onClick={() => setPendingDeleteCase(null)} disabled={deletingCaseId === pendingDeleteCase.case_id}>
+                Cancel
+              </button>
+              <button className="danger-action" type="button" onClick={() => void deleteCase(pendingDeleteCase.case_id)} disabled={deletingCaseId === pendingDeleteCase.case_id}>
+                {deletingCaseId === pendingDeleteCase.case_id ? "Deleting..." : "Delete Case"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 }

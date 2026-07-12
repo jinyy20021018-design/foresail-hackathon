@@ -147,8 +147,29 @@ export type RelevanceResult = {
   source?: string | null;
   source_type?: string | null;
   event_type?: string | null;
+  severity?: string | null;
+  event_time?: string | null;
+  published_at?: string | null;
   url?: string | null;
   confidence?: number | null;
+  llm_factor_used?: boolean;
+  llm_candidate_factors?: RelevanceFactor[];
+  validated_factors?: RelevanceFactor[];
+  rejected_factors?: RelevanceRejectedFactor[];
+  missing_direct_evidence?: string[];
+  llm_factor_summary?: string;
+  llm_factor_error?: string;
+};
+
+export type RelevanceFactor = {
+  factor: string;
+  evidence?: string;
+  confidence?: number;
+  source?: string;
+};
+
+export type RelevanceRejectedFactor = RelevanceFactor & {
+  reason?: string;
 };
 
 export type ExternalEvent = {
@@ -430,6 +451,24 @@ export type RecommendedAction = {
   party_perspective?: TradePerspective;
   responsible_party?: "BUYER" | "SELLER" | "SHARED" | "UNKNOWN" | string;
   incoterm_basis?: string;
+  selected?: boolean;
+  rationale?: string;
+  linked_hazard_ids?: string[];
+  linked_obligation_ids?: string[];
+  generation_source?: string;
+};
+
+export type ActionSet = {
+  action_set_id: string;
+  case_id: string;
+  version: number;
+  status: "CANDIDATE" | "CONFIRMED";
+  model: string;
+  generation_source: string;
+  actions: RecommendedAction[];
+  created_at: string;
+  updated_at: string;
+  confirmed_at?: string | null;
 };
 
 export type StatusTimelineEntry = {
@@ -567,6 +606,25 @@ export type TreatmentPlan = {
   status: string;
   perspective?: TradePerspective;
   incoterm_basis?: string;
+  created_at: string;
+  updated_at: string;
+  plan_set_id?: string;
+  action_set_id?: string;
+  version?: number;
+  generation_source?: string;
+  generation_model?: string;
+};
+
+export type PlanSet = {
+  plan_set_id: string;
+  case_id: string;
+  action_set_id: string;
+  version: number;
+  status: string;
+  model: string;
+  generation_source: string;
+  recommended_plan_id: string;
+  plans: TreatmentPlan[];
   created_at: string;
   updated_at: string;
 };
@@ -779,6 +837,10 @@ export const api = {
   createHormuzDemoCase: () => request<TradeCase>("/api/cases/demo/hormuz", { method: "POST" }),
   getCompanyProfile: () => request<CompanyProfile>("/api/company-profile"),
   getCase: (caseId: string) => request<TradeCase>(`/api/cases/${caseId}`),
+  deleteCase: (caseId: string) =>
+    request<{ case_id: string; deleted: boolean; deleted_records?: number }>(`/api/cases/${caseId}`, {
+      method: "DELETE"
+    }),
   uploadCase: (fileNames: string[]) =>
     request<TradeCase>("/api/cases/upload", {
       method: "POST",
@@ -801,6 +863,17 @@ export const api = {
   getRouteMap: (caseId: string) => request<RouteMapPayload>(`/api/cases/${caseId}/route-map`),
   getHazards: (caseId: string) => request<Hazard[]>(`/api/cases/${caseId}/hazards`),
   getActions: (caseId: string) => request<RecommendedAction[]>(`/api/cases/${caseId}/actions`),
+  listActionSets: (caseId: string) => request<ActionSet[]>(`/api/cases/${caseId}/action-sets`),
+  generateActionSet: (caseId: string) => request<ActionSet>(`/api/cases/${caseId}/action-sets/generate`, { method: "POST" }),
+  updateActionSet: (caseId: string, actionSetId: string, actions: RecommendedAction[]) =>
+    request<ActionSet>(`/api/cases/${caseId}/action-sets/${actionSetId}`, {
+      method: "PUT",
+      body: JSON.stringify({ actions: actions.map(({ action_id, title, owner_role, priority, deadline, deadline_date, selected }) => ({ action_id, title, owner_role, priority, deadline, deadline_date, selected })) })
+    }),
+  confirmActionSet: (caseId: string, actionSetId: string) =>
+    request<ActionSet>(`/api/cases/${caseId}/action-sets/${actionSetId}/confirm`, { method: "POST" }),
+  cloneActionSet: (caseId: string, actionSetId: string) =>
+    request<ActionSet>(`/api/cases/${caseId}/action-sets/${actionSetId}/clone`, { method: "POST" }),
   getCifResponsibility: (caseId: string) => request<CifResponsibility>(`/api/cases/${caseId}/cif-responsibility`),
   getPerspectiveAnalysis: (caseId: string, perspective: TradePerspective) =>
     request<PerspectiveAnalysis>(`/api/cases/${caseId}/perspective-analysis?perspective=${perspective}`),
@@ -876,11 +949,12 @@ export const api = {
     request<ActionDraft>(`/api/cases/${caseId}/action-drafts/${draftId}/regenerate`, { method: "POST" }),
   runAgentMonitoringCycle: (caseId: string) =>
     request<AgentRunResponse>(`/api/cases/${caseId}/agent-run`, { method: "POST" }),
-  generateTreatmentPlans: (caseId: string) =>
-    request<{ case_id: string; recommended_plan_id: string; plans: TreatmentPlan[]; conflict_safe_mode?: boolean; allowed_plan_types?: string[] }>(
+  generateTreatmentPlans: (caseId: string, actionSetId?: string) =>
+    request<{ case_id: string; plan_set_id: string; action_set_id: string; version: number; recommended_plan_id: string; plans: TreatmentPlan[]; conflict_safe_mode?: boolean; allowed_plan_types?: string[] }>(
       `/api/cases/${caseId}/treatment-plans/generate`,
-      { method: "POST" }
+      { method: "POST", body: JSON.stringify({ action_set_id: actionSetId ?? null }) }
     ),
+  listPlanSets: (caseId: string) => request<PlanSet[]>(`/api/cases/${caseId}/plan-sets`),
   listTreatmentPlans: (caseId: string) => request<TreatmentPlan[]>(`/api/cases/${caseId}/treatment-plans`),
   getTreatmentPlan: (caseId: string, planId: string) =>
     request<TreatmentPlan>(`/api/cases/${caseId}/treatment-plans/${planId}`),

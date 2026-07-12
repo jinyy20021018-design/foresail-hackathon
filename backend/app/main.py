@@ -28,6 +28,7 @@ from app.api.documents import router as documents_router
 from app.api.events import router as events_router
 from app.api.monitoring import router as monitoring_router
 from app.api.treatment_plans import router as treatment_plans_router
+from app.api.action_sets import router as action_sets_router
 
 app = FastAPI(title="ForeSail")
 
@@ -46,6 +47,7 @@ app.include_router(documents_router)
 app.include_router(events_router)
 app.include_router(monitoring_router)
 app.include_router(treatment_plans_router)
+app.include_router(action_sets_router)
 
 
 @app.get("/api/health")

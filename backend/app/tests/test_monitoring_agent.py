@@ -24,12 +24,15 @@ class MonitoringAgentTest(unittest.TestCase):
 
         self.assertEqual(result["case_id"], "CASE-001")
         self.assertEqual(result["status_before"], "ACTIVE")
-        self.assertEqual(result["status_after"], "ACTION_REQUIRED")
+        self.assertEqual(result["status_after"], "AT_RISK")
         self.assertEqual(result["events_scanned"], 10)
         self.assertEqual(result["relevant_count"], 4)
         self.assertEqual(result["watch_count"], 0)
         self.assertEqual(result["irrelevant_count"], 6)
-        self.assertEqual(result["case"]["status"], "ACTION_REQUIRED")
+        self.assertEqual(result["case"]["status"], "AT_RISK")
+        self.assertEqual(result["actions"], [])
+        self.assertEqual(result["action_drafts"], [])
+        self.assertEqual(result["treatment_plans"], [])
 
     def test_agent_result_contains_summary_and_trace(self) -> None:
         result = self.agent.run_monitoring_cycle(self.case["case_id"])
@@ -37,6 +40,8 @@ class MonitoringAgentTest(unittest.TestCase):
         self.assertIn("Agent scanned 10 external events", result["summary"])
         self.assertGreaterEqual(len(result["trace"]), 8)
         self.assertEqual(result["trace"][0]["name"], "Load Case")
+        self.assertIn("Extract LLM Candidate Match Factors", [step["name"] for step in result["trace"]])
+        self.assertIn("Validate Match Factors", [step["name"] for step in result["trace"]])
         self.assertEqual(result["trace"][-1]["name"], "Generate Agent Summary")
 
     def test_agent_run_endpoint_returns_expected_fields(self) -> None:
@@ -131,10 +136,10 @@ class MonitoringAgentTest(unittest.TestCase):
             os.environ.pop("USE_LLM_SUMMARY", None)
             os.environ.pop("OPENAI_API_KEY", None)
 
-    def test_continue_monitoring_after_agent_run(self) -> None:
+    def test_continue_monitoring_is_blocked_until_actions_and_plans_are_confirmed(self) -> None:
         self.agent.run_monitoring_cycle(self.case["case_id"])
-        continue_monitoring(self.case["case_id"])
-        self.assertEqual(get_case(self.case["case_id"])["status"], "MONITORING")
+        with self.assertRaises(ValueError):
+            continue_monitoring(self.case["case_id"])
 
 
 if __name__ == "__main__":

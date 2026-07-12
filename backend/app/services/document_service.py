@@ -70,6 +70,8 @@ def reset_document_store() -> None:
         "agent_run",
         "agent_trace",
         "treatment_plan",
+        "action_set",
+        "plan_set",
         "residual_risk",
         "approval_package",
         "external_event",
@@ -88,6 +90,16 @@ def clear_runtime_document_cache() -> None:
     _field_conflicts.clear()
     _doc_counter = 1
     _field_counter = 1
+
+
+def clear_case_document_cache(case_id: str) -> None:
+    _documents.pop(case_id, None)
+    _fields.pop(case_id, None)
+    _confirmed_facts.pop(case_id, None)
+    _obligations.pop(case_id, None)
+    _information_gaps.pop(case_id, None)
+    _action_drafts.pop(case_id, None)
+    _field_conflicts.pop(case_id, None)
 
 
 def upload_document(case_id: str, filename: str, file: BinaryIO, document_type: str = "UNKNOWN") -> dict:

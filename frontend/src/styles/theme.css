@@ -92,7 +92,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .table-panel { border-radius: 20px; }
 
 /* ---- Buttons → capsules ---- */
-.primary-action, .secondary-action, .ghost-button, .compact-button,
+.primary-action, .secondary-action, .danger-action, .ghost-button, .compact-button,
 .panel .inline-actions button, .action-row button, .action-item > button {
   min-height: 38px;
   border: 0;
@@ -112,6 +112,21 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .primary-action:hover:not(:disabled) { background: #1f242e; transform: translateY(-1px); }
 .primary-action:disabled { background: var(--card2); color: var(--faint); box-shadow: none; }
+.danger-action {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, .12);
+}
+.danger-action:hover:not(:disabled) {
+  background: #b91c1c;
+  color: #fff;
+  transform: translateY(-1px);
+}
+.danger-action:disabled {
+  background: #fecaca;
+  color: #991b1b;
+  box-shadow: none;
+}
 /* secondary/ghost/compact = white card pill */
 .secondary-action, .ghost-button, .compact-button,
 .panel .inline-actions button, .action-row .secondary-action, .action-item > button {
@@ -171,6 +186,7 @@ body { background: #C7CBD2; padding: 22px; }
 
 .app-frame {
   max-width: 1760px;
+  min-height: calc(100vh - 44px); /* fill viewport minus body padding (22px × 2) */
   margin: 0 auto;
   padding: 20px 26px 30px;
   border-radius: 32px;
@@ -179,7 +195,7 @@ body { background: #C7CBD2; padding: 22px; }
     radial-gradient(780px 440px at -6% 20%, rgba(150, 138, 216, .11), transparent 55%),
     radial-gradient(950px 560px at 55% 114%, rgba(110, 150, 215, .12), transparent 60%),
     var(--canvas);
-  box-shadow: 0 24px 80px rgba(20, 20, 20, .18);
+  box-shadow: none;
 }
 /* content fills the frame (frame padding provides the inset) */
 .app-frame > .shell-main > .page { width: 100%; padding: 22px 4px 40px; }
@@ -308,6 +324,16 @@ body { background: #C7CBD2; padding: 22px; }
   background: var(--black); color: #fff;
 }
 .case-list-row:hover .case-open-button { background: #1f242e; transform: translateX(2px); }
+.case-delete-button {
+  border: 0;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #dc2626;
+}
+.case-delete-button:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #b91c1c;
+}
 .queue-metric { border-right-color: var(--border); }
 
 /* ============================================================
@@ -325,6 +351,54 @@ body { background: #C7CBD2; padding: 22px; }
 .upload-format-tag { border-radius: 999px; padding: 6px 12px; }
 .document-slot { border-radius: 0; }
 .file-picker { border-radius: var(--r-sm); }
+
+/* Document processing status badges — clear, high-contrast capsules */
+.trace-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 88px;
+  min-height: 26px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--pill);
+  padding: 0 12px;
+  background: transparent;
+  box-shadow: none;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+.trace-title .trace-status-badge { color: inherit; font-size: 11px; }
+.trace-status-completed {
+  background: #d7eee4;
+  color: #2f6f55;
+}
+.trace-status-running {
+  background: #d9e3f7;
+  color: #3d5aa8;
+}
+.trace-status-running::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulseDot 1.2s ease-in-out infinite;
+}
+.trace-status-pending {
+  background: #e4e8ef;
+  color: #5c6573;
+}
+.trace-status-failed {
+  background: #f0dde0;
+  color: #a85a62;
+}
 
 /* ============================================================
    P6 · Tab content — shared chips → capsules, softer cards
@@ -457,3 +531,17 @@ body { background: #C7CBD2; padding: 22px; }
 .seat-confirm-copy .seat-basis { margin: 2px 0 0; font: 600 12px var(--sans); color: var(--faint); }
 .seat-confirm-q { margin: 5px 0 0; font: 600 13px var(--sans); color: var(--muted); }
 .seat-confirm-actions { display: flex; gap: 10px; flex-shrink: 0; }
+
+/* LLM action review */
+.action-review-heading { align-items: flex-start; gap: 18px; }
+.action-review-heading .inline-actions { justify-content: flex-end; }
+.action-review-controls { margin: 14px 0 18px; justify-content: flex-end; }
+.action-review-controls label, .action-select-row label { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; }
+.action-select-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.action-item.excluded { opacity: .58; }
+.action-item.selected { outline: 1px solid rgba(36, 99, 235, .2); }
+.action-title-input { width: 100%; margin-bottom: 12px; font-size: 1rem; font-weight: 700; }
+.action-item input, .action-item select, .action-review-heading select, .action-review-controls select {
+  border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--ink); padding: 8px 10px;
+}
+.action-item dl input, .action-item dl select { width: 100%; min-width: 0; }

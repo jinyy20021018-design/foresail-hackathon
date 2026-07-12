@@ -8,6 +8,7 @@ from app.services.case_service import (
     create_case,
     create_demo_case,
     create_hormuz_demo_case,
+    delete_case,
     get_actions,
     get_case,
     get_relevance_results,
@@ -128,6 +129,11 @@ def read_case(case_id: str) -> dict:
     return _or_404(lambda: get_case(case_id), case_id)
 
 
+@router.delete("/{case_id}")
+def remove_case(case_id: str) -> dict:
+    return _or_404(lambda: delete_case(case_id), case_id)
+
+
 @router.post("/{case_id}/details")
 def update_case_detail_fields(case_id: str, payload: UpdateCaseDetailsPayload) -> dict:
     return _or_404(lambda: update_case_details(case_id, payload.model_dump(exclude_none=True)), case_id)
@@ -204,7 +210,10 @@ def read_status_timeline(case_id: str) -> list[dict]:
 
 @router.post("/{case_id}/continue-monitoring")
 def continue_case_monitoring(case_id: str) -> dict:
-    return _or_404(lambda: continue_monitoring(case_id), case_id)
+    try:
+        return _or_404(lambda: continue_monitoring(case_id), case_id)
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 def _or_404(factory, case_id: str):

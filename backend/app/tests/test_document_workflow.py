@@ -191,7 +191,7 @@ class DocumentWorkflowTest(unittest.TestCase):
         response = self.client.post(f"/api/cases/{self.case['case_id']}/confirm-fields")
         self.assertEqual(response.status_code, 400)
 
-    def test_agent_run_returns_obligations_gaps_and_drafts(self) -> None:
+    def test_agent_run_returns_obligations_and_gaps_without_drafts(self) -> None:
         self.seed_documents()
         fields = self.extract()
         self.approve_all_fields(fields)
@@ -202,7 +202,7 @@ class DocumentWorkflowTest(unittest.TestCase):
         self.assertGreaterEqual(len(result["trace"]), 12)
         self.assertTrue(result["obligations"])
         self.assertTrue(result["information_gaps"])
-        self.assertTrue(result["action_drafts"])
+        self.assertEqual(result["action_drafts"], [])
         obligation_names = {obligation["name"] for obligation in result["obligations"]}
         self.assertIn("Latest Shipment Date", obligation_names)
         latest = next(obligation for obligation in result["obligations"] if obligation["name"] == "Latest Shipment Date")

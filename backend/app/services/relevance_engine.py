@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
 
 from app.services.incoterm_rule_service import attribute_event
+from app.services.llm_relevance_factor_service import build_factor_metadata
 from app.services.route_region_service import (
     event_text_mentions_corridor,
     merge_watched_route_regions,
@@ -108,7 +109,7 @@ def classify_event(case: dict, event: dict) -> dict:
         score += 15
         record("voyage_alignment_match", 15)
 
-    if event["type"] == "WEATHER" and "vessel_match" not in matched_factors:
+    if _event_type(event) == "WEATHER" and "vessel_match" not in matched_factors:
         departure_threat = has_port_match and "shipment_window_overlap" in matched_factors
         if not departure_threat and not voyage_aligned:
             before = score
@@ -136,6 +137,7 @@ def classify_event(case: dict, event: dict) -> dict:
         classification = "Watch"
         record("incoterm_risk_not_ours", 0, kind="flag")
     mapped_exposures = map_event_to_exposures(event, classification, case)
+    factor_metadata = build_factor_metadata(case, event, matched_factors)
 
     return {
         "event_id": event["event_id"],
@@ -154,8 +156,12 @@ def classify_event(case: dict, event: dict) -> dict:
         "source": event.get("source"),
         "source_type": event.get("source_type"),
         "event_type": event.get("event_type") or event.get("type"),
+        "severity": event.get("severity"),
+        "event_time": event.get("event_time"),
+        "published_at": event.get("published_at"),
         "url": event.get("url"),
         "confidence": event.get("confidence"),
+        **factor_metadata,
     }
 
 
@@ -222,10 +228,14 @@ def _forecast_horizon_decay(event: dict) -> float:
 
 
 def _affects_deadline(event: dict) -> bool:
-    if event["type"] == "VESSEL_DELAY" and int(event.get("delay_days") or 0) >= 3:
+    if _event_type(event) == "VESSEL_DELAY" and int(event.get("delay_days") or 0) >= 3:
         return True
     impact = event.get("impact", "").lower()
     return "eta" in impact or "latest shipment" in impact or "departure delay" in impact or "transit delay" in impact
+
+
+def _event_type(event: dict) -> str:
+    return str(event.get("event_type") or event.get("type") or "").upper()
 
 
 def _explain(event: dict, classification: str, mapped_exposures: list[str], attribution: dict) -> str:

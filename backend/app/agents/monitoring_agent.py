@@ -1,7 +1,5 @@
 ﻿import json
 
-from app.services.action_board_service import earliest_action_deadline, generate_actions
-from app.services.action_draft_service import generate_action_drafts
 from app.services.agent_summary_service import generate_agent_summary_result
 from app.services.case_service import (
     get_case,
@@ -22,7 +20,6 @@ from app.services.voyage_schedule_service import build_voyage_schedule
 from app.services.document_service import (
     get_best_case_facts,
     get_field_conflicts,
-    set_action_drafts,
     set_information_gaps,
     set_obligations,
 )
@@ -31,8 +28,8 @@ from app.services.incoterm_rule_service import resolve_cif_responsibility
 from app.services.event_ingestion_service import fetch_events_for_case
 from app.services.obligation_service import generate_obligations
 from app.services.relevance_engine import classify_events
+from app.services.llm_relevance_factor_service import summarize_factor_metadata
 from app.services.risk_mapper import summarize_exposures
-from app.services.treatment_plan_service import generate_approval_package, generate_treatment_plans
 
 
 class MonitoringAgent:
@@ -233,6 +230,40 @@ class MonitoringAgent:
             )
 
         relevance_results = classify_events(facts, events)
+        factor_summary = summarize_factor_metadata(relevance_results)
+        trace.append(
+            _trace_step(
+                len(trace) + 1,
+                "Extract LLM Candidate Match Factors",
+                "Extracted candidate relevance factors for each event when LLM relevance factors are enabled; otherwise used deterministic candidates.",
+                "llm_relevance_factor_service",
+                json.dumps(
+                    {
+                        "llm_enabled": factor_summary["llm_enabled"],
+                        "events_sent_to_llm": factor_summary["events_sent_to_llm"],
+                        "candidate_factors_count": factor_summary["candidate_factors_count"],
+                        "fallback_used": factor_summary["fallback_used"],
+                        "errors": factor_summary["errors"],
+                    },
+                    ensure_ascii=True,
+                ),
+            )
+        )
+        trace.append(
+            _trace_step(
+                len(trace) + 1,
+                "Validate Match Factors",
+                "Validated candidate factors against deterministic case, event, route, date, and Incoterms checks before scoring.",
+                "relevance_engine",
+                json.dumps(
+                    {
+                        "validated_factors_count": factor_summary["validated_factors_count"],
+                        "rejected_factors_count": factor_summary["rejected_factors_count"],
+                    },
+                    ensure_ascii=True,
+                ),
+            )
+        )
         hazards, relevance_results = build_hazards(facts, events, relevance_results)
         relevant_count = _count(relevance_results, "Relevant")
         watch_count = _count(relevance_results, "Watch")
@@ -241,7 +272,7 @@ class MonitoringAgent:
             _trace_step(
                 len(trace) + 1,
                 "Classify Event Relevance",
-                "Classified each event using deterministic relevance scoring with Incoterms attribution, confidence weighting, and forecast-horizon decay.",
+                "Calculated final score and classification using deterministic relevance scoring with Incoterms attribution, confidence weighting, and forecast-horizon decay.",
                 "relevance_engine",
                 f"{relevant_count} Relevant, {watch_count} Watch, {irrelevant_count} Irrelevant.",
             )
@@ -383,29 +414,19 @@ class MonitoringAgent:
             )
         )
 
-        actions = generate_actions(risk_summary, facts, obligations)
-        next_action_deadline = earliest_action_deadline(actions)
+        actions = []
+        next_action_deadline = None
         trace.append(
             _trace_step(
                 len(trace) + 1,
-                "Generate CIF-specific Actions",
-                "Generated deduplicated recommended actions with deadlines back-calculated from obligation dates.",
-                "action_board_service",
-                f"{len(actions)} recommended actions generated; earliest action deadline {next_action_deadline or 'n/a'}.",
+                "Prepare LLM Action Context",
+                "Completed the deterministic analysis required for a separate LLM action-generation request.",
+                "action_set_service",
+                "Risk, obligation, gap, hazard, perspective, and Incoterm context is ready for LLM action generation.",
             )
         )
 
-        action_drafts = generate_action_drafts(case_id, facts, risk_summary, actions, hazards)
-        set_action_drafts(case_id, action_drafts)
-        trace.append(
-            _trace_step(
-                len(trace) + 1,
-                "Generate Action Drafts",
-                "Generated draft outbound/internal messages for user review. Nothing was sent externally.",
-                "action_draft_service",
-                f"{len(action_drafts)} action drafts generated.",
-            )
-        )
+        action_drafts = []
 
         set_monitoring_outputs(case_id, relevance_results, risk_summary, actions, hazard_delta)
         updated_case = get_case(case_id)
@@ -420,72 +441,6 @@ class MonitoringAgent:
                 f"Case moved from {status_before} to {status_after}.",
             )
         )
-
-        treatment_output = {"plans": [], "recommended_plan_id": None}
-        approval_package = None
-        try:
-            treatment_output = generate_treatment_plans(case_id)
-            trace.append(
-                _trace_step(
-                    len(trace) + 1,
-                    "Generate CIF-specific Treatment Plan Summary",
-                    "Generated structured CIF treatment plan options from current exposures, obligations, gaps, actions, and perspective.",
-                    "treatment_plan_service",
-                    f"{len(treatment_output['plans'])} treatment plans generated.",
-                )
-            )
-            trace.append(
-                _trace_step(
-                    len(trace) + 1,
-                    "Generate Treatment Plans",
-                    "Generated structured risk treatment plan options from current exposures, obligations, gaps, and actions.",
-                    "treatment_plan_service",
-                    f"{len(treatment_output['plans'])} treatment plans generated.",
-                )
-            )
-            trace.append(
-                _trace_step(
-                    len(trace) + 1,
-                    "Generate Residual Risk Summary",
-                    "Generated residual risk summaries for each treatment plan.",
-                    "treatment_plan_service",
-                    "Residual risks persisted with treatment plans.",
-                )
-            )
-            if treatment_output.get("recommended_plan_id"):
-                approval_package = generate_approval_package(case_id, treatment_output["recommended_plan_id"])
-                approval_summary = f"Approval package {approval_package['approval_package_id']} generated."
-            else:
-                approval_summary = "No recommended treatment plan available for approval package."
-            trace.append(
-                _trace_step(
-                    len(trace) + 1,
-                    "Generate Approval Summary Draft",
-                    "Generated a structured approval summary draft for the recommended treatment plan.",
-                    "treatment_plan_service",
-                    approval_summary,
-                )
-            )
-            trace.append(
-                _trace_step(
-                    len(trace) + 1,
-                    "Persist Treatment Outputs",
-                    "Persisted treatment plans, residual risks, and approval package data for the case.",
-                    "persistence_service",
-                    "Treatment outputs persisted.",
-                )
-            )
-        except Exception as error:
-            trace.append(
-                _trace_step(
-                    len(trace) + 1,
-                    "Generate CIF-specific Treatment Plan Summary",
-                    "Attempted to generate treatment plans after agent monitoring outputs.",
-                    "treatment_plan_service",
-                    f"Treatment plan generation failed: {error}",
-                    status="error",
-                )
-            )
 
         trace.append(
             _trace_step(
@@ -560,9 +515,9 @@ class MonitoringAgent:
             "actions": actions,
             "status_timeline": status_timeline,
             "unresolved_high_conflicts": [],
-            "treatment_plans": treatment_output.get("plans", []),
-            "recommended_treatment_plan_id": treatment_output.get("recommended_plan_id"),
-            "approval_package": approval_package,
+            "treatment_plans": [],
+            "recommended_treatment_plan_id": None,
+            "approval_package": None,
         }
         save_agent_run(case_id, result, run_status="COMPLETED")
         return result

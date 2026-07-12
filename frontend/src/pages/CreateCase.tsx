@@ -447,10 +447,14 @@ function DocumentProcessingTrace({ trace }: { trace: TraceStep[] }) {
           {trace.map((step, index) => (
             <li key={step.label}>
               <span className="trace-step-number">{index + 1}</span>
-              <div><div className="trace-title"><strong>{step.label}</strong><span>{step.status}</span></div></div>
+              <div><div className="trace-title"><strong>{step.label}</strong><TraceStatusBadge status={step.status} /></div></div>
             </li>
           ))}
         </ol>
     </details>
   );
+}
+
+function TraceStatusBadge({ status }: { status: TraceStep["status"] }) {
+  return <span className={`trace-status-badge trace-status-${status.toLowerCase()}`}>{status}</span>;
 }

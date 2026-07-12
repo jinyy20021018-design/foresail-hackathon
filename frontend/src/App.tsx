@@ -61,6 +61,13 @@ export default function App() {
     updateCaseIds([tradeCase.case_id, ...caseIds]);
   }
 
+  function forgetCase(caseId: string) {
+    if (window.localStorage.getItem(ACTIVE_CASE_STORAGE_KEY) === caseId) {
+      window.localStorage.removeItem(ACTIVE_CASE_STORAGE_KEY);
+    }
+    updateCaseIds(caseIds.filter((existingCaseId) => existingCaseId !== caseId));
+  }
+
   return (
     <AppShell
       activePath={path}
@@ -89,7 +96,7 @@ export default function App() {
         />
       )}
       {route.name === "library" && (
-        <CaseLibrary caseIds={caseIds} onNavigate={navigate} onRegisterCase={registerCase} />
+        <CaseLibrary caseIds={caseIds} onNavigate={navigate} onRegisterCase={registerCase} onForgetCase={forgetCase} />
       )}
     </AppShell>
   );

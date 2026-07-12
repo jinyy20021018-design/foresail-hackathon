@@ -69,12 +69,12 @@ class CaseLibraryTest(unittest.TestCase):
         self.assertEqual(run.status_code, 200, run.text)
 
         summary = self.client.get("/api/cases").json()["cases"][0]
-        self.assertEqual(summary["status"], "ACTION_REQUIRED")
+        self.assertEqual(summary["status"], "AT_RISK")
         self.assertEqual(summary["risk_level"], "High")
         self.assertEqual(summary["last_agent_run_id"], run.json()["agent_run_id"])
         self.assertTrue(summary["last_agent_run_at"])
         self.assertGreater(summary["information_gaps_count"], 0)
-        self.assertGreater(summary["open_actions_count"], 0)
+        self.assertEqual(summary["open_actions_count"], 0)
         self.assertEqual(summary["next_deadline"]["label"], "Latest Shipment Date")
 
 

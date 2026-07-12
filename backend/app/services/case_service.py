@@ -1,13 +1,14 @@
 import copy
 import json
 import re
+import shutil
 from datetime import date, datetime, timedelta, timezone
 UTC = timezone.utc
 from pathlib import Path
 
 from app.services.status_machine import can_transition, transition_case
 from app.services.watch_profile_service import build_watch_profile
-from app.services.persistence_service import clear_namespace, list_item_records, load_item, save_item
+from app.services.persistence_service import clear_namespace, delete_items_for_case, list_item_records, load_item, save_item
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
@@ -68,6 +69,8 @@ def reset_store() -> None:
         "relevance_results",
         "risk_summary",
         "actions",
+        "action_set",
+        "plan_set",
         "documents",
         "extracted_fields",
         "confirmed_facts",
@@ -318,6 +321,29 @@ def get_case(case_id: str) -> dict:
     return copy.deepcopy(_cases[case_id])
 
 
+def delete_case(case_id: str) -> dict:
+    get_case(case_id)
+    _cases.pop(case_id, None)
+    _profiles.pop(case_id, None)
+    _results.pop(case_id, None)
+    _risk_summaries.pop(case_id, None)
+    _actions.pop(case_id, None)
+    _timelines.pop(case_id, None)
+    try:
+        from app.services.document_service import clear_case_document_cache
+
+        clear_case_document_cache(case_id)
+    except ImportError:
+        pass
+    deleted_records = delete_items_for_case(case_id)
+
+    uploads_dir = Path(__file__).resolve().parents[1] / "uploads" / case_id
+    if uploads_dir.exists():
+        shutil.rmtree(uploads_dir)
+
+    return {"case_id": case_id, "deleted": True, "deleted_records": deleted_records}
+
+
 def get_watch_profile(case_id: str) -> dict:
     if case_id not in _profiles:
         stored = load_item("watch_profile", case_id)
@@ -419,10 +445,17 @@ def set_monitoring_outputs(
 
 
 def continue_monitoring(case_id: str) -> dict:
+    from app.services.action_set_service import latest_action_set
+    from app.services.treatment_plan_service import list_plan_sets
+
     if case_id not in _cases:
         get_case(case_id)
     if case_id not in _timelines:
         _timelines[case_id] = load_item("status_timeline", case_id) or []
+    action_set = latest_action_set(case_id)
+    plan_sets = list_plan_sets(case_id)
+    if not action_set or action_set.get("status") != "CONFIRMED" or not any(item.get("action_set_id") == action_set.get("action_set_id") and item.get("status") == "COMPLETED" for item in plan_sets):
+        raise ValueError("Confirm the latest Action Set and generate its Treatment Plans before continuing monitoring.")
     transition_case(
         _cases[case_id],
         "MONITORING",
@@ -434,6 +467,18 @@ def continue_monitoring(case_id: str) -> dict:
         "case": get_case(case_id),
         "status_timeline": get_timeline(case_id),
     }
+
+
+def mark_actions_required(case_id: str) -> dict:
+    if case_id not in _cases:
+        get_case(case_id)
+    if case_id not in _timelines:
+        _timelines[case_id] = load_item("status_timeline", case_id) or []
+    case = _cases[case_id]
+    if can_transition(case["status"], "ACTION_REQUIRED"):
+        transition_case(case, "ACTION_REQUIRED", _timelines[case_id], "LLM action candidates were generated and require user confirmation.")
+        _persist_case_bundle(case_id)
+    return get_case(case_id)
 
 
 def get_relevance_results(case_id: str) -> list[dict]:

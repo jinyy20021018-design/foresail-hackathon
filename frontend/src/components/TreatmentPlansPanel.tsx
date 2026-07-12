@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   api,
-  type ActionDraft,
+  type ActionSet,
   type ApprovalPackage,
   type InformationGap,
   type ObligationDeadline,
+  type PlanSet,
   type RecommendedAction,
   type RelevanceResult,
   type RiskSummary,
@@ -22,10 +23,14 @@ type Props = {
   obligations: ObligationDeadline[];
   gaps: InformationGap[];
   actions: RecommendedAction[];
-  drafts: ActionDraft[];
+  actionSets: ActionSet[];
+  planSets: PlanSet[];
+  autoGenerateActionSetId: string | null;
   plans: TreatmentPlan[];
   approvalPackages: ApprovalPackage[];
   onPlansChange: (plans: TreatmentPlan[]) => void;
+  onPlanSetsChange: (sets: PlanSet[]) => void;
+  onAutoGenerateHandled: () => void;
   onApprovalPackagesChange: (packages: ApprovalPackage[]) => void;
   onError: (message: string | null) => void;
 };
@@ -40,14 +45,19 @@ export function TreatmentPlansPanel({
   obligations,
   gaps,
   actions,
-  drafts,
+  actionSets,
+  planSets,
+  autoGenerateActionSetId,
   plans,
   approvalPackages,
   onPlansChange,
+  onPlanSetsChange,
+  onAutoGenerateHandled,
   onApprovalPackagesChange,
   onError,
 }: Props) {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [selectedActionSetId, setSelectedActionSetId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
   const selectedPlan = useMemo(
@@ -55,8 +65,16 @@ export function TreatmentPlansPanel({
     [plans, selectedPlanId]
   );
   const selectedPackage = selectedPlan ? approvalPackages.find((item) => item.plan_id === selectedPlan.plan_id) : undefined;
-  const canGeneratePlans = hasConfirmedFacts || highOpenConflictsCount > 0;
-  const isConflictSafeFlow = !hasConfirmedFacts && highOpenConflictsCount > 0;
+  const confirmedActionSets = actionSets.filter((item) => item.status === "CONFIRMED");
+  const activeActionSetId = selectedActionSetId || confirmedActionSets[confirmedActionSets.length - 1]?.action_set_id || "";
+  const canGeneratePlans = Boolean(activeActionSetId);
+  const isConflictSafeFlow = false;
+
+  useEffect(() => {
+    if (!autoGenerateActionSetId) return;
+    setSelectedActionSetId(autoGenerateActionSetId);
+    generatePlans(autoGenerateActionSetId).finally(onAutoGenerateHandled);
+  }, [autoGenerateActionSetId]);
 
   async function refreshPlans() {
     onPlansChange(await api.listTreatmentPlans(caseId));
@@ -66,19 +84,28 @@ export function TreatmentPlansPanel({
     onApprovalPackagesChange(await api.listApprovalPackages(caseId));
   }
 
-  async function generatePlans() {
+  async function generatePlans(actionSetId = activeActionSetId) {
+    if (!actionSetId) return;
     setIsLoading(true);
     onError(null);
     try {
-      const result = await api.generateTreatmentPlans(caseId);
+      const result = await api.generateTreatmentPlans(caseId, actionSetId);
       onPlansChange(result.plans);
       setSelectedPlanId(result.recommended_plan_id);
+      onPlanSetsChange(await api.listPlanSets(caseId));
       await refreshApprovals();
     } catch (caught) {
       onError(caught instanceof Error ? caught.message : "Treatment plan generation failed.");
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function changeVersion(actionSetId: string) {
+    setSelectedActionSetId(actionSetId);
+    const planSet = planSets.find((item) => item.action_set_id === actionSetId);
+    onPlansChange(planSet?.plans ?? []);
+    setSelectedPlanId(planSet?.recommended_plan_id ?? null);
   }
 
   async function selectPlan(planId: string) {
@@ -110,9 +137,9 @@ export function TreatmentPlansPanel({
         <span className="prerequisite-icon">3</span>
         <div>
           <span className="section-kicker">Treatment planning</span>
-          <h2>Confirm the case facts first</h2>
-          <p>Treatment options depend on the agreed shipment value, dates, route, and contractual obligations.</p>
-          <ol><li className="complete">Upload documents</li><li>Review extracted facts</li><li>Confirm case facts</li><li>Generate treatment options</li></ol>
+          <h2>Confirm at least one action first</h2>
+          <p>Treatment plans can only use a confirmed Action Set.</p>
+          <ol><li className="complete">Run monitoring</li><li>Generate LLM actions</li><li>Confirm selected actions</li><li>Generate treatment plans</li></ol>
         </div>
       </section>
     );
@@ -126,19 +153,20 @@ export function TreatmentPlansPanel({
             <h2>Treatment Plans</h2>
             <p className="subtle">Generate and compare structured risk treatment options for this case.</p>
           </div>
+          <div className="inline-actions">
+          {confirmedActionSets.length > 0 && <select aria-label="Treatment action version" value={activeActionSetId} onChange={(event) => changeVersion(event.target.value)}>{[...confirmedActionSets].reverse().map((item) => <option key={item.action_set_id} value={item.action_set_id}>Action version {item.version}</option>)}</select>}
           <button
             className="primary-action"
             type="button"
-            onClick={generatePlans}
+            onClick={() => generatePlans()}
             disabled={!canGeneratePlans || isLoading}
-            title={!canGeneratePlans ? "Confirmed case facts are required before generating treatment plans." : undefined}
+            title={!canGeneratePlans ? "Confirm an Action Set before generating treatment plans." : undefined}
           >
             {isLoading ? "Generating..." : "Generate Treatment Plans"}
           </button>
+          </div>
         </div>
-        {!hasConfirmedFacts && highOpenConflictsCount === 0 && (
-          <div className="warning-banner">Confirmed case facts are required before generating treatment plans.</div>
-        )}
+        {!canGeneratePlans && <div className="warning-banner">A confirmed Action Set is required before generating treatment plans.</div>}
         {isConflictSafeFlow && (
           <div className="warning-banner">High severity conflicts are open. Only a low-cost conflict-resolution plan can be generated until conflicts are resolved.</div>
         )}
@@ -153,7 +181,7 @@ export function TreatmentPlansPanel({
           <MetricLine label="Risk exposures" value={riskSummary?.exposures.length ?? 0} />
           <MetricLine label="High obligations" value={obligations.filter((item) => item.severity === "High").length} />
           <MetricLine label="Information gaps" value={gaps.length} />
-          <MetricLine label="Open actions" value={actions.length + drafts.length} />
+          <MetricLine label="Confirmed actions" value={actions.filter((item) => item.status === "CONFIRMED").length} />
         </section>
 
         <section className="panel">

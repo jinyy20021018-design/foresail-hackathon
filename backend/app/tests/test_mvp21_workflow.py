@@ -120,29 +120,14 @@ class MVP21WorkflowTest(unittest.TestCase):
         self.assertEqual(detail.json()["run_status"], "COMPLETED")
         self.assertGreaterEqual(len(trace.json()), 12)
 
-    def test_action_draft_review_status_transitions(self) -> None:
+    def test_agent_run_no_longer_generates_action_drafts(self) -> None:
         case_id = self.create_clean_case()
         self.approve_all_fields(case_id)
         self.client.post(f"/api/cases/{case_id}/confirm-fields")
         self.client.post(f"/api/cases/{case_id}/agent-run")
 
         drafts = self.client.get(f"/api/cases/{case_id}/action-drafts").json()
-        self.assertTrue(drafts)
-        draft_id = drafts[0]["draft_id"]
-
-        in_review = self.client.post(f"/api/cases/{case_id}/action-drafts/{draft_id}/mark-in-review")
-        ready = self.client.post(f"/api/cases/{case_id}/action-drafts/{draft_id}/mark-ready")
-        rejected = self.client.post(
-            f"/api/cases/{case_id}/action-drafts/{draft_id}/reject",
-            json={"reason": "Needs revised wording"},
-        )
-        archived = self.client.post(f"/api/cases/{case_id}/action-drafts/{draft_id}/archive")
-
-        self.assertEqual(in_review.json()["status"], "IN_REVIEW")
-        self.assertEqual(ready.json()["status"], "READY")
-        self.assertEqual(rejected.json()["status"], "REJECTED")
-        self.assertEqual(rejected.json()["rejection_reason"], "Needs revised wording")
-        self.assertEqual(archived.json()["status"], "ARCHIVED")
+        self.assertEqual(drafts, [])
 
 
 if __name__ == "__main__":

@@ -11,17 +11,17 @@ class StatusMachineTest(unittest.TestCase):
         reset_store()
         self.case = create_demo_case()
 
-    def test_relevant_event_moves_case_to_action_required(self) -> None:
+    def test_relevant_event_moves_case_to_at_risk_until_llm_actions_exist(self) -> None:
         result = run_monitoring_cycle(self.case["case_id"])
-        self.assertEqual(result["case"]["status"], "ACTION_REQUIRED")
+        self.assertEqual(result["case"]["status"], "AT_RISK")
 
         statuses = [entry["status"] for entry in get_timeline(self.case["case_id"])]
-        self.assertEqual(statuses, ["DRAFT", "ACTIVE", "WATCHING", "AT_RISK", "ACTION_REQUIRED"])
+        self.assertEqual(statuses, ["DRAFT", "ACTIVE", "WATCHING", "AT_RISK"])
 
-    def test_continue_monitoring_moves_case_to_monitoring(self) -> None:
+    def test_continue_monitoring_requires_confirmed_actions_and_plans(self) -> None:
         run_monitoring_cycle(self.case["case_id"])
-        continue_monitoring(self.case["case_id"])
-        self.assertEqual(get_case(self.case["case_id"])["status"], "MONITORING")
+        with self.assertRaises(ValueError):
+            continue_monitoring(self.case["case_id"])
 
 
 if __name__ == "__main__":

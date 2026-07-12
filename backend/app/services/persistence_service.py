@@ -121,6 +121,16 @@ def delete_item(namespace: str, item_key: str) -> None:
         connection.commit()
 
 
+def delete_items_for_case(case_id: str) -> int:
+    with managed_connection() as connection:
+        cursor = connection.execute(
+            "DELETE FROM kv_store WHERE case_id=? OR item_key=?",
+            (case_id, case_id),
+        )
+        connection.commit()
+        return cursor.rowcount
+
+
 def clear_namespace(namespace: str) -> None:
     with managed_connection() as connection:
         connection.execute("DELETE FROM kv_store WHERE namespace=?", (namespace,))
