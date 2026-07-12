@@ -1,15 +1,18 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { api, type RouteMapPayload, type TradeCase } from "../api/client";
+import { api, type Hazard, type RouteMapPayload, type TradeCase } from "../api/client";
 import { RouteLeafletMap } from "./RouteLeafletMap";
 
 type Props = {
   caseId: string;
   tradeCase: TradeCase;
   refreshKey?: string;
+  selectedHazard?: Hazard | null;
+  focusRequest?: number;
+  onClearSelectedHazard?: () => void;
   children?: ReactNode;
 };
 
-export function RouteChart({ caseId, tradeCase, refreshKey = "", children }: Props) {
+export function RouteChart({ caseId, tradeCase, refreshKey = "", selectedHazard = null, focusRequest = 0, onClearSelectedHazard, children }: Props) {
   const [routeMap, setRouteMap] = useState<RouteMapPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,12 +52,17 @@ export function RouteChart({ caseId, tradeCase, refreshKey = "", children }: Pro
           </span>
           <h2>Route Risk Deck</h2>
         </div>
+        {selectedHazard && (
+          <button type="button" className="rc-clear-focus" onClick={onClearSelectedHazard}>
+            Show full route
+          </button>
+        )}
       </div>
 
       <div className={`rc-stage${ready ? " rc-stage-map" : ""}`}>
         {loading && <div className="rc-empty">Plotting voyage…</div>}
         {error && !loading && <div className="rc-empty rc-empty-err">{error}</div>}
-        {ready && <RouteLeafletMap routeMap={routeMap} tradeCase={tradeCase} />}
+        {ready && <RouteLeafletMap routeMap={routeMap} tradeCase={tradeCase} selectedHazard={selectedHazard} focusRequest={focusRequest} />}
       </div>
 
       <div className="rc-legend">

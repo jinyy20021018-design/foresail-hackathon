@@ -420,10 +420,8 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
       onCaseChange(updated);
       setRelevanceResults(analysis.relevance_results);
       setRiskSummary(analysis.risk_summary);
-      setActions(analysis.actions);
       setObligations(analysis.obligations);
       setGaps(analysis.information_gaps);
-      setTreatmentPlans(analysis.treatment_plans);
       setCifResponsibility(analysis.cif_responsibility);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Perspective update failed.");
