@@ -39,7 +39,7 @@ ACTION_SCHEMA = {
                     "owner_role": {"type": "string", "minLength": 2},
                     "priority": {"type": "string", "enum": ["Low", "Medium", "High", "Critical"]},
                     "deadline": {"type": "string", "minLength": 2},
-                    "deadline_date": {"type": "string", "format": "date"},
+                    "deadline_date": {"type": "string"},
                     "rationale": {"type": "string", "minLength": 3},
                     "related_exposure": {"type": "string"},
                     "responsible_party": {"type": "string", "enum": ["BUYER", "SELLER", "SHARED", "UNKNOWN"]},

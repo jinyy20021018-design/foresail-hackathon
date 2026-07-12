@@ -9,30 +9,31 @@
 .fs2-overview *{ box-sizing:border-box; }
 
 /* hazard row */
-.fs2-overview .hazrow{ display:grid; grid-template-columns:repeat(4,1fr) auto; gap:12px; }
-.fs2-overview .haz{ background:var(--card); border-radius:20px; padding:15px 17px; box-shadow:var(--fs2-shadow); transition:transform .18s; }
-.fs2-overview .haz:hover{ transform:translateY(-2px); }
-.fs2-overview .haz.black{ background:var(--black); color:#fff; }
-.fs2-overview .haz .top{ display:flex; justify-content:space-between; align-items:baseline; }
-.fs2-overview .haz .code{ font-weight:800; font-size:15px; letter-spacing:.01em; }
-.fs2-overview .haz .tag{ font:600 10.5px var(--sans); color:var(--faint); }
-.fs2-overview .haz.black .tag{ color:#8F8F8F; }
-.fs2-overview .haz .tag.hot{ color:var(--red); }
-.fs2-overview .haz .win{ display:flex; align-items:center; gap:8px; margin:12px 0 10px; font:600 11.5px var(--sans); }
-.fs2-overview .haz .win .dotline{ flex:1; height:2px; background:repeating-linear-gradient(90deg,currentColor 0 3px,transparent 3px 8px); opacity:.25; }
-.fs2-overview .haz .win .glyph{ font-size:12px; opacity:.9; }
-.fs2-overview .haz .win .t2{ color:var(--muted); }
-.fs2-overview .haz .foot{ display:flex; align-items:center; gap:7px; }
-.fs2-overview .badge{ width:20px; height:20px; border-radius:999px; display:grid; place-items:center; font:800 9.5px var(--sans); color:#fff; flex:0 0 auto; }
-.fs2-overview .badge.r{ background:var(--red); }
-.fs2-overview .badge.a{ background:var(--blue); }
-.fs2-overview .badge.b{ background:var(--blue); }
-.fs2-overview .haz .foot .mini{ font:600 10.5px var(--sans); color:var(--faint); letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.fs2-overview .haz.black .foot .mini{ color:#9B9B9B; }
-.fs2-overview .haz .foot .who{ margin-left:auto; font:700 10px var(--sans); letter-spacing:.05em; flex:0 0 auto; }
-.fs2-overview .haz .foot .who.ours{ color:var(--red); }
-.fs2-overview .haz .foot .who.them{ color:var(--faint); }
-.fs2-overview .hazmore{ display:grid; place-items:center; background:var(--card); border-radius:20px; padding:0 16px; color:var(--faint); font-weight:700; cursor:pointer; box-shadow:var(--fs2-shadow); }
+.fs2-overview .route-alerts{ background:transparent; }
+.fs2-overview .route-alerts-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin:0 4px 10px; }
+.fs2-overview .route-alerts-head h2{ margin:0; font-size:14px; font-weight:800; color:var(--ink); letter-spacing:-.01em; }
+.fs2-overview .route-alerts-head p{ margin:2px 0 0; font:600 10.5px var(--sans); color:var(--faint); }
+.fs2-overview .alert-link{ border:0; background:transparent; color:var(--blue); font:800 10.5px var(--sans); cursor:pointer; padding:4px 0; }
+.fs2-overview .alert-link:hover{ color:var(--ink); }
+.fs2-overview .hazrow{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) auto; gap:12px; }
+.fs2-overview .haz{ background:var(--card); border:1px solid transparent; border-radius:14px; padding:14px 16px; box-shadow:var(--fs2-shadow); transition:transform .18s,border-color .18s,background .18s; text-align:left; }
+.fs2-overview button.haz{ cursor:pointer; font-family:var(--sans); color:var(--ink); }
+.fs2-overview button.haz:hover{ transform:translateY(-2px); border-color:rgba(95,127,208,.22); }
+.fs2-overview button.haz:focus-visible{ outline:3px solid rgba(95,127,208,.28); outline-offset:2px; }
+.fs2-overview .haz.selected{ border-color:rgba(196,116,124,.55); background:#fff; box-shadow:0 8px 22px rgba(196,116,124,.12); }
+.fs2-overview .haz.selected::before{ content:"Selected on map"; display:block; margin:0 0 7px; color:var(--red); font:800 9px var(--sans); letter-spacing:.08em; text-transform:uppercase; }
+.fs2-overview .haz .top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.fs2-overview .haz .code{ font-weight:800; font-size:14px; line-height:1.2; letter-spacing:0; color:var(--ink); }
+.fs2-overview .haz .tag{ flex:0 0 auto; border-radius:999px; padding:5px 9px; font:800 10px var(--sans); text-transform:none; }
+.fs2-overview .haz .tag.hot{ background:var(--red-soft); color:var(--red); }
+.fs2-overview .haz .tag.warn{ background:#FFF4E0; color:#B87505; }
+.fs2-overview .haz .tag.watch{ background:var(--card2); color:var(--muted); }
+.fs2-overview .haz-meta{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; font:700 10.5px var(--sans); color:var(--muted); }
+.fs2-overview .haz-meta .who{ flex:0 0 auto; border-radius:999px; padding:4px 8px; font-size:9.5px; }
+.fs2-overview .haz-meta .who.ours{ background:var(--red-soft); color:var(--red); }
+.fs2-overview .haz-meta .who.them{ background:var(--card2); color:var(--muted); }
+.fs2-overview .hazmore{ display:grid; place-items:center; min-width:58px; border:0; background:var(--card); border-radius:14px; padding:0 16px; color:var(--faint); font-weight:800; cursor:pointer; box-shadow:var(--fs2-shadow); }
+.fs2-overview .hazmore:hover{ color:var(--ink); }
 
 /* studio grid */
 .fs2-overview .studio{ display:grid; grid-template-columns:290px 1fr 330px; gap:14px; margin-top:14px; }
@@ -61,6 +62,24 @@
 
 /* center */
 .fs2-overview .deckpanel{ padding:18px 20px 14px; display:flex; flex-direction:column; }
+.fs2-overview .rc-clear-focus{ border:0; border-radius:999px; background:var(--card2); color:var(--muted); padding:7px 12px; font:800 10.5px var(--sans); cursor:pointer; }
+.fs2-overview .rc-clear-focus:hover{ color:var(--ink); background:#fff; }
+.fs2-overview .route-map-shell{ position:relative; }
+.fs2-overview .route-map-notice{ position:absolute; top:12px; left:50%; z-index:500; transform:translateX(-50%); max-width:min(520px,calc(100% - 32px)); border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:8px 13px; background:rgba(8,19,41,.9); color:#dbe7ff; font:700 11px var(--sans); box-shadow:0 8px 22px rgba(0,0,0,.18); pointer-events:none; }
+.fs2-overview .risk-focus-ring{ animation:riskFocusRing 1.8s ease-out infinite; transform-origin:center; transform-box:fill-box; }
+.fs2-overview .risk-focus-dot{ filter:drop-shadow(0 0 6px rgba(239,68,68,.75)); }
+.fs2-overview .typhoon-marker,
+.fs2-overview .vessel-marker{ display:grid; place-items:center; border-radius:999px; color:#fff; font:900 9px var(--sans); box-shadow:0 0 0 3px rgba(255,255,255,.12),0 0 12px rgba(0,0,0,.25); }
+.fs2-overview .typhoon-marker{ background:#ef4444; }
+.fs2-overview .vessel-marker{ background:#5F7FD0; }
+.fs2-overview .risk-map-popup .leaflet-popup-content-wrapper{ border-radius:10px; background:#fff; color:var(--ink); box-shadow:0 12px 30px rgba(0,0,0,.2); }
+.fs2-overview .risk-map-popup .leaflet-popup-content{ margin:12px 14px; min-width:220px; font-family:var(--sans); }
+.fs2-overview .risk-popup-content b{ display:block; margin-bottom:8px; font-size:12px; line-height:1.3; }
+.fs2-overview .risk-popup-content dl{ display:grid; grid-template-columns:76px 1fr; gap:5px 10px; margin:0; }
+.fs2-overview .risk-popup-content dt{ color:var(--faint); font:800 9.5px var(--sans); text-transform:uppercase; }
+.fs2-overview .risk-popup-content dd{ margin:0; color:var(--muted); font:700 10.5px var(--sans); }
+.fs2-overview .risk-popup-content span{ display:block; margin-top:9px; color:var(--red); font:700 10.5px var(--sans); }
+@keyframes riskFocusRing{ 0%{ opacity:.95; stroke-width:2; } 70%,100%{ opacity:.2; stroke-width:6; } }
 
 /* timeline lanes */
 .fs2-overview .lanewrap{ margin-top:12px; background:var(--card2); border-radius:14px; padding:12px 14px; }

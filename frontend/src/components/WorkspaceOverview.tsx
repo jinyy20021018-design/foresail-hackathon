@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   api,
   type Hazard,
@@ -28,14 +28,40 @@ const FAMILY_TAG: Record<string, string> = {
   OTHER: "RISK",
 };
 
-const URGENCY_META: Record<string, { tag: string; badge: "r" | "a" | "b"; letter: string; glyph: string }> = {
-  ACT_NOW: { tag: "act now", badge: "r", letter: "!", glyph: "⚠" },
-  PREPARE: { tag: "prepare", badge: "a", letter: "P", glyph: "◐" },
-  MONITOR: { tag: "monitor", badge: "b", letter: "M", glyph: "◷" },
+const FAMILY_LABEL: Record<string, string> = {
+  WEATHER: "Weather",
+  VESSEL: "Vessel",
+  PORT: "Port",
+  GEOPOLITICAL: "Geopolitical",
+  POLICY: "Policy",
+  CORRIDOR: "Route",
+  OTHER: "Risk",
+};
+
+const ANCHOR_LABEL: Record<string, string> = {
+  ECS: "East China Sea",
+  SCS: "South China Sea",
+  AS: "Arabian Sea",
+  SOH: "Strait of Hormuz",
+  GH: "Gulf of Hormuz",
+  IO: "Indian Ocean",
+  IOC: "Indian Ocean",
+  MALACCA: "Strait of Malacca",
+  JEBEL_ALI: "Jebel Ali",
+  SHANGHAI: "Shanghai",
+};
+
+const URGENCY_META: Record<string, { tag: string; tone: "hot" | "warn" | "watch" }> = {
+  ACT_NOW: { tag: "Act now", tone: "hot" },
+  PREPARE: { tag: "Prepare", tone: "warn" },
+  MONITOR: { tag: "Monitor", tone: "watch" },
 };
 
 export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, refreshKey = "", onOpenTab }: Props) {
   const [hazards, setHazards] = useState<Hazard[]>([]);
+  const [selectedHazardId, setSelectedHazardId] = useState<string | null>(null);
+  const [mapFocusRequest, setMapFocusRequest] = useState(0);
+  const mapPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,8 +88,19 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
     });
   }, [hazards]);
 
-  const hazardCards = sortedHazards.slice(0, 4);
-  const extraHazards = Math.max(0, sortedHazards.length - 4);
+  const selectedHazard = useMemo(
+    () => sortedHazards.find((h) => h.hazard_id === selectedHazardId) ?? null,
+    [selectedHazardId, sortedHazards],
+  );
+
+  useEffect(() => {
+    if (selectedHazardId && !selectedHazard) {
+      setSelectedHazardId(null);
+    }
+  }, [selectedHazard, selectedHazardId]);
+
+  const hazardCards = sortedHazards.slice(0, 3);
+  const extraHazards = Math.max(0, sortedHazards.length - hazardCards.length);
 
   const latestShipment = tradeCase.latest_shipment_date;
   const daysToShipment = latestShipment ? daysFromToday(latestShipment) : null;
@@ -92,7 +129,6 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
       const isRisk = String(exp.severity).toLowerCase() === "high" || exp.affected_party === perspective;
       chips.push({ label: exp.category, kind: isRisk ? "risk" : "neutral" });
     }
-    // derived "clear/ok" context flags from case terms
     if (String(tradeCase.incoterm || "").toUpperCase().startsWith("CIF")) {
       chips.push({ label: "Seller insurance in place", kind: "on" });
     }
@@ -108,53 +144,78 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
 
   const gaugePct = daysToShipment != null ? Math.max(6, Math.min(100, 100 - daysToShipment * 5)) : 30;
 
+  const selectHazard = (hazard: Hazard) => {
+    setSelectedHazardId(hazard.hazard_id);
+    setMapFocusRequest((current) => current + 1);
+    window.requestAnimationFrame(() => {
+      mapPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   return (
     <div className="fs2-overview">
-      {/* hazard card row */}
-      <div className="hazrow">
-        {hazardCards.length === 0 && (
-          <div className="haz" style={{ gridColumn: "1 / -1" }}>
-            <div className="top"><span className="code">No active hazards</span><span className="tag">clear</span></div>
-            <div className="win"><span>—</span><span className="dotline" /><span className="glyph">✓</span><span className="dotline" /><span className="t2">—</span></div>
-            <div className="foot"><span className="mini">Run the monitoring cycle to scan for threats.</span></div>
+      <section className="route-alerts" aria-label="Route alerts">
+        <div className="route-alerts-head">
+          <div>
+            <h2>Route alerts</h2>
+            <p>{sortedHazards.length ? `${sortedHazards.length} active risks on this route` : "No active route risks"}</p>
           </div>
-        )}
-        {hazardCards.map((h, idx) => {
-          const meta = URGENCY_META[h.urgency ?? "MONITOR"] ?? URGENCY_META.MONITOR;
-          const w = h.expected_impact_window;
-          const ours = Boolean(h.attribution?.our_cargo_risk || h.attribution?.our_payment_risk);
-          const isBlack = idx === 0 && h.urgency === "ACT_NOW";
-          return (
-            <div className={`haz${isBlack ? " black" : ""}`} key={h.hazard_id}>
-              <div className="top">
-                <span className="code">{hazardCode(h)}</span>
-                <span className={`tag${h.urgency === "ACT_NOW" ? " hot" : ""}`}>{meta.tag}</span>
-              </div>
-              <div className="win">
-                <span>{w ? shortDate(w.start) : "—"}</span>
-                <span className="dotline" />
-                <span className="glyph">{meta.glyph}</span>
-                <span className="dotline" />
-                <span className="t2">{w ? shortDate(w.end) : (h.lead_days != null ? `${h.lead_days}d` : "—")}</span>
-              </div>
-              <div className="foot">
-                <span className={`badge ${meta.badge}`}>{meta.letter}</span>
-                <span className={`who ${ours ? "ours" : "them"}`}>{ours ? "YOUR RISK" : "CPTY"}</span>
-              </div>
-              <p className="haz-desc" title={h.title}>{hazardMini(h)}</p>
-            </div>
-          );
-        })}
-        {extraHazards > 0 && <div className="hazmore" onClick={() => onOpenTab?.("risks")}>+{extraHazards}</div>}
-      </div>
+          {sortedHazards.length > 0 && (
+            <button type="button" className="alert-link" onClick={() => onOpenTab?.("risks")}>
+              View all alerts
+            </button>
+          )}
+        </div>
 
-      {/* studio grid */}
+        <div className="hazrow">
+          {hazardCards.length === 0 && (
+            <div className="haz haz-empty" style={{ gridColumn: "1 / -1" }}>
+              <div className="top">
+                <span className="code">No active hazards</span>
+                <span className="tag watch">Clear</span>
+              </div>
+              <p className="haz-desc">Run the monitoring cycle to scan for route, vessel, weather, and contract threats.</p>
+            </div>
+          )}
+
+          {hazardCards.map((h) => {
+            const meta = URGENCY_META[h.urgency ?? "MONITOR"] ?? URGENCY_META.MONITOR;
+            const ours = Boolean(h.attribution?.our_cargo_risk || h.attribution?.our_payment_risk);
+            const selected = h.hazard_id === selectedHazardId;
+            return (
+              <button
+                type="button"
+                className={`haz alert-card ${selected ? "selected" : ""}`}
+                key={h.hazard_id}
+                onClick={() => selectHazard(h)}
+                aria-pressed={selected}
+              >
+                <div className="top">
+                  <span className="code">{hazardLabel(h)}</span>
+                  <span className={`tag ${meta.tone}`}>{meta.tag}</span>
+                </div>
+                <p className="haz-desc" title={h.title}>{hazardMini(h)}</p>
+                <div className="haz-meta">
+                  <span>Impact: {impactWindowLabel(h)}</span>
+                  <span className={`who ${ours ? "ours" : "them"}`}>{ours ? "Affects you" : "Counterparty exposure"}</span>
+                </div>
+              </button>
+            );
+          })}
+
+          {extraHazards > 0 && (
+            <button type="button" className="hazmore" onClick={() => onOpenTab?.("risks")}>
+              +{extraHazards}
+            </button>
+          )}
+        </div>
+      </section>
+
       <div className="studio">
-        {/* left: countdown + tasks */}
         <div className="left">
           <div className="panel count">
-            <div className="lbl">Latest shipment · {latestShipment ? shortDate(latestShipment) : "TBD"}</div>
-            <div className="num hot">{daysToShipment != null ? daysToShipment : "—"}<small> days</small></div>
+            <div className="lbl">Latest shipment - {latestShipment ? shortDate(latestShipment) : "TBD"}</div>
+            <div className="num hot">{daysToShipment != null ? daysToShipment : "-"}<small> days</small></div>
             <p className="note">{countdownNote}</p>
             <div className="gaugewrap"><div className="gauge" style={{ width: `${gaugePct}%` }} /></div>
           </div>
@@ -176,14 +237,19 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
           </div>
         </div>
 
-        {/* center: map + timeline */}
-        <div className="panel deckpanel">
-          <RouteChart caseId={caseId} tradeCase={tradeCase} refreshKey={refreshKey}>
+        <div className="panel deckpanel" ref={mapPanelRef}>
+          <RouteChart
+            caseId={caseId}
+            tradeCase={tradeCase}
+            refreshKey={refreshKey}
+            selectedHazard={selectedHazard}
+            focusRequest={mapFocusRequest}
+            onClearSelectedHazard={() => setSelectedHazardId(null)}
+          >
             <TimelineLanes tradeCase={tradeCase} hazards={hazards} />
           </RouteChart>
         </div>
 
-        {/* right: shipment info + exposure flags */}
         <div className="right">
           <div className="panel form">
             <div className="fh"><h2>Shipment information</h2></div>
@@ -194,20 +260,20 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
             <Od label="Origin" value={tradeCase.port_of_loading || "TBD"} note={originCode(tradeCase)} />
             <Od label="Destination" value={destLabel(tradeCase)} note={destCode(tradeCase)} />
             <div className="frow">
-              <Field label="Incoterm" value={(tradeCase.incoterm || "—").toUpperCase()} note="2020" />
-              <Field label="Payment" value={tradeCase.payment_method || "—"} />
+              <Field label="Incoterm" value={(tradeCase.incoterm || "-").toUpperCase()} note="2020" />
+              <Field label="Payment" value={tradeCase.payment_method || "-"} />
             </div>
             <div className="frow">
               <Field label="Amount" value={amountLabel(tradeCase)} />
-              <Field label="Cargo" value={tradeCase.commodity || "—"} />
+              <Field label="Cargo" value={tradeCase.commodity || "-"} />
             </div>
             <div className="frow">
               <Field label="ETD" value={shortDate(tradeCase.etd)} />
               <Field label="ETA" value={shortDate(tradeCase.eta)} />
             </div>
             <div className="frow">
-              <Field label="Latest shipment" value={latestShipment ? `${shortDate(latestShipment)}${daysToShipment != null ? ` · ${daysToShipment}d` : ""}` : "—"} warn />
-              <Field label="LC expiry" value={lcExpiry ? `${shortDate(lcExpiry)}${daysToLc != null ? ` · ${daysToLc}d` : ""}` : "—"} />
+              <Field label="Latest shipment" value={latestShipment ? `${shortDate(latestShipment)}${daysToShipment != null ? ` - ${daysToShipment}d` : ""}` : "-"} warn />
+              <Field label="LC expiry" value={lcExpiry ? `${shortDate(lcExpiry)}${daysToLc != null ? ` - ${daysToLc}d` : ""}` : "-"} />
             </div>
           </div>
           <div className="panel form">
@@ -249,7 +315,6 @@ function TimelineLanes({ tradeCase, hazards }: { tradeCase: TradeCase; hazards: 
   const { voyage, weather, policy, deadlines, todayPct, ticks } = model;
   return (
     <div className="lanewrap">
-      {/* vertical alignment grid: date ticks + today + deadline lines, spanning all lanes */}
       <div className="tl-grid">
         <span className="tl-grid-col1" />
         <div className="tl-grid-lines">
@@ -294,8 +359,6 @@ function TimelineLanes({ tradeCase, hazards }: { tradeCase: TradeCase; hazards: 
   );
 }
 
-/* ---------- helpers ---------- */
-
 function buildTimeline(tc: TradeCase, hazards: Hazard[]) {
   const etd = parseDate(tc.etd);
   const eta = parseDate(tc.eta);
@@ -314,7 +377,7 @@ function buildTimeline(tc: TradeCase, hazards: Hazard[]) {
   const rangeStart = addDays(new Date(Math.min(...all.map((d) => d.getTime()))), -2);
   const rangeEnd = addDays(new Date(Math.max(...all.map((d) => d.getTime()))), 3);
   const span = Math.max(1, diffDays(rangeStart, rangeEnd));
-  const toPct = (d: Date) => clamp(((diffDays(rangeStart, d)) / span) * 100);
+  const toPct = (d: Date) => clamp((diffDays(rangeStart, d) / span) * 100);
   const bar = (s: Date, e: Date) => {
     const left = toPct(s);
     const right = toPct(addDays(e, 1));
@@ -337,8 +400,8 @@ function buildTimeline(tc: TradeCase, hazards: Hazard[]) {
       return { ...bar(parseDate(w.start)!, parseDate(w.end)!), title: h.title, short: hazardCode(h) };
     });
   const deadlines = [
-    latest ? { pct: toPct(latest), label: `LATEST SHIPMENT · ${shortDate(tc.latest_shipment_date)}`, color: "#C4747C" } : null,
-    lc ? { pct: toPct(lc), label: `LC EXPIRY · ${shortDate(tc.lc_expiry_date)}`, color: "#5F7FD0" } : null,
+    latest ? { pct: toPct(latest), label: `LATEST SHIPMENT - ${shortDate(tc.latest_shipment_date)}`, color: "#C4747C" } : null,
+    lc ? { pct: toPct(lc), label: `LC EXPIRY - ${shortDate(tc.lc_expiry_date)}`, color: "#5F7FD0" } : null,
   ].filter((d): d is { pct: number; label: string; color: string } => Boolean(d));
   const todayPct = today >= rangeStart && today <= rangeEnd ? toPct(today) : null;
 
@@ -354,13 +417,19 @@ function buildTimeline(tc: TradeCase, hazards: Hazard[]) {
 function voyageLabel(tc: TradeCase) {
   const pol = abbr(tc.port_of_loading);
   const pod = abbr(tc.port_of_discharge);
-  return `${pol} → ${pod}`;
+  return `${pol} -> ${pod}`;
 }
 
 function hazardCode(h: Hazard): string {
   const tag = FAMILY_TAG[h.family] ?? "RISK";
   const loc = locAbbr(h.anchor || h.title);
-  return loc ? `${tag} · ${loc}` : tag;
+  return loc ? `${tag} - ${loc}` : tag;
+}
+
+function hazardLabel(h: Hazard): string {
+  const family = FAMILY_LABEL[h.family] ?? "Risk";
+  const anchor = readableAnchor(h.anchor || h.title);
+  return anchor ? `${family} - ${anchor}` : family;
 }
 
 function hazardMini(h: Hazard): string {
@@ -376,14 +445,32 @@ function locAbbr(text?: string): string {
   return words[0].slice(0, 3).toUpperCase();
 }
 
+function readableAnchor(text?: string): string {
+  if (!text) return "";
+  const raw = text.trim();
+  const direct = ANCHOR_LABEL[raw.toUpperCase()];
+  if (direct) return direct;
+  const cleaned = raw.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) return "";
+  if (cleaned.length <= 4 && cleaned === cleaned.toUpperCase()) return cleaned;
+  return cleaned.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function impactWindowLabel(h: Hazard): string {
+  const w = h.expected_impact_window;
+  if (w) return `${shortDate(w.start)}-${shortDate(w.end)}`;
+  if (h.lead_days != null) return `${h.lead_days}d lead`;
+  return "Route watch";
+}
+
 function abbr(text?: string): string {
-  if (!text) return "—";
+  if (!text) return "-";
   return text.length > 10 ? text.slice(0, 9) : text;
 }
 
 function actionSub(a: RecommendedAction): string {
   const when = a.deadline_date ? relativeDeadline(a.deadline_date) : a.deadline || "";
-  return `${when}${a.owner_role ? ` · ${a.owner_role}` : ""}`;
+  return `${when}${a.owner_role ? ` - ${a.owner_role}` : ""}`;
 }
 
 function relativeDeadline(iso: string): string {
@@ -397,21 +484,25 @@ function relativeDeadline(iso: string): string {
 function statusLabel(s: string): string {
   return (s || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
 function destLabel(tc: TradeCase): string {
   const pod = tc.port_of_discharge || "";
   const fin = tc.final_destination || "";
-  return fin && fin !== pod ? `${pod} → ${fin}` : pod || "TBD";
+  return fin && fin !== pod ? `${pod} -> ${fin}` : pod || "TBD";
 }
+
 function originCode(tc: TradeCase): string {
   return (tc.port_of_loading || "").length ? "" : "";
 }
+
 function destCode(_tc: TradeCase): string {
   return "";
 }
+
 function amountLabel(tc: TradeCase): string {
   const amt = (tc as unknown as { amount?: number }).amount;
   const cur = (tc as unknown as { currency?: string }).currency;
-  if (amt == null) return "—";
+  if (amt == null) return "-";
   return `${cur ? cur + " " : ""}${Number(amt).toLocaleString()}`;
 }
 
@@ -421,11 +512,13 @@ function shortDate(value?: string): string {
   if (!d) return value;
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+
 function parseDate(value?: string | null): Date | null {
   if (!value) return null;
   const d = new Date(`${String(value).slice(0, 10)}T00:00:00`);
   return isNaN(d.getTime()) ? null : d;
 }
+
 function daysFromToday(iso: string): number {
   const target = parseDate(iso);
   if (!target) return 0;
@@ -433,14 +526,17 @@ function daysFromToday(iso: string): number {
   today.setHours(0, 0, 0, 0);
   return Math.round((target.getTime() - today.getTime()) / 86400000);
 }
+
 function addDays(d: Date, n: number): Date {
   const x = new Date(d);
   x.setDate(x.getDate() + n);
   return x;
 }
+
 function diffDays(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 }
+
 function clamp(v: number): number {
   return Math.min(100, Math.max(0, v));
 }
