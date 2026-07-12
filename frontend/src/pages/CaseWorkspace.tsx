@@ -32,7 +32,11 @@ import { CaseStatusBadge } from "../components/Badges";
 import { DocumentUploadPanel } from "../components/DocumentUploadPanel";
 import { EventResultsTable } from "../components/EventResultsTable";
 import { ExternalEventsPanel } from "../components/ExternalEventsPanel";
+import { CorridorBoard } from "../components/CorridorBoard";
+import { RunDeltaCard } from "../components/RunDeltaCard";
+import { DeadlineMatrix } from "../components/DeadlineMatrix";
 import { ExtractedFieldsReview } from "../components/ExtractedFieldsReview";
+import { SeatConfirmCard } from "../components/SeatConfirmCard";
 import { FieldConflictPanel } from "../components/FieldConflictPanel";
 import { OperationalPanels } from "../components/OperationalPanels";
 import { RiskSummaryPanel } from "../components/RiskSummaryPanel";
@@ -388,24 +392,14 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
     }
   }
 
-  async function changePerspective(nextPerspective: TradePerspective) {
-    if (!tradeCase || tradeCase.trade_perspective === nextPerspective) return;
+  // Seat is detected from documents; this only sets it (confirm or correct) and re-derives everything.
+  async function setSeat(nextPerspective: TradePerspective) {
+    if (!tradeCase) return;
     setError(null);
-    try {
-      const updated = await api.updatePerspective(caseId, nextPerspective);
-      const analysis = await api.getPerspectiveAnalysis(caseId, nextPerspective);
-      setTradeCase(updated);
-      onCaseChange(updated);
-      setRelevanceResults(analysis.relevance_results);
-      setRiskSummary(analysis.risk_summary);
-      setActions(analysis.actions);
-      setObligations(analysis.obligations);
-      setGaps(analysis.information_gaps);
-      setTreatmentPlans(analysis.treatment_plans);
-      setCifResponsibility(analysis.cif_responsibility);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Perspective update failed.");
-    }
+    const updated = await api.updatePerspective(caseId, nextPerspective);
+    setTradeCase(updated);
+    onCaseChange(updated);
+    await refreshCase();
   }
 
   if (isLoading) {
@@ -430,14 +424,12 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
         : null;
   const canRunAgent = agentRunBlockedReason === null;
   const canContinue = tradeCase.status === "ACTION_REQUIRED";
-  const selectedPerspective = tradeCase.trade_perspective ?? "SELLER";
-
   const overviewSubtitle = [
     tradeCase.route,
     tradeCase.incoterm ? tradeCase.incoterm.toUpperCase() : null,
     tradeCase.payment_method,
     workspaceAmount(tradeCase),
-    `${selectedPerspective === "SELLER" ? "Seller" : "Buyer"} seat`,
+    `${(tradeCase.trade_perspective ?? "SELLER") === "SELLER" ? "Seller" : "Buyer"} seat${tradeCase.perspective_source === "AUTO_DETECTED" ? " (auto-detected)" : tradeCase.perspective_source === "MANUAL" ? " (confirmed)" : ""}`,
   ].filter(Boolean).join(" · ");
 
   return (
@@ -461,19 +453,6 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
           )}
         </div>
         <div className="header-actions">
-          <div className="perspective-toggle" aria-label="Perspective">
-            <span>Perspective</span>
-            {(["BUYER", "SELLER"] as TradePerspective[]).map((perspective) => (
-              <button
-                key={perspective}
-                className={selectedPerspective === perspective ? "active" : ""}
-                type="button"
-                onClick={() => changePerspective(perspective)}
-              >
-                {perspective === "BUYER" ? "Buyer" : "Seller"}
-              </button>
-            ))}
-          </div>
           <button
             className="secondary-action"
             type="button"
@@ -546,6 +525,13 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
             onError={setError}
             language={language}
           />
+          {tradeCase && fields.some((field) => field.field_name === "trade_perspective") && (
+            <SeatConfirmCard
+              tradeCase={tradeCase}
+              basis={fields.find((field) => field.field_name === "trade_perspective")?.detection_basis}
+              onSetSeat={setSeat}
+            />
+          )}
           <ExtractedFieldsReview
             caseId={caseId}
             fields={fields}
@@ -591,6 +577,7 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
 
       {activeTab === "agent" && (
         <>
+          <RunDeltaCard delta={agentResult?.hazard_delta} />
           <AgentRunSummary result={agentResult} language={language} />
           <AgentRunHistory caseId={caseId} runs={agentRuns} />
           <AgentRunTrace trace={agentResult?.trace ?? []} language={language} />
@@ -598,19 +585,23 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
       )}
 
       {activeTab === "events" && (
-        <ExternalEventsPanel
-          caseId={caseId}
-          config={eventConfig}
-          events={externalEvents}
-          hasConfirmedFacts={hasConfirmedFacts}
-          highOpenConflictsCount={highOpenConflicts.length}
-          onEventsChange={setExternalEvents}
-          onError={setError}
-        />
+        <div className="workspace-panel">
+          <CorridorBoard />
+          <ExternalEventsPanel
+            caseId={caseId}
+            config={eventConfig}
+            events={externalEvents}
+            hasConfirmedFacts={hasConfirmedFacts}
+            highOpenConflictsCount={highOpenConflicts.length}
+            onEventsChange={setExternalEvents}
+            onError={setError}
+          />
+        </div>
       )}
 
       {activeTab === "risks" && (
         <>
+          <DeadlineMatrix obligations={obligations} />
           <EventResultsTable results={relevanceResults} language={language} />
           <RiskSummaryPanel summary={riskSummary} language={language} />
           <OperationalPanels obligations={obligations} gaps={gaps} drafts={[]} caseId={caseId} onDraftsChange={() => undefined} showDrafts={false} />

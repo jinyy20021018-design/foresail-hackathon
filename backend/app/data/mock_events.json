@@ -5,7 +5,9 @@
     "type": "VESSEL_DELAY",
     "event_time": "2026-11-27",
     "affected_vessel": "CAPEMOLLINI",
-    "affected_ports": ["Chittagong"],
+    "affected_ports": [
+      "Chittagong"
+    ],
     "affected_region": "Bay of Bengal",
     "severity": "High",
     "confidence": 0.95,
@@ -14,7 +16,10 @@
     "new_eta": "2026-12-13",
     "delay_days": 5,
     "impact": "ETA changed from 2026-12-08 to 2026-12-13",
-    "expected_classification": "Relevant"
+    "expected_classification": "Relevant",
+    "event_time_offset_days": 18,
+    "old_eta_offset_days": 19,
+    "new_eta_offset_days": 24
   },
   {
     "event_id": "EVT-002",
@@ -22,13 +27,17 @@
     "type": "PORT_STRIKE",
     "event_time": "2026-11-26",
     "affected_vessel": null,
-    "affected_ports": ["Chittagong", "Dhaka"],
+    "affected_ports": [
+      "Chittagong",
+      "Dhaka"
+    ],
     "affected_region": "Bangladesh",
     "severity": "High",
     "confidence": 0.9,
     "source": "mock_port_news",
     "impact": "Port operation disruption may slow discharge and inland delivery",
-    "expected_classification": "Relevant"
+    "expected_classification": "Relevant",
+    "event_time_offset_days": 15
   },
   {
     "event_id": "EVT-003",
@@ -36,13 +45,16 @@
     "type": "WEATHER",
     "event_time": "2026-11-24",
     "affected_vessel": null,
-    "affected_ports": ["Shanghai"],
+    "affected_ports": [
+      "Shanghai"
+    ],
     "affected_region": "East China Sea",
     "severity": "Medium",
     "confidence": 0.75,
     "source": "mock_weather_alert",
     "impact": "Potential departure delay near Shanghai route",
-    "expected_classification": "Relevant"
+    "expected_classification": "Relevant",
+    "event_time_offset_days": 5
   },
   {
     "event_id": "EVT-004",
@@ -56,7 +68,8 @@
     "confidence": 0.85,
     "source": "mock_security_news",
     "impact": "Security risk in unrelated route",
-    "expected_classification": "Irrelevant"
+    "expected_classification": "Irrelevant",
+    "event_time_offset_days": 9
   },
   {
     "event_id": "EVT-005",
@@ -64,12 +77,15 @@
     "type": "PORT_CONGESTION",
     "event_time": "2026-11-26",
     "affected_vessel": null,
-    "affected_ports": ["Rotterdam"],
+    "affected_ports": [
+      "Rotterdam"
+    ],
     "affected_region": "Europe",
     "severity": "Medium",
     "confidence": 0.8,
     "source": "mock_port_news",
     "impact": "Unrelated port congestion",
-    "expected_classification": "Irrelevant"
+    "expected_classification": "Irrelevant",
+    "event_time_offset_days": 12
   }
 ]

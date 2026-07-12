@@ -1,0 +1,10 @@
+Booking Reference: BKG-9911
+Vessel: SEA HARRIER
+Route: Chittagong -> Singapore -> Shanghai
+Port of Loading: Chittagong
+Port of Discharge: Shanghai
+Final Destination: Shanghai
+ETD: 2026-11-22
+ETA: 2026-12-06
+Shipper: Chittagong Alloy Works Ltd.
+Consignee: Shanghai Solaris PV Co., Ltd.

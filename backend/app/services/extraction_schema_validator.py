@@ -27,6 +27,8 @@ ALLOWED_FIELDS = {
     "issuing_bank",
     "beneficiary",
     "applicant",
+    "shipper",
+    "consignee",
     "insurance_policy_number",
     "coverage_type",
     "case_name",

@@ -8,6 +8,24 @@ from app.services.route_region_service import (
 from app.services.risk_mapper import map_event_to_exposures
 
 
+FACTOR_LABELS = {
+    "vessel_match": "Vessel named in event",
+    "watched_port_match": "Hits a watched port",
+    "route_region_match": "On a watched sea region",
+    "route_corridor_text_match": "Mentions a watched corridor",
+    "unrelated_region": "Region off our route",
+    "unrelated_port": "Port off our route",
+    "shipment_window_overlap": "Inside the shipment window",
+    "eta_or_deadline_impact": "Impacts ETA / a deadline",
+    "high_severity": "High / critical severity",
+    "voyage_alignment_match": "Aligned with vessel's position",
+    "weather_watch_cap": "Weather capped to Watch",
+    "forecast_horizon_decay": "Forecast horizon decay",
+    "confidence_weighted": "Weighted by source confidence",
+    "incoterm_risk_not_ours": "Not our risk under Incoterm",
+}
+
+
 def classify_events(case: dict, events: list[dict]) -> list[dict]:
     return [classify_event(case, event) for event in events]
 
@@ -15,6 +33,18 @@ def classify_events(case: dict, events: list[dict]) -> list[dict]:
 def classify_event(case: dict, event: dict) -> dict:
     score = 0
     matched_factors: list[str] = []
+    breakdown: list[dict] = []
+
+    def record(factor: str, delta: int, kind: str = "add") -> None:
+        matched_factors.append(factor)
+        breakdown.append({
+            "factor": factor,
+            "label": FACTOR_LABELS.get(factor, factor.replace("_", " ")),
+            "delta": int(delta),
+            "kind": kind,
+            "running": int(score),
+        })
+
     watched_ports = {case["port_of_loading"], case["port_of_discharge"], case["final_destination"]}
     watched_ports.discard(None)
     watched_ports.discard("")
@@ -30,29 +60,29 @@ def classify_event(case: dict, event: dict) -> dict:
     )
     if has_vessel_match:
         score += 50
-        matched_factors.append("vessel_match")
+        record("vessel_match", 50)
 
     has_port_match = bool(affected_ports.intersection(watched_ports))
     if has_port_match:
         score += 35
-        matched_factors.append("watched_port_match")
+        record("watched_port_match", 35)
 
     affected_region = event.get("affected_region")
     has_region_match = affected_region in effective_regions
+    region_via_text = False
     if not has_region_match and event_text_mentions_corridor(event, effective_regions):
         has_region_match = True
-        matched_factors.append("route_corridor_text_match")
+        region_via_text = True
     if has_region_match:
         score += 25
-        if "route_corridor_text_match" not in matched_factors:
-            matched_factors.append("route_region_match")
+        record("route_corridor_text_match" if region_via_text else "route_region_match", 25)
     elif not has_vessel_match and not has_port_match:
         score -= 40
-        matched_factors.append("unrelated_region")
+        record("unrelated_region", -40)
 
     if affected_ports and not has_port_match and not has_vessel_match and not has_region_match:
         score -= 50
-        matched_factors.append("unrelated_port")
+        record("unrelated_port", -50)
 
     hard_unrelated = (
         not has_vessel_match
@@ -63,37 +93,40 @@ def classify_event(case: dict, event: dict) -> dict:
 
     if not hard_unrelated and _is_near_shipment_window(case, event):
         score += 20
-        matched_factors.append("shipment_window_overlap")
+        record("shipment_window_overlap", 20)
 
     if not hard_unrelated and _affects_deadline(event):
         score += 20
-        matched_factors.append("eta_or_deadline_impact")
+        record("eta_or_deadline_impact", 20)
 
     if not hard_unrelated and str(event.get("severity", "")).upper() in {"HIGH", "CRITICAL"}:
         score += 10
-        matched_factors.append("high_severity")
+        record("high_severity", 10)
 
     voyage_aligned = bool(event.get("voyage_aligned"))
     if not hard_unrelated and voyage_aligned:
         score += 15
-        matched_factors.append("voyage_alignment_match")
+        record("voyage_alignment_match", 15)
 
     if event["type"] == "WEATHER" and "vessel_match" not in matched_factors:
         departure_threat = has_port_match and "shipment_window_overlap" in matched_factors
         if not departure_threat and not voyage_aligned:
+            before = score
             score = min(score, 60)
-            matched_factors.append("weather_watch_cap")
+            record("weather_watch_cap", score - before, kind="cap")
 
     confidence = event.get("confidence")
     if confidence is not None and score > 0:
         try:
             factor = 0.6 + 0.4 * max(0.0, min(float(confidence), 1.0))
             decay = _forecast_horizon_decay(event)
+            before = score
             if decay < 1.0:
                 factor *= decay
-                matched_factors.append("forecast_horizon_decay")
             score = round(score * factor)
-            matched_factors.append("confidence_weighted")
+            if decay < 1.0:
+                record("forecast_horizon_decay", 0, kind="flag")
+            record("confidence_weighted", score - before, kind="scale")
         except (TypeError, ValueError):
             pass
 
@@ -101,7 +134,7 @@ def classify_event(case: dict, event: dict) -> dict:
     attribution = attribute_event(case, event)
     if classification == "Relevant" and not attribution["monitor_worthy"]:
         classification = "Watch"
-        matched_factors.append("incoterm_risk_not_ours")
+        record("incoterm_risk_not_ours", 0, kind="flag")
     mapped_exposures = map_event_to_exposures(event, classification, case)
 
     return {
@@ -112,6 +145,7 @@ def classify_event(case: dict, event: dict) -> dict:
         "raw_score": score,
         "display_score": max(0, min(score, 100)),
         "matched_factors": matched_factors,
+        "factor_breakdown": breakdown,
         "explanation": _explain(event, classification, mapped_exposures, attribution),
         "mapped_exposures": mapped_exposures,
         "attribution": attribution,

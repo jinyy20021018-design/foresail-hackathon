@@ -1,5 +1,6 @@
 import os
 
+from app.services.event_connectors.curated_event_connector import CuratedEventConnector
 from app.services.event_connectors.gdelt_event_connector import GdeltEventConnector
 from app.services.event_connectors.mock_event_connector import MockEventConnector
 from app.services.event_connectors.open_meteo_weather_connector import OpenMeteoWeatherConnector
@@ -88,8 +89,9 @@ def list_external_events_for_run(case_id: str, agent_run_id: str) -> list[dict]:
 
 def _connectors_for_mode(mode: str):
     if mode == "MOCK":
-        return [MockEventConnector()]
+        return [MockEventConnector(), CuratedEventConnector()]
     real_connectors = [
+        CuratedEventConnector(),
         GdeltEventConnector(),
         RealSearchEventConnector(),
         OpenMeteoWeatherConnector(),

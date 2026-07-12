@@ -1,4 +1,5 @@
 from app.services.case_service import get_case, set_trade_perspective
+from app.services.document_service import sync_confirmed_perspective
 from app.services.incoterm_rule_service import resolve_cif_responsibility
 
 SUPPORTED_PERSPECTIVES = {"SELLER", "BUYER"}
@@ -20,7 +21,10 @@ def normalize_perspective(perspective: str | None) -> str:
 
 
 def update_case_perspective(case_id: str, perspective: str) -> dict:
-    return set_trade_perspective(case_id, normalize_perspective(perspective))
+    normalized = normalize_perspective(perspective)
+    case = set_trade_perspective(case_id, normalized)
+    sync_confirmed_perspective(case_id, normalized, "MANUAL", "Manually set by user")
+    return case
 
 
 def perspective_analysis(case_id: str, perspective: str | None = None) -> dict:

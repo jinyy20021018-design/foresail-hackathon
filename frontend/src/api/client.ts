@@ -22,6 +22,8 @@ export type TradeCase = {
   incoterm: string;
   incoterm_named_place?: string;
   trade_perspective?: TradePerspective;
+  perspective_source?: "AUTO_DETECTED" | "MANUAL" | "DEFAULT";
+  perspective_basis?: string;
   owner?: string;
   notes?: string;
   created_at?: string;
@@ -123,6 +125,14 @@ export type WatchProfile = {
   alert_rules: string[];
 };
 
+export type ScoreFactor = {
+  factor: string;
+  label: string;
+  delta: number;
+  kind: "add" | "cap" | "scale" | "flag" | string;
+  running: number;
+};
+
 export type RelevanceResult = {
   event_id: string;
   title: string;
@@ -131,6 +141,7 @@ export type RelevanceResult = {
   raw_score?: number;
   display_score?: number;
   matched_factors: string[];
+  factor_breakdown?: ScoreFactor[];
   explanation: string;
   mapped_exposures: string[];
   source?: string | null;
@@ -313,6 +324,24 @@ export type CorridorOnRoute = {
   capacity_notes: string;
 };
 
+export type CorridorState = {
+  corridor_id: string;
+  name: string;
+  region: string;
+  lat: number;
+  lng: number;
+  state: "GREEN" | "AMBER" | "RED" | string;
+  baseline_state: "GREEN" | "AMBER" | "RED" | string;
+  trend: "UP" | "DOWN" | "STABLE" | string;
+  previous_state: string;
+  signal: number;
+  evidence_event_ids: string[];
+  evidence_sources: string[];
+  escalation_triggers: string[];
+  capacity_notes: string;
+  updated_at?: string | null;
+};
+
 export type SeasonalAdvisory = {
   region: string;
   level: string;
@@ -450,9 +479,17 @@ export type ExtractedField = {
   requires_confirmation: boolean;
   review_status: string;
   edited_value: string | number | boolean | null;
+  detection_source?: "AUTO_DETECTED" | "DEFAULT";
+  detection_basis?: string;
 };
 
 export type ConfirmedFacts = Record<string, string | number | boolean | null>;
+
+export type CompanyProfile = {
+  name: string;
+  aliases: string[];
+  role_note?: string;
+};
 
 export type ObligationDeadline = {
   obligation_id: string;
@@ -660,6 +697,25 @@ export type AgentRunResponse = {
   treatment_plans?: TreatmentPlan[];
   recommended_treatment_plan_id?: string;
   approval_package?: ApprovalPackage | null;
+  hazard_delta?: HazardDelta;
+  earliest_action_deadline?: string | null;
+};
+
+export type HazardSummaryItem = {
+  hazard_id: string;
+  title: string;
+  classification?: string;
+  severity?: string;
+  urgency?: string;
+  lifecycle?: string;
+};
+
+export type HazardDelta = {
+  new: HazardSummaryItem[];
+  escalated: HazardSummaryItem[];
+  ongoing: HazardSummaryItem[];
+  resolved: HazardSummaryItem[];
+  all_clear: boolean;
 };
 
 export type MonitorResponse = {
@@ -699,6 +755,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   listCases: () => request<{ cases: CaseSummary[] }>("/api/cases"),
+  seedBoard: () => request<{ seeded: boolean; cases: CaseSummary[] }>("/api/cases/seed", { method: "POST" }),
+  getCorridors: () => request<{ corridors: CorridorState[] }>("/api/corridors"),
   createCase: (payload: CreateCasePayload) =>
     request<TradeCase>("/api/cases", {
       method: "POST",
@@ -717,6 +775,9 @@ export const api = {
   createDemoCase: () => request<TradeCase>("/api/cases/demo", { method: "POST" }),
   createCleanDemoCase: () => request<TradeCase>("/api/cases/demo/clean", { method: "POST" }),
   createConflictDemoCase: () => request<TradeCase>("/api/cases/demo/conflict", { method: "POST" }),
+  createBuyerDemoCase: () => request<TradeCase>("/api/cases/demo/buyer", { method: "POST" }),
+  createHormuzDemoCase: () => request<TradeCase>("/api/cases/demo/hormuz", { method: "POST" }),
+  getCompanyProfile: () => request<CompanyProfile>("/api/company-profile"),
   getCase: (caseId: string) => request<TradeCase>(`/api/cases/${caseId}`),
   uploadCase: (fileNames: string[]) =>
     request<TradeCase>("/api/cases/upload", {

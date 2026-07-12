@@ -1,0 +1,9 @@
+Commodity: Aluminium PV Module Frames
+Quantity: 200 MT
+Amount: USD 152000
+Currency: USD
+Buyer: Shanghai Solaris PV Co., Ltd.
+Seller: Chittagong Alloy Works Ltd.
+Incoterm: FOB Chittagong
+Payment Method: LC at sight
+Final Destination: Shanghai

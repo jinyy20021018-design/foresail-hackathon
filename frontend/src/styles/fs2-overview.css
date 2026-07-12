@@ -116,3 +116,14 @@
 .fs2-shell .tabs.fs2-tabs button::after{ display:none; content:none; }
 .fs2-shell .tabs.fs2-tabs button:hover{ color:var(--fs2b-ink); }
 .fs2-shell .tabs.fs2-tabs button.active{ color:#fff; background:var(--fs2b-black); }
+
+/* hazard card: confidence + source corroboration */
+.fs2-overview .haz-conf { display: flex; align-items: center; gap: 7px; margin-top: 8px; }
+.fs2-overview .haz-conf-track { flex: 1; height: 4px; border-radius: 999px; background: var(--viz-track, #ECEEF3); overflow: hidden; }
+.fs2-overview .haz-conf-fill { height: 100%; border-radius: 999px; background: var(--viz-blue, #5F7FD0); }
+.fs2-overview .haz.black .haz-conf-fill { background: #8AA0DC; }
+.fs2-overview .haz-conf-val { font: 700 9.5px var(--sans); color: var(--muted); flex: 0 0 auto; }
+.fs2-overview .haz.black .haz-conf-val { color: #AEB4BE; }
+.fs2-overview .haz-src { flex: 0 0 auto; font: 700 8px var(--sans); letter-spacing: .03em; padding: 1px 6px; border-radius: 999px; }
+.fs2-overview .haz-src.multi { color: #35604f; background: var(--viz-green-fill, #C3DBD1); }
+.fs2-overview .haz-src.single { color: var(--faint); background: var(--card2); }

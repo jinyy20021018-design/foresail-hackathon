@@ -1,12 +1,12 @@
 [
   {
-    "policy_id": "POL-BD-COTTON-SG",
+    "policy_id": "POL-BD-SOLAR-SG",
     "policy_type": "ANTIDUMPING_CASE",
-    "title": "Bangladesh safeguard investigation on imported cotton yarn (illustrative)",
+    "title": "Bangladesh safeguard investigation on imported solar PV modules (illustrative)",
     "scope": {
       "origin_countries": ["CN"],
       "destination_countries": ["BD"],
-      "commodity_keywords": ["cotton yarn", "yarn"],
+      "commodity_keywords": ["solar", "pv module", "photovoltaic"],
       "regions": []
     },
     "status": "INVESTIGATION",
@@ -19,7 +19,7 @@
     ],
     "severity": "HIGH",
     "note": "Provisional duties possible after preliminary determination; shipments arriving after that date may face retroactive safeguard duty and customs holds.",
-    "source_url": "https://example.org/bd-safeguard-cotton-yarn"
+    "source_url": "https://example.org/bd-safeguard-solar-pv"
   },
   {
     "policy_id": "POL-EU-CBAM-2027",

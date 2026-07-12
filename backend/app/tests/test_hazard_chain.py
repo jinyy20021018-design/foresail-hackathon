@@ -42,7 +42,7 @@ class ImpactWindowTest(unittest.TestCase):
             "affected_region": "East China Sea",
             "severity": "HIGH",
             "impact": "Planned strike may cause departure delay at Shanghai",
-            "expected_impact_window": {"start": "2026-11-24", "end": "2026-12-01", "basis": "explicit"},
+            "expected_impact_window": {"start": case["etd"], "end": case["eta"], "basis": "explicit"},
         }
         result = classify_event(case, event)
         self.assertIn("shipment_window_overlap", result["matched_factors"])

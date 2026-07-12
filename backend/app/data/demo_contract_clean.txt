@@ -1,9 +1,9 @@
-Commodity: Cotton Yarn
+Commodity: Solar PV Modules
 Quantity: 100 MT
 Amount: USD 1250000
 Currency: USD
 Buyer: Demo Buyer
-Seller: Demo Seller
+Seller: Shanghai Solaris PV Co., Ltd.
 Incoterm: CIF Chittagong
 Payment Method: LC at sight
 Final Destination: Dhaka

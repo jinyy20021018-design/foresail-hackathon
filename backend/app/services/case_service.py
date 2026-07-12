@@ -24,6 +24,35 @@ def _load_demo_case() -> dict:
         return json.load(file)
 
 
+def _load_buyer_demo_case() -> dict:
+    with (DATA_DIR / "demo_case_buyer.json").open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _load_hormuz_demo_case() -> dict:
+    with (DATA_DIR / "demo_case_hormuz.json").open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _load_demo_json(filename: str) -> dict:
+    with (DATA_DIR / filename).open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _finalize_demo_case(case: dict, draft_reason: str) -> dict:
+    timeline = [{"status": "DRAFT", "reason": draft_reason}]
+    transition_case(case, "ACTIVE", timeline, "Core trade fields are available.")
+    profile = build_watch_profile(case)
+    _cases[case["case_id"]] = copy.deepcopy(case)
+    _profiles[case["case_id"]] = profile
+    _timelines[case["case_id"]] = timeline
+    _results[case["case_id"]] = []
+    _risk_summaries[case["case_id"]] = {"triggered": False, "trigger_events": [], "exposures": []}
+    _actions[case["case_id"]] = []
+    _persist_case_bundle(case["case_id"])
+    return get_case(case["case_id"])
+
+
 def reset_store() -> None:
     clear_runtime_case_cache()
     try:
@@ -67,21 +96,38 @@ def clear_runtime_case_cache() -> None:
     _timelines.clear()
 
 
-def create_demo_case(uploaded_files: list[str] | None = None, imminent: bool = False) -> dict:
-    case = _load_demo_case()
-    case["case_id"] = generate_next_case_id()
-    _ensure_case_defaults(case)
+_DEMO_DATE_OFFSETS = {
+    "etd": "etd_offset_days",
+    "eta": "eta_offset_days",
+    "latest_shipment_date": "latest_shipment_offset_days",
+    "lc_expiry_date": "lc_expiry_offset_days",
+}
+
+
+def _anchor_demo_dates(case: dict, imminent: bool = False) -> None:
+    today = _today()
     if imminent:
-        today = _today()
         case["etd"] = (today + timedelta(days=2)).isoformat()
         case["eta"] = (today + timedelta(days=14)).isoformat()
         case["latest_shipment_date"] = (today + timedelta(days=5)).isoformat()
         case["lc_expiry_date"] = (today + timedelta(days=35)).isoformat()
+    for field, offset_key in _DEMO_DATE_OFFSETS.items():
+        offset = case.pop(offset_key, None)
+        if offset is None or imminent:
+            continue
+        case[field] = (today + timedelta(days=int(offset))).isoformat()
+
+
+def create_demo_case(uploaded_files: list[str] | None = None, imminent: bool = False) -> dict:
+    case = _load_demo_case()
+    case["case_id"] = generate_next_case_id()
+    _ensure_case_defaults(case)
+    _anchor_demo_dates(case, imminent=imminent)
     case["uploaded_files"] = uploaded_files or []
     case["case_name"] = "CAPEMOLLINI Imminent Departure Demo" if imminent else "CAPEMOLLINI Shanghai to Dhaka Demo"
     case["buyer"] = "Demo Buyer"
-    case["seller"] = "Demo Seller"
-    case["commodity"] = "Cotton Yarn"
+    case["seller"] = "Shanghai Solaris PV Co., Ltd."
+    case["commodity"] = "Solar PV Modules"
     case["owner"] = "Trade Ops"
     case["notes"] = "Demo case created from MVP seed data."
     now = _now()
@@ -101,6 +147,82 @@ def create_demo_case(uploaded_files: list[str] | None = None, imminent: bool = F
     _actions[case["case_id"]] = []
     _persist_case_bundle(case["case_id"])
     return get_case(case["case_id"])
+
+
+def create_buyer_demo_case() -> dict:
+    case = _load_buyer_demo_case()
+    case["case_id"] = generate_next_case_id()
+    _ensure_case_defaults(case)
+    _anchor_demo_dates(case)
+    case["uploaded_files"] = []
+    case["case_name"] = "SEA HARRIER Chittagong to Shanghai Import Demo"
+    case["buyer"] = "Shanghai Solaris PV Co., Ltd."
+    case["seller"] = "Chittagong Alloy Works Ltd."
+    case["commodity"] = "Aluminium PV Module Frames"
+    case["owner"] = "Trade Ops"
+    case["notes"] = "Buyer-side demo case: FOB import where our company is the LC applicant."
+    now = _now()
+    case["created_at"] = now
+    case["updated_at"] = now
+    case["mock_extraction_note"] = "Mock extracted fields for MVP. Files are not parsed in this version."
+    return _finalize_demo_case(case, "Buyer demo case initialized from built-in mock extracted fields.")
+
+
+def create_hormuz_demo_case() -> dict:
+    case = _load_hormuz_demo_case()
+    case["case_id"] = generate_next_case_id()
+    _ensure_case_defaults(case)
+    _anchor_demo_dates(case)
+    case["uploaded_files"] = []
+    case["case_name"] = "GULF HORIZON Shanghai to Jebel Ali (Hormuz Crisis)"
+    case["buyer"] = "Gulf Renewable Energy Trading LLC"
+    case["seller"] = "Shanghai Solaris PV Co., Ltd."
+    case["commodity"] = "Monocrystalline Solar PV Modules"
+    case["owner"] = "Trade Ops"
+    case["notes"] = "Hero demo case: CIF Jebel Ali shipment exposed to the real 2026 Strait of Hormuz crisis."
+    now = _now()
+    case["created_at"] = now
+    case["updated_at"] = now
+    case["mock_extraction_note"] = "Mock extracted fields for MVP. Files are not parsed in this version."
+    return _finalize_demo_case(case, "Hormuz demo case initialized from built-in seed documents.")
+
+
+def create_redsea_demo_case() -> dict:
+    case = _load_demo_json("demo_case_redsea.json")
+    case["case_id"] = generate_next_case_id()
+    _ensure_case_defaults(case)
+    _anchor_demo_dates(case)
+    case["uploaded_files"] = []
+    case["case_name"] = "NORDIC EMBER Shanghai to Rotterdam (Red Sea Diversion)"
+    case["buyer"] = "Rhein Solar Import GmbH"
+    case["seller"] = "Shanghai Solaris PV Co., Ltd."
+    case["commodity"] = "Monocrystalline Solar PV Modules"
+    case["owner"] = "Trade Ops"
+    case["notes"] = "CIF Rotterdam export routed through the Red Sea and Suez Canal war-risk area."
+    now = _now()
+    case["created_at"] = now
+    case["updated_at"] = now
+    case["mock_extraction_note"] = "Mock extracted fields for MVP. Files are not parsed in this version."
+    return _finalize_demo_case(case, "Red Sea demo case initialized from built-in mock extracted fields.")
+
+
+def create_typhoon_demo_case() -> dict:
+    case = _load_demo_json("demo_case_typhoon.json")
+    case["case_id"] = generate_next_case_id()
+    _ensure_case_defaults(case)
+    _anchor_demo_dates(case)
+    case["uploaded_files"] = []
+    case["case_name"] = "ORIENT PHOENIX Shanghai to Hong Kong (Typhoon Season)"
+    case["buyer"] = "Pearl Delta Energy Ltd."
+    case["seller"] = "Shanghai Solaris PV Co., Ltd."
+    case["commodity"] = "Monocrystalline Solar PV Modules"
+    case["owner"] = "Trade Ops"
+    case["notes"] = "CIF Hong Kong shipment loading at Shanghai during East China Sea typhoon season."
+    now = _now()
+    case["created_at"] = now
+    case["updated_at"] = now
+    case["mock_extraction_note"] = "Mock extracted fields for MVP. Files are not parsed in this version."
+    return _finalize_demo_case(case, "Typhoon demo case initialized from built-in mock extracted fields.")
 
 
 def create_case(payload: dict) -> dict:
@@ -224,6 +346,9 @@ def replace_case_facts(case_id: str, facts: dict) -> None:
         "incoterm_named_place",
         "amount",
         "currency",
+        "trade_perspective",
+        "perspective_source",
+        "perspective_basis",
     ]:
         if key in facts and facts[key] not in {None, ""}:
             case[key] = facts[key]
@@ -232,10 +357,12 @@ def replace_case_facts(case_id: str, facts: dict) -> None:
     _persist_case_bundle(case_id)
 
 
-def set_trade_perspective(case_id: str, perspective: str) -> dict:
+def set_trade_perspective(case_id: str, perspective: str, source: str = "MANUAL", basis: str = "Manually set by user") -> dict:
     if case_id not in _cases:
         get_case(case_id)
     _cases[case_id]["trade_perspective"] = perspective
+    _cases[case_id]["perspective_source"] = source
+    _cases[case_id]["perspective_basis"] = basis
     _cases[case_id]["updated_at"] = _now()
     _persist_case_bundle(case_id)
     return get_case(case_id)
@@ -358,4 +485,6 @@ def _today() -> date:
 
 def _ensure_case_defaults(case: dict) -> None:
     case.setdefault("trade_perspective", "SELLER")
+    case.setdefault("perspective_source", "DEFAULT")
+    case.setdefault("perspective_basis", "")
     case.setdefault("incoterm_named_place", "")

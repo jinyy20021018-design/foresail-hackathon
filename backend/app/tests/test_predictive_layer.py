@@ -37,8 +37,9 @@ class VoyageScheduleTest(unittest.TestCase):
     def test_position_on_and_transit_windows(self) -> None:
         schedule = build_voyage_schedule(self.case)
         etd = date.fromisoformat(self.case["etd"])
-        self.assertIsNotNone(position_on(schedule, etd))
-        self.assertIsNone(position_on(schedule, etd - timedelta(days=30)))
+        self.assertEqual(position_on(schedule, etd)["status"], "en_route")
+        # Before ETD the vessel is clamped to the loading port (pre_departure) so it is always plottable.
+        self.assertEqual(position_on(schedule, etd - timedelta(days=30))["status"], "pre_departure")
         windows = region_transit_windows(schedule)
         self.assertTrue(windows)
         self.assertEqual(windows[0]["start"], self.case["etd"])
@@ -146,6 +147,9 @@ class RiskCalendarTest(unittest.TestCase):
 
     def test_november_voyage_hits_labor_window(self) -> None:
         case = create_demo_case()
+        case["etd"] = "2026-11-20"
+        case["eta"] = "2026-12-03"
+        case["latest_shipment_date"] = "2026-11-25"
         events = calendar_events_for_case(case, build_voyage_schedule(case))
         ids = {event["raw_payload"]["calendar_entry"]["calendar_id"] for event in events}
         self.assertIn("CAL-CTG-LABOR", ids)
@@ -176,11 +180,11 @@ class PolicyRegistryTest(unittest.TestCase):
         reset_store()
         self.case = create_demo_case()
 
-    def test_cotton_yarn_investigation_matches_demo_case(self) -> None:
+    def test_solar_pv_investigation_matches_demo_case(self) -> None:
         matches = match_policies_for_case(self.case, build_voyage_schedule(self.case))
         pending_ids = {event["raw_payload"]["policy"]["policy_id"] for event in matches["pending_policy_events"]}
-        self.assertIn("POL-BD-COTTON-SG", pending_ids)
-        event = next(item for item in matches["pending_policy_events"] if item["raw_payload"]["policy"]["policy_id"] == "POL-BD-COTTON-SG")
+        self.assertIn("POL-BD-SOLAR-SG", pending_ids)
+        event = next(item for item in matches["pending_policy_events"] if item["raw_payload"]["policy"]["policy_id"] == "POL-BD-SOLAR-SG")
         self.assertEqual(event["event_type"], "TRADE_POLICY")
         self.assertEqual(event["expected_impact_window"]["basis"], "policy_stage")
         self.assertIn(event["confidence"], {0.5, 0.7, 0.85, 1.0})
@@ -189,7 +193,7 @@ class PolicyRegistryTest(unittest.TestCase):
         case = dict(self.case, commodity="Consumer electronics")
         matches = match_policies_for_case(case, None)
         pending_ids = {event["raw_payload"]["policy"]["policy_id"] for event in matches["pending_policy_events"]}
-        self.assertNotIn("POL-BD-COTTON-SG", pending_ids)
+        self.assertNotIn("POL-BD-SOLAR-SG", pending_ids)
 
     def test_active_regional_policy_requires_region_on_route(self) -> None:
         matches = match_policies_for_case(self.case, build_voyage_schedule(self.case))

@@ -83,6 +83,7 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
 
   const exposures = riskSummary?.exposures ?? [];
   const perspective = (tradeCase.trade_perspective ?? "SELLER").toUpperCase();
+  const seatSource = tradeCase.perspective_source === "MANUAL" ? "MANUAL" : tradeCase.perspective_source === "AUTO_DETECTED" ? "AUTO" : "DEFAULT";
   const flagChips = useMemo(() => {
     const seen = new Set<string>();
     const chips: Array<{ label: string; kind: "risk" | "on" | "neutral" }> = [];
@@ -141,7 +142,13 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
                 <span className={`badge ${meta.badge}`}>{meta.letter}</span>
                 <span className={`who ${ours ? "ours" : "them"}`}>{ours ? "YOUR RISK" : "CPTY"}</span>
               </div>
+              <div className="haz-conf" title={`${Math.round((h.confidence ?? 0) * 100)}% confidence${h.corroborated ? `, ${h.sources?.length ?? 0} sources corroborate` : ", single source"}`}>
+                <div className="haz-conf-track"><div className="haz-conf-fill" style={{ width: `${Math.round((h.confidence ?? 0) * 100)}%` }} /></div>
+                <span className="haz-conf-val">{Math.round((h.confidence ?? 0) * 100)}%</span>
+                <span className={`haz-src ${h.corroborated ? "multi" : "single"}`}>{h.corroborated ? `${h.sources?.length ?? 2} sources` : "1 source"}</span>
+              </div>
               <p className="haz-desc" title={h.title}>{hazardMini(h)}</p>
+              {h.attribution?.attribution_note && <p className="haz-attr" title={h.attribution.attribution_note}>{h.attribution.attribution_note}</p>}
             </div>
           );
         })}
@@ -189,8 +196,9 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
             <div className="fh"><h2>Shipment information</h2></div>
             <div className="frow">
               <Field label="Status" value={statusLabel(tradeCase.status)} warn={tradeCase.status === "ACTION_REQUIRED" || tradeCase.status === "AT_RISK"} />
-              <Field label="Seat" value={perspective === "SELLER" ? "Seller" : "Buyer"} note="AUTO" />
+              <Field label="Seat" value={perspective === "SELLER" ? "Seller" : "Buyer"} note={seatSource} title={tradeCase.perspective_basis || undefined} />
             </div>
+            {tradeCase.perspective_basis && <p className="seat-basis" title={tradeCase.perspective_basis}>{tradeCase.perspective_basis}</p>}
             <Od label="Origin" value={tradeCase.port_of_loading || "TBD"} note={originCode(tradeCase)} />
             <Od label="Destination" value={destLabel(tradeCase)} note={destCode(tradeCase)} />
             <div className="frow">
@@ -225,9 +233,9 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
   );
 }
 
-function Field({ label, value, warn = false, note }: { label: string; value: string; warn?: boolean; note?: string }) {
+function Field({ label, value, warn = false, note, title }: { label: string; value: string; warn?: boolean; note?: string; title?: string }) {
   return (
-    <div className="field">
+    <div className="field" title={title}>
       <label>{label}</label>
       <div className={`val${warn ? " warn" : ""}`}>{value}{note && <span>{note}</span>}</div>
     </div>

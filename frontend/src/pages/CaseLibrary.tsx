@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type CaseSummary, type TradeCase } from "../api/client";
 import { CaseStatusBadge, RiskBadge } from "../components/Badges";
 
@@ -15,8 +15,24 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
   const [risk, setRisk] = useState("ALL");
   const [owner, setOwner] = useState("ALL");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fallbackWarning, setFallbackWarning] = useState<string | null>(null);
+  const seedAttempted = useRef(false);
+
+  async function seedBoard() {
+    setIsSeeding(true);
+    try {
+      const result = await api.seedBoard();
+      setCases(result.cases);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Failed to seed monitoring board.");
+      const response = await api.listCases().catch(() => null);
+      if (response) setCases(response.cases);
+    } finally {
+      setIsSeeding(false);
+    }
+  }
 
   async function loadCases() {
     setIsLoading(true);
@@ -24,6 +40,12 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
     setFallbackWarning(null);
     try {
       const response = await api.listCases();
+      if (response.cases.length === 0 && !seedAttempted.current) {
+        seedAttempted.current = true;
+        setIsLoading(false);
+        await seedBoard();
+        return;
+      }
       setCases(response.cases);
     } catch {
       setFallbackWarning("Using local fallback case list because backend case library API is unavailable.");
@@ -41,11 +63,11 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
     void loadCases();
   }, [caseIds.join("|")]);
 
-  async function createDemo(kind: "clean" | "conflict") {
+  async function createDemo(kind: "clean" | "conflict" | "buyer" | "hormuz") {
     setIsLoading(true);
     setError(null);
     try {
-      const tradeCase = kind === "clean" ? await api.createCleanDemoCase() : await api.createConflictDemoCase();
+      const tradeCase = kind === "clean" ? await api.createCleanDemoCase() : kind === "buyer" ? await api.createBuyerDemoCase() : kind === "hormuz" ? await api.createHormuzDemoCase() : await api.createConflictDemoCase();
       onRegisterCase(tradeCase);
       const response = await api.listCases().catch(() => null);
       if (response) {
@@ -107,6 +129,8 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
           <button className="secondary-action" type="button" onClick={loadCases} disabled={isLoading}>Refresh</button>
           <button className="secondary-action" type="button" onClick={() => createDemo("clean")} disabled={isLoading}>Clean Demo</button>
           <button className="secondary-action" type="button" onClick={() => createDemo("conflict")} disabled={isLoading}>Conflict Demo</button>
+          <button className="secondary-action" type="button" onClick={() => createDemo("buyer")} disabled={isLoading}>Buyer Demo</button>
+          <button className="secondary-action" type="button" onClick={() => createDemo("hormuz")} disabled={isLoading}>Hormuz Demo</button>
           <button className="primary-action" type="button" onClick={() => onNavigate("/cases/new")}>Create New Case</button>
         </div>
       </div>
@@ -152,10 +176,15 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase }: Props) {
       </div>
 
       <section className="panel case-list-panel" aria-label={`${filteredCases.length} of ${cases.length} cases`}>
-        {isLoading ? <p className="empty-state">Loading cases...</p> : filteredCases.length === 0 ? (
+        {isSeeding ? (
+          <div className="empty-block">
+            <h3>Seeding monitoring board…</h3>
+            <p>Building demo trade cases and running the monitoring agent against live corridor and weather signals.</p>
+          </div>
+        ) : isLoading ? <p className="empty-state">Loading cases...</p> : filteredCases.length === 0 ? (
           <div className="empty-block">
             <h3>No cases yet</h3>
-            <p>Create a clean or conflict demo case to start the MVP workflow.</p>
+            <p>Create a demo case or a new case to start the monitoring workflow.</p>
             <button className="primary-action" type="button" onClick={() => onNavigate("/cases/new")}>Create New Case</button>
           </div>
         ) : (

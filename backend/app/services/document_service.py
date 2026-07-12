@@ -1,4 +1,5 @@
 import copy
+import html
 import json
 import os
 import re
@@ -18,6 +19,7 @@ from app.services.extraction_schema_validator import validate_extracted_fields
 from app.services.openai_file_extraction_service import extract_with_openai_file
 from app.services.pdf_detection_service import detect_pdf, extract_pdf_text
 from app.services.persistence_service import load_item, save_item, clear_namespace
+from app.services.perspective_detection_service import detect_trade_perspective
 from app.services.vision_pages_extraction_service import extract_with_vision_pages
 
 UPLOAD_DIR = Path(__file__).resolve().parents[1] / "uploads"
@@ -120,12 +122,25 @@ def upload_document(case_id: str, filename: str, file: BinaryIO, document_type: 
     return copy.deepcopy(document)
 
 
-def seed_demo_documents(case_id: str, conflict: bool = False) -> dict:
-    files = [
-        ("demo_contract.txt", "CONTRACT_PO", DATA_DIR / "demo_contract_clean.txt"),
-        ("demo_booking.txt", "BOOKING_CONFIRMATION", DATA_DIR / "demo_booking_clean.txt"),
-        ("demo_lc.txt", "LETTER_OF_CREDIT", DATA_DIR / ("demo_lc_conflict.txt" if conflict else "demo_lc_clean.txt")),
-    ]
+def seed_demo_documents(case_id: str, conflict: bool = False, buyer: bool = False, hormuz: bool = False) -> dict:
+    if hormuz:
+        files = [
+            ("contract.docx", "CONTRACT_PO", DATA_DIR / "demo_hormuz_contract.docx"),
+            ("booking_confirmation.docx", "BOOKING_CONFIRMATION", DATA_DIR / "demo_hormuz_booking.docx"),
+            ("letter_of_credit.docx", "LETTER_OF_CREDIT", DATA_DIR / "demo_hormuz_lc.docx"),
+        ]
+    elif buyer:
+        files = [
+            ("demo_contract.txt", "CONTRACT_PO", DATA_DIR / "demo_contract_buyer.txt"),
+            ("demo_booking.txt", "BOOKING_CONFIRMATION", DATA_DIR / "demo_booking_buyer.txt"),
+            ("demo_lc.txt", "LETTER_OF_CREDIT", DATA_DIR / "demo_lc_buyer.txt"),
+        ]
+    else:
+        files = [
+            ("demo_contract.txt", "CONTRACT_PO", DATA_DIR / "demo_contract_clean.txt"),
+            ("demo_booking.txt", "BOOKING_CONFIRMATION", DATA_DIR / "demo_booking_clean.txt"),
+            ("demo_lc.txt", "LETTER_OF_CREDIT", DATA_DIR / ("demo_lc_conflict.txt" if conflict else "demo_lc_clean.txt")),
+        ]
     for filename, document_type, path in files:
         upload_document(case_id, filename, BytesIO(path.read_bytes()), document_type)
     return extract_documents(case_id)
@@ -172,6 +187,8 @@ def extract_documents(case_id: str) -> dict:
             parse_errors.append({"document_id": document["document_id"], "filename": document["filename"], "error": str(error)})
         diagnostics.append(document.get("extraction_diagnostics") or diagnostic)
 
+    if extracted:
+        extracted.append(_perspective_field(case_id, extracted))
     _documents[case_id] = documents
     _fields[case_id] = extracted
     detect_field_conflicts(case_id)
@@ -243,6 +260,27 @@ def confirm_fields(case_id: str) -> dict:
     if missing:
         raise ValueError(f"Missing confirmed critical fields: {', '.join(missing)}")
 
+    perspective_value = ""
+    perspective_source = str(base_case.get("perspective_source") or "DEFAULT")
+    perspective_basis = str(base_case.get("perspective_basis") or "")
+    perspective_field = next(
+        (field for field in fields if field["field_name"] == "trade_perspective" and field["review_status"] in {"APPROVED", "EDITED"}),
+        None,
+    )
+    if perspective_field:
+        raw = perspective_field["edited_value"] if perspective_field["review_status"] == "EDITED" else perspective_field["value"]
+        candidate = str(raw or "").strip().upper()
+        if candidate in {"SELLER", "BUYER"}:
+            perspective_value = candidate
+            if perspective_field["review_status"] == "EDITED":
+                perspective_source = "MANUAL"
+                perspective_basis = "Edited during document review"
+            else:
+                perspective_source = str(perspective_field.get("detection_source") or "AUTO_DETECTED")
+                perspective_basis = str(perspective_field.get("detection_basis") or "")
+    if not perspective_value:
+        perspective_value = str(base_case.get("trade_perspective") or "SELLER")
+
     confirmed = {
         "case_id": case_id,
         "vessel": str(facts["vessel"]),
@@ -258,7 +296,9 @@ def confirm_fields(case_id: str) -> dict:
         "payment_method": str(facts["payment_method"]),
         "incoterm": str(facts["incoterm"]),
         "incoterm_named_place": str(facts.get("incoterm_named_place") or ""),
-        "trade_perspective": str(facts.get("trade_perspective") or base_case.get("trade_perspective") or "SELLER"),
+        "trade_perspective": perspective_value,
+        "perspective_source": perspective_source,
+        "perspective_basis": perspective_basis,
         "amount": _float_or_int(facts["amount"]),
         "currency": str(facts["currency"]),
         "booking_reference": facts.get("booking_reference"),
@@ -279,6 +319,20 @@ def get_confirmed_facts(case_id: str) -> dict:
     if case_id not in _confirmed_facts:
         raise KeyError(case_id)
     return copy.deepcopy(_confirmed_facts[case_id])
+
+
+def sync_confirmed_perspective(case_id: str, perspective: str, source: str, basis: str) -> None:
+    if case_id not in _confirmed_facts:
+        stored = load_item("confirmed_facts", case_id)
+        if stored:
+            _confirmed_facts[case_id] = stored
+    if case_id not in _confirmed_facts:
+        return
+    confirmed = _confirmed_facts[case_id]
+    confirmed["trade_perspective"] = perspective
+    confirmed["perspective_source"] = source
+    confirmed["perspective_basis"] = basis
+    save_item("confirmed_facts", case_id, confirmed, case_id)
 
 
 def get_best_case_facts(case_id: str) -> dict:
@@ -492,7 +546,8 @@ def extract_text_from_file(path: Path, filename: str) -> str:
     if suffix == ".docx":
         with zipfile.ZipFile(path) as archive:
             xml_text = archive.read("word/document.xml").decode("utf-8", errors="ignore")
-        return re.sub(r"<[^>]+>", " ", xml_text)
+        xml_text = re.sub(r"</w:p>", "\n", xml_text)
+        return html.unescape(re.sub(r"<[^>]+>", " ", xml_text))
     if suffix == ".pdf":
         text = extract_pdf_text(path)
         if len(text.strip()) < 20:
@@ -549,6 +604,8 @@ def extract_fields_from_document(case_id: str, document: dict, raw_text: str, di
             "etd",
             "eta",
             "booking_reference",
+            "shipper",
+            "consignee",
         ]
     else:
         field_names = [
@@ -672,6 +729,10 @@ def _llm_extract_fields(document: dict, raw_text: str) -> list[dict] | None:
         "latest_shipment_date",
         "lc_expiry_date",
         "presentation_period_days",
+        "applicant",
+        "beneficiary",
+        "shipper",
+        "consignee",
     ]
     prompt = (
         "Extract trade document fields as strict JSON. Return only an object with a fields array. "
@@ -729,14 +790,14 @@ def _extract_value(field_name: str, raw_text: str, document: dict):
         "port_of_loading": r"(?:port of loading|pol)[:\s]+([A-Za-z ]+)",
         "port_of_discharge": r"(?:port of discharge|pod)[:\s]+([A-Za-z ]+)",
         "final_destination": r"final destination[:\s]+([A-Za-z ]+)",
-        "etd": r"etd[:\s]+([0-9]{4}-[0-9]{2}-[0-9]{2})",
-        "eta": r"eta[:\s]+([0-9]{4}-[0-9]{2}-[0-9]{2})",
+        "etd": r"\betd\)?[^0-9]{0,24}?([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2} [A-Za-z]+ [0-9]{4})",
+        "eta": r"\beta\)?[^0-9]{0,24}?([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2} [A-Za-z]+ [0-9]{4})",
         "latest_shipment_date": r"latest (?:date of )?shipment[:\s]+([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2} [A-Za-z]+ [0-9]{4})",
         "lc_expiry_date": r"(?:lc expiry|expiry date)[:\s]+([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2} [A-Za-z]+ [0-9]{4})",
         "presentation_period_days": r"presentation period[:\s]+([0-9]+)",
-        "payment_method": r"payment(?: method)?[:\s]+([A-Za-z ]+)",
-        "incoterm": r"(?:incoterm[:\s]+)?\b(CIF)\b",
-        "incoterm_named_place": r"(?:incoterm[: \t]+)?CIF[ \t]+([A-Za-z][A-Za-z .'-]+)",
+        "payment_method": r"payment(?: method| terms)?[:\s]+([A-Za-z ]+)",
+        "incoterm": r"(?:incoterm[:\s]+)?\b(CIF|CFR|CIP|CPT|FOB|FCA|FAS|EXW|DAP|DPU|DDP)\b",
+        "incoterm_named_place": r"(?:incoterm[: \t]+)?(?:CIF|CFR|CIP|CPT|FOB|FCA|FAS|EXW|DAP|DPU|DDP)[ \t]+([A-Za-z][A-Za-z .'-]+)",
         "amount": r"amount[:\s]+(?:USD|US\$|\$)?\s*([0-9,]+(?:\.[0-9]+)?)",
         "currency": r"currency[:\s]+([A-Z]{3})",
         "booking_reference": r"booking reference[:\s]+([A-Z0-9-]+)",
@@ -749,6 +810,8 @@ def _extract_value(field_name: str, raw_text: str, document: dict):
         "quantity_unit": r"quantity[:\s]+[0-9,]+(?:\.[0-9]+)?\s*([A-Za-z][A-Za-z .,&-]*)",
         "buyer": r"buyer[:\s]+([A-Za-z0-9 .,&-]+)",
         "seller": r"seller[:\s]+([A-Za-z0-9 .,&-]+)",
+        "shipper": r"shipper[:\s]+([A-Za-z0-9 .,&-]+)",
+        "consignee": r"consignee[:\s]+([A-Za-z0-9 .,&-]+)",
     }
     match = re.search(patterns.get(field_name, r"$^"), raw_text, re.IGNORECASE)
     if match:
@@ -817,6 +880,30 @@ def _make_field(case_id: str, document: dict, field_name: str, value, raw_text: 
         "requires_confirmation": field_name in CRITICAL_FIELDS,
         "review_status": "PENDING",
         "edited_value": None,
+    }
+    _field_counter += 1
+    return field
+
+
+def _perspective_field(case_id: str, extracted: list[dict]) -> dict:
+    global _field_counter
+    detection = detect_trade_perspective(extracted)
+    field = {
+        "field_id": f"FIELD-{_field_counter:03d}",
+        "case_id": case_id,
+        "field_name": "trade_perspective",
+        "display_name": "Trade Perspective",
+        "value": detection["perspective"],
+        "source_document_id": detection.get("source_document_id"),
+        "source_document_name": detection.get("source_document_name"),
+        "evidence_text": detection["evidence_text"],
+        "page_number": 1,
+        "confidence": detection["confidence"],
+        "requires_confirmation": True,
+        "review_status": "PENDING",
+        "edited_value": None,
+        "detection_source": detection["source"],
+        "detection_basis": detection["basis"],
     }
     _field_counter += 1
     return field

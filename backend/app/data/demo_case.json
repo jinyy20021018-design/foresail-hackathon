@@ -16,5 +16,9 @@
   "amount": 186000,
   "currency": "USD",
   "lc_expiry_date": "2026-12-21",
-  "presentation_period_days": 21
+  "presentation_period_days": 21,
+  "etd_offset_days": 6,
+  "latest_shipment_offset_days": 11,
+  "eta_offset_days": 19,
+  "lc_expiry_offset_days": 32
 }

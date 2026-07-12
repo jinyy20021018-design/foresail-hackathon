@@ -47,7 +47,7 @@ class ExternalEventIngestionTest(unittest.TestCase):
         case_id = self.create_confirmed_case()
         result = fetch_events_for_case(case_id, get_watch_profile(case_id))
         self.assertEqual(result["mode"], "MOCK")
-        self.assertEqual(result["connectors_called"], ["mock_event_connector"])
+        self.assertEqual(result["connectors_called"], ["mock_event_connector", "curated_event_connector"])
         self.assertGreater(result["events_deduped_count"], 0)
 
     def test_real_mode_does_not_call_mock_connector(self) -> None:
@@ -57,6 +57,7 @@ class ExternalEventIngestionTest(unittest.TestCase):
         self.assertEqual(
             result["connectors_called"],
             [
+                "curated_event_connector",
                 "gdelt_event_connector",
                 "real_search_event_connector",
                 "open_meteo_weather_connector",
@@ -65,7 +66,7 @@ class ExternalEventIngestionTest(unittest.TestCase):
                 "policy_registry_connector",
             ],
         )
-        self.assertEqual(result["events_deduped_count"], 0)
+        self.assertEqual(result["events_deduped_count"], 5)
 
     def test_hybrid_mode_calls_mock_and_real_connectors(self) -> None:
         os.environ["EVENT_SOURCE_MODE"] = "HYBRID"
@@ -75,6 +76,7 @@ class ExternalEventIngestionTest(unittest.TestCase):
             result["connectors_called"],
             [
                 "mock_event_connector",
+                "curated_event_connector",
                 "gdelt_event_connector",
                 "real_search_event_connector",
                 "open_meteo_weather_connector",
@@ -90,7 +92,7 @@ class ExternalEventIngestionTest(unittest.TestCase):
         case_id = self.create_confirmed_case()
         result = fetch_events_for_case(case_id, get_watch_profile(case_id))
         self.assertEqual(result["connector_errors"], [])
-        self.assertEqual(result["events_raw_count"], 0)
+        self.assertEqual(result["events_raw_count"], 5)
         self.assertIn("REAL_MODE_NO_CONNECTORS_ENABLED", result["warnings"])
 
     def test_connector_failure_does_not_fail_ingestion(self) -> None:

@@ -22,6 +22,7 @@ def _load_env_file() -> None:
 _load_env_file()
 
 from app.api.cases import router as cases_router
+from app.api.company import router as company_router
 from app.api.corridors import router as corridors_router
 from app.api.documents import router as documents_router
 from app.api.events import router as events_router
@@ -32,13 +33,14 @@ app = FastAPI(title="ForeSail")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(cases_router)
+app.include_router(company_router)
 app.include_router(corridors_router)
 app.include_router(documents_router)
 app.include_router(events_router)

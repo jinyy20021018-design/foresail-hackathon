@@ -1,0 +1,10 @@
+LC Number: LC-002
+Issuing Bank: Bank of China Shanghai
+Applicant: Shanghai Solaris PV Co., Ltd.
+Beneficiary: Chittagong Alloy Works Ltd.
+Amount: USD 152000
+Currency: USD
+Latest Shipment: 2026-11-28
+LC Expiry: 2026-12-20
+Presentation Period: 21
+Payment Method: LC at sight

@@ -169,7 +169,12 @@ export function ExtractedFieldsReview({ caseId, fields, onFieldsChange, onDocume
                         <tr className={evidence?.field_name === field.field_name ? "selected-row" : undefined}>
                           <td><strong>{field.display_name}</strong><button className="evidence-link" type="button" aria-expanded={evidence?.field_name === field.field_name} onClick={() => void selectField(field)}>{evidenceLoadingId === field.field_id ? "Loading…" : evidence?.field_name === field.field_name ? "Hide details" : "View details"}</button></td>
                           <td>{editingFieldId === field.field_id
-                            ? <input className="inline-edit-input" value={editValue} onChange={(event) => setEditValue(event.target.value)} aria-label={`Edit ${field.display_name}`} autoFocus />
+                            ? (field.field_name === "trade_perspective"
+                              ? <select className="inline-edit-input" value={editValue} onChange={(event) => setEditValue(event.target.value)} aria-label={`Edit ${field.display_name}`} autoFocus>
+                                  <option value="SELLER">SELLER</option>
+                                  <option value="BUYER">BUYER</option>
+                                </select>
+                              : <input className="inline-edit-input" value={editValue} onChange={(event) => setEditValue(event.target.value)} aria-label={`Edit ${field.display_name}`} autoFocus />)
                             : <span className="extracted-value">{String(field.edited_value ?? field.value ?? "Not found")}</span>}</td>
                           <td><Confidence value={field.confidence} /></td>
                           <td><ReviewState status={field.review_status} /></td>

@@ -1,0 +1,118 @@
+[
+  {
+    "event_id": "EVT-201",
+    "title": "Strait of Hormuz transits suspended; GULF HORIZON unable to reach Jebel Ali",
+    "type": "VESSEL_DELAY",
+    "event_time": "2026-07-11",
+    "event_time_offset_days": -1,
+    "affected_vessel": "GULF HORIZON",
+    "affected_ports": [
+      "Jebel Ali"
+    ],
+    "affected_region": "Strait of Hormuz",
+    "severity": "Critical",
+    "confidence": 0.92,
+    "source": "maritime_news",
+    "old_eta": "2026-08-02",
+    "old_eta_offset_days": 21,
+    "new_eta": "2026-08-23",
+    "new_eta_offset_days": 42,
+    "delay_days": 21,
+    "impact": "Carriers refusing Strait of Hormuz transits after the 2026 Gulf crisis. Jebel-Ali-bound vessels are diverting or sheltering; goods may be discharged at Khor Fakkan outside the Gulf instead of the contracted port of discharge (Jebel Ali). ETA blown; CIF delivery to named port at risk.",
+    "real_basis": "Strait of Hormuz Crisis 2026: ~138 container ships (~470k TEU) trapped in the Persian Gulf per Alphaliner; carriers will not resume Gulf transits until safe; Iran charging USD 1M+ per vessel; elevated through at least Q3 2026.",
+    "sources": [
+      "https://www.seavantage.com/blog/strait-of-hormuz-crisis-2026-shipping-disruption-timeline",
+      "https://www.flexport.com/blog/middle-east-escalation-disrupts-global-ocean-and-air-freight-networks/",
+      "https://unctad.org/news/unprecedented-shipping-disruptions-raise-risk-global-trade-unctad-warns"
+    ],
+    "expected_classification": "Relevant"
+  },
+  {
+    "event_id": "EVT-202",
+    "title": "Jebel Ali / Gulf hub congestion as vessels shelter in port",
+    "type": "PORT_CONGESTION",
+    "event_time": "2026-07-10",
+    "event_time_offset_days": -2,
+    "affected_vessel": null,
+    "affected_ports": [
+      "Jebel Ali"
+    ],
+    "affected_region": "Persian Gulf",
+    "severity": "High",
+    "confidence": 0.85,
+    "source": "port_news",
+    "impact": "Vessels sheltering at Jebel Ali, Abu Dhabi and Doha; berth and discharge delays expected at the port of discharge.",
+    "real_basis": "Diverted and sheltering vessels competing for berth space at Gulf hubs; transshipment congestion at Colombo, Singapore and Nhava Sheva.",
+    "sources": [
+      "https://www.seavantage.com/blog/strait-of-hormuz-crisis-2026-shipping-disruption-timeline",
+      "https://www.flexport.com/blog/middle-east-escalation-disrupts-global-ocean-and-air-freight-networks/",
+      "https://unctad.org/news/unprecedented-shipping-disruptions-raise-risk-global-trade-unctad-warns"
+    ],
+    "expected_classification": "Relevant"
+  },
+  {
+    "event_id": "EVT-203",
+    "title": "War-risk surcharge and Hormuz transit toll raise Gulf shipping cost",
+    "type": "SECURITY",
+    "event_time": "2026-07-09",
+    "event_time_offset_days": -3,
+    "affected_vessel": null,
+    "affected_ports": [
+      "Jebel Ali"
+    ],
+    "affected_region": "Persian Gulf",
+    "severity": "High",
+    "confidence": 0.8,
+    "source": "security_news",
+    "impact": "Marine war-risk premiums for Gulf transit have spiked and carriers add war-risk surcharges; Iran charging USD 1M+ per vessel. Under CIF the seller pays freight and insurance to the port of discharge, so these costs and any coverage gap fall on the seller.",
+    "real_basis": "2026-02-28 US/Israel strikes on Iran (Operation Epic Fury); ceasefire 2026-04-07 but Gulf transits not resumed; war-risk premiums elevated through Q3 2026.",
+    "sources": [
+      "https://www.seavantage.com/blog/strait-of-hormuz-crisis-2026-shipping-disruption-timeline",
+      "https://www.flexport.com/blog/middle-east-escalation-disrupts-global-ocean-and-air-freight-networks/",
+      "https://unctad.org/news/unprecedented-shipping-disruptions-raise-risk-global-trade-unctad-warns"
+    ],
+    "expected_classification": "Watch"
+  },
+  {
+    "event_id": "EVT-301",
+    "title": "Houthi drone and missile attacks force Red Sea convoy diversion around Cape of Good Hope",
+    "type": "SECURITY",
+    "event_time": "2026-01-01",
+    "event_time_offset_days": -2,
+    "affected_vessel": null,
+    "affected_ports": [],
+    "affected_region": "Red Sea",
+    "severity": "Critical",
+    "confidence": 0.9,
+    "source": "security_news",
+    "impact": "Carriers are diverting Asia-Europe services away from the Red Sea and Bab el-Mandeb around the Cape of Good Hope, adding 10-14 days and war-risk surcharges. Under CIF the seller pays freight and insurance to the port of discharge, so the diversion cost and any war-risk coverage gap fall on the seller.",
+    "real_basis": "Since late 2023 Houthi attacks in the Red Sea / Bab el-Mandeb have pushed most container carriers onto the longer Cape route; Suez transits remain far below normal into 2026.",
+    "sources": [
+      "https://www.flexport.com/blog/middle-east-escalation-disrupts-global-ocean-and-air-freight-networks/",
+      "https://unctad.org/news/red-sea-black-sea-and-panama-canal-unctad-raises-alarm-global-trade-disruptions"
+    ],
+    "expected_classification": "Relevant"
+  },
+  {
+    "event_id": "EVT-302",
+    "title": "Typhoon forces Shanghai port closure and berth congestion at Yangshan",
+    "type": "PORT_DISRUPTION",
+    "event_time": "2026-01-01",
+    "event_time_offset_days": -1,
+    "affected_vessel": null,
+    "affected_ports": [
+      "Shanghai"
+    ],
+    "affected_region": "East China Sea",
+    "severity": "High",
+    "confidence": 0.88,
+    "source": "port_news",
+    "impact": "A typhoon system in the East China Sea has closed Shanghai and Ningbo terminals and suspended pilotage; sailings from the port of loading are delayed, threatening the latest shipment date. Under CIF a delay before loading is the seller's risk and can breach the LC latest shipment date.",
+    "real_basis": "East China Sea typhoon season peaks Jul-Sep; Shanghai/Ningbo routinely suspend operations and pilotage for 24-72h during landfall windows.",
+    "sources": [
+      "https://www.tropicaltidbits.com",
+      "https://www.jma.go.jp/bosai/map.html"
+    ],
+    "expected_classification": "Relevant"
+  }
+]

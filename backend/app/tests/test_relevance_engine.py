@@ -13,11 +13,12 @@ class RelevanceEngineTest(unittest.TestCase):
         self.results = {result["event_id"]: result for result in classify_events(self.case, self.events)}
 
     def test_weather_at_loading_port_inside_shipment_window_escalates_to_relevant(self) -> None:
+        in_window = self.case["etd"]  # ETD sits inside the shipment window
         event = {
             "event_id": "EVT-WX-001",
             "title": "Severe weather near Shanghai",
             "type": "WEATHER",
-            "event_time": "2026-11-24",
+            "event_time": in_window,
             "affected_ports": ["Shanghai"],
             "affected_region": "Shanghai",
             "severity": "HIGH",

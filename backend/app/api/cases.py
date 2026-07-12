@@ -4,8 +4,10 @@ from pydantic import BaseModel
 
 from app.services.case_service import (
     continue_monitoring,
+    create_buyer_demo_case,
     create_case,
     create_demo_case,
+    create_hormuz_demo_case,
     get_actions,
     get_case,
     get_relevance_results,
@@ -16,6 +18,7 @@ from app.services.case_service import (
     update_case_details,
 )
 from app.services.case_library_service import list_case_summaries
+from app.services.demo_seed_service import seed_board
 from app.services.document_service import confirm_fields, seed_demo_documents
 from app.services.incoterm_rule_service import resolve_cif_responsibility
 from app.services.perspective_service import (
@@ -63,6 +66,11 @@ def list_cases() -> dict:
     return {"cases": list_case_summaries()}
 
 
+@router.post("/seed")
+def seed_monitoring_board(force: bool = False) -> dict:
+    return seed_board(force=force)
+
+
 @router.post("")
 def create_new_case(payload: CreateCasePayload) -> dict:
     return create_case(payload.model_dump(exclude_none=True))
@@ -93,6 +101,20 @@ def create_clean_demo() -> dict:
 def create_conflict_demo() -> dict:
     case = create_demo_case()
     seed_demo_documents(case["case_id"], conflict=True)
+    return case
+
+
+@router.post("/demo/buyer")
+def create_buyer_demo() -> dict:
+    case = create_buyer_demo_case()
+    seed_demo_documents(case["case_id"], buyer=True)
+    return case
+
+
+@router.post("/demo/hormuz")
+def create_hormuz_demo() -> dict:
+    case = create_hormuz_demo_case()
+    seed_demo_documents(case["case_id"], hormuz=True)
     return case
 
 

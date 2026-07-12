@@ -49,6 +49,29 @@
   --shadow: 0 2px 10px rgba(20, 20, 20, .05);
   --shadow-surface: 0 2px 10px rgba(20, 20, 20, .05);
   --font-ui: var(--sans);
+
+  /* ---- chart / data-viz tokens (Freight Studio, low-saturation) ---- */
+  /* status scale: shared by corridors, severity, urgency */
+  --viz-red: #C4747C;
+  --viz-red-fill: #EBC7CB;
+  --viz-amber: #C69D66;
+  --viz-amber-fill: #E9D6B8;
+  --viz-green: #67A08E;
+  --viz-green-fill: #C3DBD1;
+  --viz-blue: #5F7FD0;
+  --viz-blue-fill: #C7D3EE;
+  /* waterfall deltas: positive lifts score, negative cuts it */
+  --viz-pos: #67A08E;
+  --viz-pos-soft: #E8F0EC;
+  --viz-neg: #C4747C;
+  --viz-neg-soft: #F3EBED;
+  --viz-neutral: #A5ACB9;
+  /* track / grid neutrals */
+  --viz-track: #ECEEF3;
+  --viz-grid: #E4E8EF;
+  --viz-ink: #2C323B;
+  --viz-muted: #747B88;
+  --viz-faint: #A5ACB9;
 }
 
 body { font-family: var(--sans); background: var(--bg); color: var(--text); }
@@ -191,6 +214,29 @@ body { background: #C7CBD2; padding: 22px; }
 }
 .fsnav-icon svg { width: 15px; height: 15px; stroke: var(--ink); fill: none; stroke-width: 2; }
 .fsnav-icon.notif span { width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }
+.fsnav-settings { position: relative; }
+.fsnav-settings-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: 280px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 12px 32px rgba(20, 20, 20, .14);
+}
+.fsnav-settings-panel .panel-kicker {
+  display: block;
+  font: 600 10px var(--sans);
+  color: var(--faint);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.fsnav-settings-panel strong { display: block; font: 700 13px var(--sans); color: var(--ink); }
+.fsnav-settings-panel .panel-aliases { margin: 6px 0 0; font: 600 11px var(--sans); color: var(--muted); }
+.fsnav-settings-panel .panel-note { margin: 8px 0 0; font: 500 11px var(--sans); color: var(--faint); line-height: 1.4; }
 .fsnav-lang {
   display: flex; align-items: center; gap: 8px;
   border: 0; border-radius: var(--pill);
@@ -379,3 +425,35 @@ body { background: #C7CBD2; padding: 22px; }
 }
 .fs2-overview .haz.black .haz-desc { color: #AEB4BE; }
 .fs2-overview .haz .foot .who { margin-left: auto; }
+
+/* hazard card: incoterm attribution note under the description */
+.fs2-overview .haz-attr {
+  margin: 4px 0 0;
+  font: 600 10.5px var(--sans);
+  color: var(--faint);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fs2-overview .haz.black .haz-attr { color: #9B9B9B; }
+
+/* seat badge: detection basis under the Status/Seat row */
+.fs2-overview .seat-basis {
+  margin: -4px 4px 9px;
+  font: 600 10.5px var(--sans);
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* seat confirmation card (Documents tab) */
+.seat-confirm { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.seat-confirm.confirmed { gap: 12px; }
+.seat-confirm-copy { display: flex; flex-direction: column; gap: 3px; }
+.seat-confirm-copy strong { font: 700 15px var(--sans); color: var(--ink); }
+.seat-confirm-copy .seat-basis { margin: 2px 0 0; font: 600 12px var(--sans); color: var(--faint); }
+.seat-confirm-q { margin: 5px 0 0; font: 600 13px var(--sans); color: var(--muted); }
+.seat-confirm-actions { display: flex; gap: 10px; flex-shrink: 0; }

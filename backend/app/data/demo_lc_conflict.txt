@@ -1,7 +1,7 @@
 LC Number: LC-002
 Issuing Bank: Demo Bank
 Applicant: Demo Buyer
-Beneficiary: Demo Seller
+Beneficiary: Shanghai Solaris PV Co., Ltd.
 Amount: USD 1200000
 Currency: USD
 Latest Shipment: 2026-11-30
