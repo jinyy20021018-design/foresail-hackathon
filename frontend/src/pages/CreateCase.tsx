@@ -4,6 +4,7 @@ import {
   type AutofillFieldSource,
   type CaseAutofillResult,
   type CreateCasePayload,
+  type ExtractedField,
   type FieldConflict,
   type TradeCase,
 } from "../api/client";
@@ -62,27 +63,78 @@ const traceLabels = [
   "Ready for human review",
 ];
 
+const confirmRequiredFields = [
+  "vessel",
+  "port_of_loading",
+  "port_of_discharge",
+  "etd",
+  "eta",
+  "latest_shipment_date",
+  "payment_method",
+  "incoterm",
+  "amount",
+  "currency",
+];
+
+const confirmFieldLabels: Record<string, string> = {
+  vessel: "Vessel",
+  port_of_loading: "Port of Loading",
+  port_of_discharge: "Port of Discharge",
+  etd: "ETD",
+  eta: "ETA",
+  latest_shipment_date: "Latest Shipment Date",
+  payment_method: "Payment Method",
+  incoterm: "Incoterm",
+  amount: "Amount",
+  currency: "Currency",
+};
+
 export function CreateCase({ onCaseCreated, onCancel }: Props) {
   const [form, setForm] = useState<CreateCasePayload>(initialForm);
   const [slots, setSlots] = useState<DocumentSlot[]>(initialSlots);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [autofill, setAutofill] = useState<CaseAutofillResult | null>(null);
+  const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([]);
   const [selectedEvidence, setSelectedEvidence] = useState<{ field: string; source: AutofillFieldSource } | null>(null);
   const [editedFields, setEditedFields] = useState<Set<string>>(new Set());
   const [trace, setTrace] = useState<TraceStep[]>(traceLabels.map((label) => ({ label, status: "Pending" })));
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasConfirmedFacts, setHasConfirmedFacts] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isRunningAgent, setIsRunningAgent] = useState(false);
+  const [agentRunId, setAgentRunId] = useState<string | null>(null);
 
   const selectedFiles = useMemo(() => slots.filter((slot) => slot.file), [slots]);
   const hasExtracted = Boolean(autofill);
+  const highOpenConflicts = useMemo(
+    () => (autofill?.conflicts ?? []).filter((conflict) => conflict.severity === "High" && conflict.status === "OPEN"),
+    [autofill]
+  );
+  const extractionBlocksConfirmation = Boolean(
+    autofill?.status && ["FAILED", "UNSUPPORTED", "NEEDS_VISION"].includes(autofill.status)
+  );
+  const missingConfirmFields = useMemo(() => {
+    const extractedValues = new Map(
+      extractedFields.map((field) => [field.field_name, field.edited_value ?? field.value])
+    );
+    return confirmRequiredFields.filter((field) => {
+      const value = extractedValues.get(field);
+      return value === undefined || value === null || value === "";
+    });
+  }, [extractedFields]);
 
   function updateField(field: keyof CreateCasePayload, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
     setEditedFields((current) => new Set([...current, field]));
+    setHasConfirmedFacts(false);
+    setAgentRunId(null);
   }
 
   function updateSlotFile(key: string, file: File | null) {
     setSlots((current) => current.map((slot) => slot.key === key ? { ...slot, file, status: file ? "Selected" : "Pending" } : slot));
+    setHasConfirmedFacts(false);
+    setAgentRunId(null);
   }
 
   function setTraceStatus(label: string, status: TraceStep["status"]) {
@@ -94,7 +146,10 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
     setError(null);
     setIsLoading(true);
     setAutofill(null);
+    setExtractedFields([]);
     setSelectedEvidence(null);
+    setHasConfirmedFacts(false);
+    setAgentRunId(null);
     setTrace(traceLabels.map((label) => ({ label, status: "Pending" })));
     try {
       setTraceStatus("Create draft case", "Running");
@@ -122,6 +177,7 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
           diagnosticMessage ?? "No reliable fields were extracted from the uploaded documents. Check file format and try again."
         );
       }
+      setExtractedFields(extractResult.extracted_fields ?? []);
       setTraceStatus("Run LLM-assisted extraction", "Completed");
       setTraceStatus("Attach evidence snippets", "Completed");
       setTraceStatus("Detect field conflicts", "Completed");
@@ -172,6 +228,47 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
     }
   }
 
+  async function confirmFromCreatePage() {
+    if (!caseId || !autofill || highOpenConflicts.length > 0 || extractionBlocksConfirmation || missingConfirmFields.length > 0) return;
+    setError(null);
+    setIsConfirming(true);
+    try {
+      await api.updateCaseDetails(caseId, cleanPayload(form));
+      if (autofill.extra_facts && Object.keys(autofill.extra_facts).length > 0) {
+        await api.applyExtractedFacts(caseId, autofill.extra_facts);
+      }
+      const extractedFields = await api.getExtractedFields(caseId);
+      await Promise.all(
+        extractedFields
+          .filter((field) => !["APPROVED", "EDITED", "REJECTED"].includes(field.review_status.toUpperCase()))
+          .map((field) => api.approveField(caseId, field.field_id))
+      );
+      await api.confirmFields(caseId);
+      setExtractedFields(await api.getExtractedFields(caseId));
+      setHasConfirmedFacts(true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Confirm fields failed.");
+    } finally {
+      setIsConfirming(false);
+    }
+  }
+
+  async function runAgentFromCreatePage() {
+    if (!caseId || !hasConfirmedFacts) return;
+    setError(null);
+    setIsRunningAgent(true);
+    try {
+      const result = await api.runAgentMonitoringCycle(caseId);
+      setAgentRunId(result.agent_run_id);
+      await api.generateActionSet(caseId);
+      onCaseCreated(result.case, `/cases/${result.case.case_id}?tab=actions`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Agent run failed.");
+    } finally {
+      setIsRunningAgent(false);
+    }
+  }
+
   async function createBlankCase() {
     setError(null);
     setIsLoading(true);
@@ -197,9 +294,9 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
       </header>
 
       <nav className="create-progress" aria-label="Case creation progress">
-        <div className="active"><span>1</span><div><strong>Upload documents</strong><small>Select trade records</small></div></div>
-        <div className={autofill ? "complete" : ""}><span>2</span><div><strong>Extract facts</strong><small>Match values and evidence</small></div></div>
-        <div><span>3</span><div><strong>Review case</strong><small>Resolve exceptions</small></div></div>
+        <div className={autofill ? "complete" : "active"}><span>1</span><div><strong>Upload documents</strong><small>Select trade records</small></div></div>
+        <div className={hasConfirmedFacts ? "complete" : autofill ? "active" : ""}><span>2</span><div><strong>Extract facts</strong><small>Match values and evidence</small></div></div>
+        <div className={hasConfirmedFacts ? "complete" : autofill ? "active" : ""}><span>3</span><div><strong>Confirm & run agent</strong><small>Start monitoring</small></div></div>
       </nav>
 
       {error && <div className="error">{error}</div>}
@@ -274,13 +371,45 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
 
       {(autofill || caseId) && <section className="panel full-width">
         <div className="panel-heading">
-          <h2>4. Review & Continue</h2>
-          <span className="tag">Human review required</span>
+          <h2>3. Confirm & Run Agent</h2>
+          <span className={hasConfirmedFacts ? "badge status-active" : "tag"}>{hasConfirmedFacts ? "Confirmed facts" : "Ready for confirmation"}</span>
         </div>
-        <p className="subtle">Auto-filled fields are draft extracted facts, not confirmed facts. Continue to review evidence, resolve conflicts, and confirm case facts in the Case Workspace.</p>
-        <div className="form-actions">
-          <button className="primary-action" type="button" onClick={continueToReview} disabled={isLoading}>
-            {hasExtracted ? "Continue to Review" : "Create Case and Review"}
+        <ConfirmRunSummary
+          autofill={autofill}
+          hasConfirmedFacts={hasConfirmedFacts}
+          highOpenConflictCount={highOpenConflicts.length}
+          extractionBlocksConfirmation={extractionBlocksConfirmation}
+          missingConfirmFieldCount={missingConfirmFields.length}
+          agentRunId={agentRunId}
+        />
+        <ConfirmFieldsTable fields={extractedFields} hasConfirmedFacts={hasConfirmedFacts} />
+        {missingConfirmFields.length > 0 && (
+          <div className="warning-banner">
+            Confirm Fields needs: {missingConfirmFields.map((field) => confirmFieldLabels[field] ?? field).join(", ")}. Upload the missing document(s), usually Booking Confirmation and Letter of Credit, then extract again.
+          </div>
+        )}
+        {highOpenConflicts.length > 0 && (
+          <div className="warning-banner">Resolve high-severity field conflicts before confirming case facts.</div>
+        )}
+        <div className="form-actions confirm-run-actions">
+          <button
+            className="primary-action"
+            type="button"
+            onClick={confirmFromCreatePage}
+            disabled={!autofill || !caseId || highOpenConflicts.length > 0 || extractionBlocksConfirmation || missingConfirmFields.length > 0 || hasConfirmedFacts || isLoading || isConfirming || isRunningAgent}
+          >
+            {isConfirming ? "Confirming..." : hasConfirmedFacts ? "Fields Confirmed" : "Confirm Fields"}
+          </button>
+          <button
+            className="primary-action"
+            type="button"
+            onClick={runAgentFromCreatePage}
+            disabled={!caseId || !hasConfirmedFacts || isLoading || isConfirming || isRunningAgent}
+          >
+            {isRunningAgent ? "Agent Running..." : "Run Agent Monitoring Cycle"}
+          </button>
+          <button className="secondary-action" type="button" onClick={continueToReview} disabled={isLoading || isConfirming || isRunningAgent}>
+            {hasExtracted ? "Open Workspace Review" : "Create Case and Review"}
           </button>
           <button className="secondary-action" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
         </div>
@@ -416,6 +545,114 @@ function ExtractedFactsCard({ result, onViewEvidence }: { result: CaseAutofillRe
         ))}
       </div>
     </section>
+  );
+}
+
+function ConfirmRunSummary({
+  autofill,
+  hasConfirmedFacts,
+  highOpenConflictCount,
+  extractionBlocksConfirmation,
+  missingConfirmFieldCount,
+  agentRunId,
+}: {
+  autofill: CaseAutofillResult | null;
+  hasConfirmedFacts: boolean;
+  highOpenConflictCount: number;
+  extractionBlocksConfirmation: boolean;
+  missingConfirmFieldCount: number;
+  agentRunId: string | null;
+}) {
+  const status = autofill?.status ?? "NOT_EXTRACTED";
+  const confirmedReady = Boolean(autofill && highOpenConflictCount === 0 && !extractionBlocksConfirmation && missingConfirmFieldCount === 0);
+  return (
+    <div className="confirm-run-summary">
+      <div>
+        <span className="section-kicker">Extraction status</span>
+        <strong>{status}</strong>
+        <small>{autofill ? "Document facts are available for confirmation." : "Extract case details before confirming."}</small>
+      </div>
+      <div>
+        <span className="section-kicker">Conflicts</span>
+        <strong className={highOpenConflictCount > 0 ? "warning-text" : "success-text"}>{highOpenConflictCount}</strong>
+        <small>{highOpenConflictCount > 0 ? "High severity open conflicts" : "No high severity conflicts"}</small>
+      </div>
+      <div>
+        <span className="section-kicker">Case facts</span>
+        <strong className={hasConfirmedFacts ? "success-text" : confirmedReady ? "warning-text" : undefined}>
+          {hasConfirmedFacts ? "Confirmed" : confirmedReady ? "Ready" : "Blocked"}
+        </strong>
+        <small>
+          {hasConfirmedFacts
+            ? "Agent can run from this page."
+            : missingConfirmFieldCount > 0
+              ? `${missingConfirmFieldCount} required facts missing.`
+              : "Confirm fields to unlock monitoring."}
+        </small>
+      </div>
+      <div>
+        <span className="section-kicker">Agent run</span>
+        <strong>{agentRunId ?? "Not started"}</strong>
+        <small>{agentRunId ? "Monitoring cycle completed." : "Starts after case facts are confirmed."}</small>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmFieldsTable({ fields, hasConfirmedFacts }: { fields: ExtractedField[]; hasConfirmedFacts: boolean }) {
+  if (fields.length === 0) {
+    return (
+      <div className="confirm-fields-empty">
+        <strong>No extracted fields listed yet.</strong>
+        <span>Run extraction before confirming case facts.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="confirm-fields-list">
+      <div className="confirm-fields-list-heading">
+        <div>
+          <span className="section-kicker">Fields to confirm</span>
+          <strong>{fields.length} extracted fields</strong>
+        </div>
+        <span className={hasConfirmedFacts ? "badge status-active" : "tag"}>{hasConfirmedFacts ? "Confirmed" : "Pending confirm"}</span>
+      </div>
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Case fact</th>
+              <th>Extracted value</th>
+              <th>Confidence</th>
+              <th>Source</th>
+              <th>Review state</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fields.map((field) => (
+              <tr key={field.field_id}>
+                <td><strong>{field.display_name}</strong></td>
+                <td>{String(field.edited_value ?? field.value ?? "Not found")}</td>
+                <td>{Math.round(field.confidence * 100)}%</td>
+                <td>{field.source_document_name || "-"}</td>
+                <td><ReviewStateLabel status={hasConfirmedFacts ? "APPROVED" : field.review_status} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ReviewStateLabel({ status }: { status: string }) {
+  const normalized = status.toUpperCase();
+  const approved = normalized === "APPROVED" || normalized === "EDITED";
+  const rejected = normalized === "REJECTED";
+  return (
+    <span className={`review-state ${approved ? "approved" : rejected ? "rejected" : "pending"}`}>
+      <i />{approved ? "Confirmed" : rejected ? "Excluded" : "Needs review"}
+    </span>
   );
 }
 

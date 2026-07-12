@@ -98,6 +98,23 @@ input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var
 .document-status { display: inline-flex; align-items: center; gap: 5px; color: var(--faint); font-size: 10.5px; font-weight: 700; }.document-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }.document-status.selected, .document-status.uploaded { color: var(--blue); }.document-status.extracted { color: var(--green); }.document-status.failed { color: var(--red); }
 .create-upload-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 22px; background: var(--surface-soft); }
 .create-upload-footer > div { display: grid; gap: 2px; }.create-upload-footer strong { font-size: 11.5px; }.create-upload-footer span { color: var(--faint); font-size: 10.5px; }
+.confirm-run-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.confirm-run-summary > div { display: grid; gap: 4px; min-height: 94px; border-right: 1px solid var(--border); padding: 16px; }
+.confirm-run-summary > div:last-child { border-right: 0; }
+.confirm-run-summary strong { color: var(--text); font-size: 20px; font-weight: 750; overflow-wrap: anywhere; }
+.confirm-run-summary small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.confirm-fields-list { margin-top: 16px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.confirm-fields-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); padding: 14px 16px; }
+.confirm-fields-list-heading > div { display: grid; gap: 3px; }
+.confirm-fields-list-heading strong { font-size: 13px; }
+.confirm-fields-list .table-wrap { border: 0; border-radius: 0; }
+.confirm-fields-list .data-table th, .confirm-fields-list .data-table td { padding: 11px 14px; }
+.confirm-fields-list .review-state { white-space: nowrap; }
+.confirm-fields-empty { display: grid; gap: 3px; margin-top: 16px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 16px; background: var(--surface-soft); }
+.confirm-fields-empty strong { font-size: 12.5px; }
+.confirm-fields-empty span { color: var(--muted); font-size: 11px; }
+.confirm-run-actions { justify-content: flex-end; margin-top: 16px; }
+.confirm-run-actions .primary-action { min-width: 188px; }
 .create-advanced { padding: 0; }
 .create-advanced > summary { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; cursor: pointer; list-style: none; }.create-advanced > summary::-webkit-details-marker { display: none; }.create-advanced > summary > span:first-child { display: grid; gap: 2px; }.create-advanced summary strong { font-size: 12.5px; }.create-advanced summary small { color: var(--faint); font-size: 10.5px; }.create-advanced > div { border-top: 1px solid var(--border); padding: 16px 20px 20px; }
 
@@ -357,6 +374,9 @@ input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var
   .workspace-metric:nth-child(2) { border-right: 0; }
   .workspace-metric:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
   .summary-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .confirm-run-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .confirm-run-summary > div:nth-child(2) { border-right: 0; }
+  .confirm-run-summary > div:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
 }
 @media (max-width: 760px) {
   h1 { font-size: 24px; }
@@ -372,6 +392,11 @@ input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var
   .workspace-metric:last-child { border-bottom: 0; }
   .watch-profile-grid > div { grid-column: 1 !important; }
   .mini-metrics, .summary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .confirm-run-summary { grid-template-columns: 1fr; }
+  .confirm-run-summary > div { border-right: 0; border-bottom: 1px solid var(--border); }
+  .confirm-run-summary > div:last-child { border-bottom: 0; }
+  .confirm-run-actions { justify-content: stretch; }
+  .confirm-run-actions button { width: 100%; }
   .upload-row, .document-slot-grid { grid-template-columns: 1fr; }
   .tabs, .stepper { overscroll-behavior-x: contain; scrollbar-width: none; }
   .tabs::-webkit-scrollbar, .stepper::-webkit-scrollbar { display: none; }
