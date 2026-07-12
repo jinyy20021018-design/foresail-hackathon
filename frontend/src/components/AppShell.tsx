@@ -46,7 +46,13 @@ export function AppShell({ activePath, children, onNavigate }: Props) {
           </div>
           <div className="fsnav-util">
             <button className="fsnav-icon notif" type="button" aria-label="Notifications"><span /></button>
-            <button className="fsnav-icon" type="button" aria-label="Help">
+            <button
+              className="fsnav-icon"
+              type="button"
+              aria-label="Replay guided tour"
+              title="Replay guided tour"
+              onClick={() => window.dispatchEvent(new CustomEvent("foresail:guide-restart"))}
+            >
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 2-2 3.5M12 17h.01" /></svg>
             </button>
             <div className="fsnav-settings" ref={settingsRef}>

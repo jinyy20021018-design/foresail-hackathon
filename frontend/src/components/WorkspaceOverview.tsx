@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   api,
   type Hazard,
@@ -61,7 +61,6 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
   const [hazards, setHazards] = useState<Hazard[]>([]);
   const [selectedHazardId, setSelectedHazardId] = useState<string | null>(null);
   const [mapFocusRequest, setMapFocusRequest] = useState(0);
-  const mapPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,14 +147,11 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
   const selectHazard = (hazard: Hazard) => {
     setSelectedHazardId(hazard.hazard_id);
     setMapFocusRequest((current) => current + 1);
-    window.requestAnimationFrame(() => {
-      mapPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   };
 
   return (
     <div className="fs2-overview">
-      <section className="route-alerts" aria-label="Route alerts">
+      <section className="route-alerts" aria-label="Route alerts" data-guide="ov-alerts">
         <div className="route-alerts-head">
           <div>
             <h2>Route alerts</h2>
@@ -245,7 +241,7 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
           </div>
         </div>
 
-        <div className="panel deckpanel" ref={mapPanelRef}>
+        <div className="panel deckpanel" data-guide="ov-map">
           <RouteChart
             caseId={caseId}
             tradeCase={tradeCase}
@@ -259,7 +255,7 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
         </div>
 
         <div className="right">
-          <div className="panel form">
+          <div className="panel form" data-guide="ov-shipment">
             <div className="fh"><h2>Shipment information</h2></div>
             <div className="frow">
               <Field label="Status" value={statusLabel(tradeCase.status)} warn={tradeCase.status === "ACTION_REQUIRED" || tradeCase.status === "AT_RISK"} />
@@ -285,7 +281,7 @@ export function WorkspaceOverview({ caseId, tradeCase, actions, riskSummary, ref
               <Field label="LC expiry" value={lcExpiry ? `${shortDate(lcExpiry)}${daysToLc != null ? ` - ${daysToLc}d` : ""}` : "-"} />
             </div>
           </div>
-          <div className="panel form">
+          <div className="panel form" data-guide="ov-exposure">
             <div className="fh"><h2>Exposure flags</h2></div>
             <div className="chips">
               {flagChips.length === 0 && <span className="fchip">No exposures mapped yet</span>}

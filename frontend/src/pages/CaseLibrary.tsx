@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type CaseSummary, type TradeCase } from "../api/client";
 import { CaseStatusBadge, RiskBadge } from "../components/Badges";
+import { GuideWelcome } from "../components/guide/GuideWelcome";
+import { GUIDE_RESTART_EVENT, guideStore } from "../components/guide/guideContent";
+import "../styles/guide.css";
 
 type Props = {
   caseIds: string[];
@@ -9,7 +12,7 @@ type Props = {
   onForgetCase: (caseId: string) => void;
 };
 
-export function CaseLibrary({ caseIds, onNavigate, onRegisterCase, onForgetCase }: Props) {
+export function CaseLibrary({ caseIds, onNavigate, onForgetCase }: Props) {
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("ALL");
@@ -22,6 +25,22 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase, onForgetCase 
   const [error, setError] = useState<string | null>(null);
   const [fallbackWarning, setFallbackWarning] = useState<string | null>(null);
   const seedAttempted = useRef(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  // First-time landing greets the user here, then steers them into creating a
+  // case. Once the user has skipped, nothing shows again.
+  useEffect(() => {
+    if (!guideStore.welcomeSeen() && !guideStore.skipped()) setShowWelcome(true);
+  }, []);
+
+  useEffect(() => {
+    const restart = () => {
+      guideStore.reset();
+      setShowWelcome(true);
+    };
+    window.addEventListener(GUIDE_RESTART_EVENT, restart);
+    return () => window.removeEventListener(GUIDE_RESTART_EVENT, restart);
+  }, []);
 
   async function seedBoard() {
     setIsSeeding(true);
@@ -65,24 +84,6 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase, onForgetCase 
   useEffect(() => {
     void loadCases();
   }, [caseIds.join("|")]);
-
-  async function createDemo(kind: "clean" | "conflict" | "buyer" | "hormuz") {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const tradeCase = kind === "clean" ? await api.createCleanDemoCase() : kind === "buyer" ? await api.createBuyerDemoCase() : kind === "hormuz" ? await api.createHormuzDemoCase() : await api.createConflictDemoCase();
-      onRegisterCase(tradeCase);
-      const response = await api.listCases().catch(() => null);
-      if (response) {
-        setCases(response.cases);
-      }
-      onNavigate(`/cases/${tradeCase.case_id}`);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Failed to create demo case.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   async function deleteCase(caseId: string) {
     setDeletingCaseId(caseId);
@@ -145,10 +146,6 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase, onForgetCase 
         </div>
         <div className="header-actions">
           <button className="secondary-action" type="button" onClick={loadCases} disabled={isLoading}>Refresh</button>
-          <button className="secondary-action" type="button" onClick={() => createDemo("clean")} disabled={isLoading}>Clean Demo</button>
-          <button className="secondary-action" type="button" onClick={() => createDemo("conflict")} disabled={isLoading}>Conflict Demo</button>
-          <button className="secondary-action" type="button" onClick={() => createDemo("buyer")} disabled={isLoading}>Buyer Demo</button>
-          <button className="secondary-action" type="button" onClick={() => createDemo("hormuz")} disabled={isLoading}>Hormuz Demo</button>
           <button className="primary-action" type="button" onClick={() => onNavigate("/cases/new")}>Create New Case</button>
         </div>
       </div>
@@ -300,6 +297,21 @@ export function CaseLibrary({ caseIds, onNavigate, onRegisterCase, onForgetCase 
             </div>
           </section>
         </div>
+      )}
+
+      {showWelcome && (
+        <GuideWelcome
+          onStart={() => {
+            guideStore.markWelcomeSeen();
+            setShowWelcome(false);
+            onNavigate("/cases/new");
+          }}
+          onSkip={() => {
+            guideStore.markWelcomeSeen();
+            guideStore.setSkipped();
+            setShowWelcome(false);
+          }}
+        />
       )}
     </section>
   );

@@ -237,7 +237,12 @@ export function RouteLeafletMap({ routeMap, tradeCase, selectedHazard = null, fo
     });
 
     if (targets.length === 1) {
-      map.flyTo(targets[0].latLng, Math.max(map.getZoom(), 5), { duration: 0.55 });
+      // Keep the wide route view — pan to the risk without zooming in past the
+      // default full-route scale (never closer than the whole route fits).
+      const wideZoom = defaultBoundsRef.current
+        ? map.getBoundsZoom(defaultBoundsRef.current, false, L.point(40, 40))
+        : map.getZoom();
+      map.flyTo(targets[0].latLng, Math.min(map.getZoom(), wideZoom), { duration: 0.55 });
     } else {
       map.fitBounds(L.latLngBounds(targets.map((target) => target.latLng)), { padding: [70, 70], animate: true });
     }

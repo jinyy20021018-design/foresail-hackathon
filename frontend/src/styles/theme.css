@@ -525,17 +525,37 @@ body { background: #C7CBD2; padding: 22px; }
 
 /* seat confirmation card (Documents tab) */
 .seat-confirm { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
-.seat-confirm.confirmed { gap: 12px; }
+/* confirmed state: pill + basis grouped on the left (not pushed to opposite ends).
+   .fchip is scoped to .fs2-overview elsewhere, so restyle it locally here. */
+.seat-confirm.confirmed { gap: 10px; justify-content: flex-start; }
+.seat-confirm .fchip.on {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  padding: 5px 12px; border-radius: var(--pill);
+  background: var(--green-soft); color: #35604f;
+  font: 700 12px var(--sans); white-space: nowrap;
+}
+.seat-confirm .fchip.on::before { content: "✓"; font: 800 11px var(--sans); }
+.seat-confirm.confirmed .seat-basis {
+  margin: 0; min-width: 0; font: 600 12px var(--sans); color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .seat-confirm-copy { display: flex; flex-direction: column; gap: 3px; }
 .seat-confirm-copy strong { font: 700 15px var(--sans); color: var(--ink); }
 .seat-confirm-copy .seat-basis { margin: 2px 0 0; font: 600 12px var(--sans); color: var(--faint); }
 .seat-confirm-q { margin: 5px 0 0; font: 600 13px var(--sans); color: var(--muted); }
 .seat-confirm-actions { display: flex; gap: 10px; flex-shrink: 0; }
 
+/* Real Search action row — keep the metrics grid off the buttons */
+.action-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+
+/* Create-case upload heading: sample-set button + format tag */
+.upload-heading-aside { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+
 /* LLM action review */
 .action-review-heading { align-items: flex-start; gap: 18px; }
 .action-review-heading .inline-actions { justify-content: flex-end; }
-.action-review-controls { margin: 14px 0 18px; justify-content: flex-end; }
+.action-review-controls { margin: 14px 0 18px; justify-content: flex-end; align-items: center; gap: 12px; }
+.action-review-controls > span { font: 600 12px var(--sans); color: var(--muted); }
 .action-review-controls label, .action-select-row label { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; }
 .action-select-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .action-item.excluded { opacity: .58; }

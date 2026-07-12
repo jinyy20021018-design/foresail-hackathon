@@ -46,8 +46,19 @@ import { StatusTimeline } from "../components/StatusTimeline";
 import { WorkspaceOverview } from "../components/WorkspaceOverview";
 import { TreatmentPlansPanel } from "../components/TreatmentPlansPanel";
 import { WorkflowStepper } from "../components/WorkflowStepper";
+import { GuideTour } from "../components/guide/GuideTour";
+import {
+  GUIDE_STEPS,
+  GUIDE_RESTART_EVENT,
+  TAB_LABELS,
+  guideStore,
+  nextTabOf,
+  prevTabOf,
+  type GuideTabKey,
+} from "../components/guide/guideContent";
 import type { Language } from "../i18n";
 import "../styles/fs2-overview.css";
+import "../styles/guide.css";
 
 type TabKey = "overview" | "documents" | "conflicts" | "agent" | "events" | "risks" | "actions" | "treatment" | "audit";
 
@@ -161,6 +172,55 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
   const [agentProgressStep, setAgentProgressStep] = useState(0);
   const [agentRunComplete, setAgentRunComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [guideTab, setGuideTab] = useState<GuideTabKey | null>(null);
+
+  // First visit of each tab auto-launches that tab's walkthrough. The welcome
+  // and intake steps live earlier in the flow (Case Library -> Create Case);
+  // here we just continue page by page. Suppressed if the user opted out.
+  useEffect(() => {
+    if (isLoading || guideTab) return;
+    if (guideStore.skipped()) return;
+    if (guideStore.tabSeen(activeTab) || !GUIDE_STEPS[activeTab]?.length) return;
+    const timer = setTimeout(() => setGuideTab(activeTab), 450);
+    return () => clearTimeout(timer);
+  }, [activeTab, isLoading, guideTab]);
+
+  // "?" in the top bar replays the tour from this page's current tab.
+  useEffect(() => {
+    const restart = () => {
+      guideStore.reset();
+      setGuideTab(null);
+      setActiveTab("overview");
+      setTimeout(() => setGuideTab("overview"), 500);
+    };
+    window.addEventListener(GUIDE_RESTART_EVENT, restart);
+    return () => window.removeEventListener(GUIDE_RESTART_EVENT, restart);
+  }, []);
+
+  const closeGuideTour = (dir: "next" | "prev" | "done" | "skip") => {
+    const finished = guideTab;
+    setGuideTab(null);
+    if (!finished) return;
+    if (dir === "skip") {
+      // Skip means "stop guiding me" — suppress every remaining walkthrough.
+      guideStore.setSkipped();
+      return;
+    }
+    if (dir === "prev") {
+      // Retreat to the previous tab and re-open its walkthrough.
+      const prev = prevTabOf(finished);
+      if (prev) {
+        setActiveTab(prev);
+        setTimeout(() => setGuideTab(prev), 400);
+      }
+      return;
+    }
+    guideStore.markTabSeen(finished);
+    if (dir === "next") {
+      const next = nextTabOf(finished);
+      if (next) setActiveTab(next);
+    }
+  };
 
   const highOpenConflicts = useMemo(
     () => conflicts.filter((conflict) => conflict.severity === "High" && conflict.status === "OPEN"),
@@ -480,6 +540,7 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
           <button
             className="secondary-action"
             type="button"
+            data-guide="run-agent"
             onClick={runAgent}
             disabled={!canRunAgent || isRunning}
             title={agentRunBlockedReason ?? undefined}
@@ -577,6 +638,7 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
           <button
             className="primary-action section-action"
             type="button"
+            data-guide="doc-confirm"
             onClick={confirmFields}
             disabled={fields.length === 0 || highOpenConflicts.length > 0 || missingConfirmFields.length > 0}
             title={missingConfirmFields.length > 0 ? `Missing required fields: ${missingConfirmFields.map((field) => fieldLabels[field] ?? field).join(", ")}` : undefined}
@@ -666,6 +728,16 @@ export function CaseWorkspace({ caseId, language, onCaseChange, onNavigate }: Pr
           <AgentRunHistory caseId={caseId} runs={agentRuns} />
         </div>
       )}
+
+      {guideTab && (
+        <GuideTour
+          key={guideTab}
+          steps={GUIDE_STEPS[guideTab]}
+          nextLabel={nextTabOf(guideTab) ? TAB_LABELS[nextTabOf(guideTab) as GuideTabKey] : null}
+          prevLabel={prevTabOf(guideTab) ? TAB_LABELS[prevTabOf(guideTab) as GuideTabKey] : null}
+          onClose={closeGuideTour}
+        />
+      )}
     </section>
   );
 }
@@ -687,7 +759,7 @@ function CifResponsibilityCard({ responsibility, tradeCase }: { responsibility: 
       {missingIncoterm ? (
         <p className="warning-banner">Incoterm is missing. CIF responsibility analysis cannot be completed.</p>
       ) : unsupported ? (
-        <p className="notice">This MVP focuses on CIF. Other Incoterms are not fully supported yet.</p>
+        <p className="notice">ForeSail provides deep, clause-level responsibility analysis for CIF today. Coverage for additional Incoterms is on the roadmap.</p>
       ) : (
         <>
           {missingNamedPlace && <p className="warning-banner">CIF named destination port is missing. Responsibility analysis may be incomplete.</p>}

@@ -147,7 +147,7 @@ export function ExtractedFieldsReview({ caseId, fields, onFieldsChange, onDocume
             </div>
             <div className="review-toolbar-actions">
               <p>Accept, edit, or exclude extracted values.</p>
-              {bulkApprovable.length > 0 && <button className="primary-action" type="button" onClick={() => void approveAll()} disabled={isApprovingAll}>
+              {bulkApprovable.length > 0 && <button className="primary-action" type="button" data-guide="doc-accept-all" onClick={() => void approveAll()} disabled={isApprovingAll}>
                 {isApprovingAll ? "Accepting…" : `Accept all ${bulkApprovable.length}`}
               </button>}
             </div>

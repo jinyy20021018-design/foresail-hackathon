@@ -26,27 +26,11 @@ export function ExternalEventsPanel({
   onEventsChange,
   onError,
 }: Props) {
-  const [isFetching, setIsFetching] = useState(false);
   const [isBuildingQueries, setIsBuildingQueries] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [lastResult, setLastResult] = useState<{ fetched: number; errors: number; mode: string } | null>(null);
   const [queries, setQueries] = useState<ExternalEventQuery[]>([]);
   const [searchResult, setSearchResult] = useState<ExternalEventSearchResult | null>(null);
   const canFetch = hasConfirmedFacts && highOpenConflictsCount === 0;
-
-  async function fetchEvents() {
-    setIsFetching(true);
-    onError(null);
-    try {
-      const result = await api.fetchExternalEvents(caseId);
-      setLastResult({ fetched: result.events_deduped_count, errors: result.connector_errors.length, mode: result.mode });
-      onEventsChange(await api.getExternalEvents(caseId));
-    } catch (caught) {
-      onError(caught instanceof Error ? caught.message : "External event fetch failed.");
-    } finally {
-      setIsFetching(false);
-    }
-  }
 
   async function buildQueries() {
     setIsBuildingQueries(true);
@@ -89,7 +73,6 @@ export function ExternalEventsPanel({
           </div>
           <dl className="field-grid">
             <div><dt>Connectors</dt><dd>{config?.connectors?.length ? config.connectors.join(", ") : "Loading"}</dd></div>
-            <div><dt>Last Fetch</dt><dd>{lastResult ? `${lastResult.fetched} events / ${lastResult.errors} errors` : "Not fetched in this session"}</dd></div>
             <div><dt>GDELT</dt><dd>{config?.gdelt_enabled ? "Enabled" : "Disabled"}</dd></div>
             <div><dt>RSS News Fallback</dt><dd>{config?.real_search_enabled ? `Enabled (${config?.configured_feeds_count ?? 0} feeds)` : "Disabled"}</dd></div>
             <div><dt>Open-Meteo</dt><dd>{config?.open_meteo_enabled ? "Enabled" : "Disabled"}</dd></div>
@@ -100,17 +83,8 @@ export function ExternalEventsPanel({
             <div><dt>Weather Forecast</dt><dd>{config?.open_meteo_forecast_days ?? 3} days</dd></div>
             <div><dt>LLM Event Extraction</dt><dd>{config?.use_llm_event_extraction ? "Enabled" : "Disabled"}</dd></div>
           </dl>
-          {!hasConfirmedFacts && <div className="warning-banner">Confirmed case facts are required before fetching external events.</div>}
-          {highOpenConflictsCount > 0 && <div className="warning-banner">Resolve High OPEN conflicts before fetching external events.</div>}
-          <button
-            className="primary-action"
-            type="button"
-            onClick={fetchEvents}
-            disabled={!canFetch || isFetching}
-            title={!canFetch ? "Confirmed facts are required and high conflicts must be resolved." : undefined}
-          >
-            {isFetching ? "Fetching..." : "Fetch External Events"}
-          </button>
+          {!hasConfirmedFacts && <div className="warning-banner">Confirmed case facts are required before searching external events.</div>}
+          {highOpenConflictsCount > 0 && <div className="warning-banner">Resolve High OPEN conflicts before searching external events.</div>}
         </section>
         <section className="panel">
           <div className="panel-heading"><h2>Real Search</h2></div>

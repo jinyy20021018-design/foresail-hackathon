@@ -37,6 +37,7 @@
 }
 
 /* ---------- Corridor board ---------- */
+.corridor-board { margin-bottom: 16px; }
 .corridor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));

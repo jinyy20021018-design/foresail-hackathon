@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   api,
   type AutofillFieldSource,
@@ -9,6 +9,9 @@ import {
 } from "../api/client";
 import type { Language } from "../i18n";
 import { FilePicker } from "../components/FilePicker";
+import { GuideTour } from "../components/guide/GuideTour";
+import { INTAKE_STEPS, INTAKE_CONTINUE_STEPS, GUIDE_RESTART_EVENT, guideStore } from "../components/guide/guideContent";
+import "../styles/guide.css";
 
 type Props = {
   onCaseCreated: (tradeCase: TradeCase, targetPath?: string) => void;
@@ -50,6 +53,56 @@ const initialSlots: DocumentSlot[] = [
   { key: "other", label: "Other Supporting Documents", documentType: "OTHER", requirement: "Optional", file: null, status: "Pending" },
 ];
 
+// Bundled sample documents so a first-time user (with no trade docs on hand)
+// can run the real upload -> extract -> review flow end to end.
+const SAMPLE_DOCS: Array<{ slotKey: string; filename: string; text: string }> = [
+  {
+    slotKey: "contract",
+    filename: "sample_contract.txt",
+    text: [
+      "Commodity: Solar PV Modules",
+      "Quantity: 100 MT",
+      "Amount: USD 1250000",
+      "Currency: USD",
+      "Buyer: Demo Buyer",
+      "Seller: Shanghai Solaris PV Co., Ltd.",
+      "Incoterm: CIF Chittagong",
+      "Payment Method: LC at sight",
+      "Final Destination: Dhaka",
+    ].join("\n"),
+  },
+  {
+    slotKey: "booking",
+    filename: "sample_booking.txt",
+    text: [
+      "Booking Reference: BKG-7788",
+      "Vessel: CAPEMOLLINI",
+      "Route: Shanghai -> Chittagong -> Dhaka",
+      "Port of Loading: Shanghai",
+      "Port of Discharge: Chittagong",
+      "Final Destination: Dhaka",
+      "ETD: 2026-11-25",
+      "ETA: 2026-12-08",
+    ].join("\n"),
+  },
+  {
+    slotKey: "lc",
+    filename: "sample_lc.txt",
+    text: [
+      "LC Number: LC-001",
+      "Issuing Bank: Demo Bank",
+      "Applicant: Demo Buyer",
+      "Beneficiary: Shanghai Solaris PV Co., Ltd.",
+      "Amount: USD 1250000",
+      "Currency: USD",
+      "Latest Shipment: 2026-11-30",
+      "LC Expiry: 2026-12-31",
+      "Presentation Period: 21",
+      "Payment Method: LC at sight",
+    ].join("\n"),
+  },
+];
+
 const traceLabels = [
   "Create draft case",
   "Upload contract document",
@@ -72,6 +125,26 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
   const [trace, setTrace] = useState<TraceStep[]>(traceLabels.map((label) => ({ label, status: "Pending" })));
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showIntakeTour, setShowIntakeTour] = useState(false);
+  const [showContinueGuide, setShowContinueGuide] = useState(false);
+
+  // The upload walkthrough runs here (the welcome/orientation happens earlier,
+  // on the Case Library). Suppressed once the user has skipped.
+  useEffect(() => {
+    if (guideStore.skipped() || guideStore.intakeSeen()) return;
+    const timer = setTimeout(() => setShowIntakeTour(true), 400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const restart = () => {
+      guideStore.reset();
+      setShowContinueGuide(false);
+      setShowIntakeTour(true);
+    };
+    window.addEventListener(GUIDE_RESTART_EVENT, restart);
+    return () => window.removeEventListener(GUIDE_RESTART_EVENT, restart);
+  }, []);
 
   const selectedFiles = useMemo(() => slots.filter((slot) => slot.file), [slots]);
   const hasExtracted = Boolean(autofill);
@@ -85,12 +158,28 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
     setSlots((current) => current.map((slot) => slot.key === key ? { ...slot, file, status: file ? "Selected" : "Pending" } : slot));
   }
 
+  function loadSampleDocuments() {
+    setError(null);
+    setSlots((current) =>
+      current.map((slot) => {
+        const sample = SAMPLE_DOCS.find((doc) => doc.slotKey === slot.key);
+        if (!sample) return slot;
+        const file = new File([sample.text], sample.filename, { type: "text/plain" });
+        return { ...slot, file, status: "Selected" };
+      })
+    );
+  }
+
   function setTraceStatus(label: string, status: TraceStep["status"]) {
     setTrace((current) => current.map((step) => step.label === label ? { ...step, status } : step));
   }
 
   async function extractCaseDetails() {
     if (selectedFiles.length === 0) return;
+    // Clicking Extract ends the upload walkthrough; the post-extract guide
+    // takes over once facts come back.
+    setShowIntakeTour(false);
+    guideStore.markIntakeSeen();
     setError(null);
     setIsLoading(true);
     setAutofill(null);
@@ -147,6 +236,7 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
       setTraceStatus("Build autofill case details", "Completed");
       setTraceStatus("Ready for human review", "Completed");
       setSlots((current) => current.map((slot) => slot.file ? { ...slot, status: "Extracted" } : slot));
+      if (!guideStore.skipped()) setShowContinueGuide(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Extract case details failed.");
       setTrace((current) => current.map((step) => step.status === "Running" ? { ...step, status: "Failed" } : step));
@@ -211,7 +301,12 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
             <h2>Upload trade documents</h2>
             <p>Start with the contract, then add supporting records to improve matching confidence.</p>
           </div>
-          <span className="upload-format-tag">TXT · DOCX · text-based PDF</span>
+          <div className="upload-heading-aside">
+            <button className="ghost-button" type="button" data-guide="intake-sample" onClick={loadSampleDocuments} disabled={isLoading}>
+              Use a sample document set
+            </button>
+            <span className="upload-format-tag">TXT · DOCX · text-based PDF</span>
+          </div>
         </div>
         <div className="document-slot-grid">
           {slots.map((slot) => (
@@ -230,7 +325,7 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
         </div>
         <div className="create-upload-footer">
           <div><strong>{selectedFiles.length} document{selectedFiles.length === 1 ? "" : "s"} selected</strong><span>Text-based PDF, DOCX, and TXT are extracted automatically.</span></div>
-          <button className="primary-action" type="button" onClick={extractCaseDetails} disabled={selectedFiles.length === 0 || isLoading}>
+          <button className="primary-action" type="button" data-guide="intake-extract" onClick={extractCaseDetails} disabled={selectedFiles.length === 0 || isLoading}>
             {isLoading ? "Extracting..." : "Extract Case Details"}
           </button>
         </div>
@@ -279,7 +374,7 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
         </div>
         <p className="subtle">Auto-filled fields are draft extracted facts, not confirmed facts. Continue to review evidence, resolve conflicts, and confirm case facts in the Case Workspace.</p>
         <div className="form-actions">
-          <button className="primary-action" type="button" onClick={continueToReview} disabled={isLoading}>
+          <button className="primary-action" type="button" data-guide="intake-continue" onClick={continueToReview} disabled={isLoading}>
             {hasExtracted ? "Continue to Review" : "Create Case and Review"}
           </button>
           <button className="secondary-action" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
@@ -290,6 +385,28 @@ export function CreateCase({ onCaseCreated, onCancel }: Props) {
         <summary><span><strong>Advanced options</strong><small>Create a case without extracting documents</small></span><span>＋</span></summary>
         <div><p className="subtle">Create a blank case for manual entry. Documents must be uploaded before monitoring can run.</p><button className="secondary-action" type="button" onClick={createBlankCase} disabled={isLoading}>Create Blank Case</button></div>
       </details>
+
+      {showIntakeTour && (
+        <GuideTour
+          steps={INTAKE_STEPS}
+          nextLabel={null}
+          onClose={(dir) => {
+            if (dir === "skip") guideStore.setSkipped();
+            else guideStore.markIntakeSeen();
+            setShowIntakeTour(false);
+          }}
+        />
+      )}
+      {showContinueGuide && (
+        <GuideTour
+          steps={INTAKE_CONTINUE_STEPS}
+          nextLabel={null}
+          onClose={(dir) => {
+            if (dir === "skip") guideStore.setSkipped();
+            setShowContinueGuide(false);
+          }}
+        />
+      )}
     </section>
   );
 }
